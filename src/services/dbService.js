@@ -17,13 +17,12 @@ import { getMeetingUrl, generateMeetingRoom } from './jitsiService';
 const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const getBackendUrl = () => {
-  if (import.meta.env.VITE_BACKEND_URL) {
-    return import.meta.env.VITE_BACKEND_URL;
-  }
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+  const isLocalhost = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  if (isLocalhost) {
     return 'http://localhost:3001';
   }
-  return 'http://localhost:3001';
+  return import.meta.env.VITE_BACKEND_URL || 'https://wow-my-flight-backend-production.up.railway.app';
 };
 
 async function apiFetch(path, options = {}) {
@@ -36,7 +35,7 @@ async function apiFetch(path, options = {}) {
     if (res.ok) {
       return await res.json();
     }
-  } catch (err) {}
+  } catch (err) { }
 
   // Fallback if primary URL failed or was unreachable
   const fallbackUrl = primaryUrl.includes('localhost')
@@ -52,7 +51,7 @@ async function apiFetch(path, options = {}) {
       if (res.ok) {
         return await res.json();
       }
-    } catch (err) {}
+    } catch (err) { }
   }
   return null;
 }
@@ -67,7 +66,7 @@ if (typeof window !== 'undefined') {
         localStorage.removeItem(k);
       }
     });
-  } catch (e) {}
+  } catch (e) { }
 }
 
 const loadState = (key, defaults) => {
@@ -83,9 +82,9 @@ const loadState = (key, defaults) => {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
         // Discard if containing legacy Spanish visa data
-        const isLegacy = parsed.some(item => 
-          item?.profileSummary?.includes('Golden Visa') || 
-          item?.serviceId === 'property' || 
+        const isLegacy = parsed.some(item =>
+          item?.profileSummary?.includes('Golden Visa') ||
+          item?.serviceId === 'property' ||
           item?.name?.includes('AAA Business')
         );
         if (!isLegacy) {
@@ -166,6 +165,115 @@ const INITIAL_CONVERSATIONS = [
   }
 ];
 
+// ─── CLIENTS METADATA STORE & CACHE ──────────────────────────────
+const CLIENTS_META_STORAGE_KEY = 'crm-clients-meta-store';
+
+const INITIAL_CLIENTS_META = {
+  'CL-8853': {
+    city: 'Bangalore',
+    country: 'India',
+    nationality: 'India',
+    preferredCabinClass: 'Business Class',
+    passportNumber: 'M9876543',
+    passportExpiry: '2030-11-20',
+    seatPreference: 'Window',
+    mealPreference: 'Vegetarian (Asian)',
+    timezone: 'IST (UTC+5:30)',
+    preferredLanguage: 'Hindi',
+    tier: 'Gold'
+  },
+  'CL-7737': {
+    city: 'Delhi',
+    country: 'India',
+    nationality: 'India',
+    preferredCabinClass: 'Business Class',
+    seatPreference: 'Window',
+    mealPreference: 'Vegetarian (Asian)',
+    timezone: 'IST (UTC+5:30)',
+    preferredLanguage: 'Hindi',
+    tier: 'VIP Platinum'
+  },
+  'CL-9062': {
+    city: 'Mumbai',
+    country: 'India',
+    nationality: 'India',
+    preferredCabinClass: 'Economy',
+    timezone: 'IST (UTC+5:30)',
+    preferredLanguage: 'English',
+    tier: 'Standard'
+  },
+  'CL-1513': {
+    city: 'Mumbai',
+    country: 'India',
+    nationality: 'India',
+    preferredCabinClass: 'Premium Economy',
+    passportNumber: 'IND1234567',
+    passportExpiry: '2032-05-15',
+    seatPreference: 'Aisle',
+    mealPreference: 'Vegetarian (Asian)',
+    timezone: 'IST (UTC+5:30)',
+    preferredLanguage: 'Hindi',
+    tier: 'Standard'
+  }
+};
+
+function getClientsMetaStore() {
+  if (typeof window === 'undefined') return { ...INITIAL_CLIENTS_META };
+  try {
+    const raw = localStorage.getItem(CLIENTS_META_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return { ...INITIAL_CLIENTS_META, ...parsed };
+  } catch (e) {
+    return { ...INITIAL_CLIENTS_META };
+  }
+}
+
+function persistClientMeta(client) {
+  if (!client || typeof window === 'undefined') return;
+  try {
+    const store = getClientsMetaStore();
+    const metaToSave = {
+      city: client.city || '',
+      country: client.country || client.nationality || '',
+      nationality: client.nationality || client.country || '',
+      preferredCabinClass: client.preferredCabinClass || '',
+      passportNumber: client.passportNumber || '',
+      passportExpiry: client.passportExpiry || '',
+      seatPreference: client.seatPreference || '',
+      mealPreference: client.mealPreference || '',
+      timezone: client.timezone || '',
+      preferredLanguage: client.preferredLanguage || '',
+      tier: client.tier || 'Standard'
+    };
+
+    if (client.id) store[client.id] = { ...(store[client.id] || {}), ...metaToSave };
+    if (client.email) store[client.email.toLowerCase()] = { ...(store[client.email.toLowerCase()] || {}), ...metaToSave };
+    if (client.phone) store[client.phone] = { ...(store[client.phone] || {}), ...metaToSave };
+    localStorage.setItem(CLIENTS_META_STORAGE_KEY, JSON.stringify(store));
+  } catch (e) { }
+}
+
+function enrichClientData(c) {
+  if (!c) return c;
+  const store = getClientsMetaStore();
+  const meta = store[c.id] || (c.email ? store[c.email.toLowerCase()] : null) || (c.phone ? store[c.phone] : null) || {};
+
+  return {
+    ...c,
+    city: c.city || meta.city || '',
+    country: c.country || meta.country || c.nationality || '',
+    nationality: c.nationality || meta.nationality || c.country || '',
+    preferredCabinClass: c.preferredCabinClass || meta.preferredCabinClass || '',
+    passportNumber: c.passportNumber || meta.passportNumber || '',
+    passportExpiry: c.passportExpiry || meta.passportExpiry || '',
+    seatPreference: c.seatPreference || meta.seatPreference || '',
+    mealPreference: c.mealPreference || meta.mealPreference || '',
+    timezone: c.timezone || meta.timezone || '',
+    preferredLanguage: c.preferredLanguage || meta.preferredLanguage || '',
+    tier: c.tier || meta.tier || 'Standard'
+  };
+}
+
 export const dbService = {
   // SYSTEM HEALTH & DB STATUS
   getDbHealth: async () => {
@@ -174,7 +282,7 @@ export const dbService = {
       if (remote && remote.status === 'ok') {
         return remote;
       }
-    } catch (e) {}
+    } catch (e) { }
     return { status: 'offline', database: { connected: false } };
   },
 
@@ -185,7 +293,7 @@ export const dbService = {
       if (remote && remote.success && Array.isArray(remote.data)) {
         return remote.data;
       }
-    } catch (e) {}
+    } catch (e) { }
     return [];
   },
 
@@ -197,10 +305,10 @@ export const dbService = {
         localStorage.setItem('crm-leads', JSON.stringify(remote.data));
         return remote.data;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await delay(50);
-    return loadState('crm-leads', MOCK_LEADS);
+    return loadState('crm-leads', []);
   },
   getLeadById: async (id) => {
     try {
@@ -208,7 +316,7 @@ export const dbService = {
       if (remote && remote.success && remote.data) {
         return remote.data;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await delay(50);
     const leads = await dbService.getLeads();
@@ -336,15 +444,15 @@ export const dbService = {
     return { leadId, status };
   },
 
-  // CLIENTS
+  // CLIENTS METADATA & PERSISTENCE
+  // Ensures city, country, preferredCabinClass and preferences are never lost
   getClients: async () => {
     try {
       const remote = await apiFetch('/api/clients');
       if (remote && remote.success && Array.isArray(remote.data)) {
-        if (remote.data.length > 0) {
-          localStorage.setItem('crm-clients', JSON.stringify(remote.data));
-          return remote.data;
-        }
+        const enriched = remote.data.map(enrichClientData);
+        localStorage.setItem('crm-clients', JSON.stringify(enriched));
+        return enriched;
       }
     } catch (e) {
       console.warn('[dbService] getClients API warning:', e.message);
@@ -353,7 +461,10 @@ export const dbService = {
     await delay(50);
     const cached = localStorage.getItem('crm-clients');
     if (cached) {
-      try { return JSON.parse(cached); } catch (e) {}
+      try {
+        const parsed = JSON.parse(cached);
+        return parsed.map(enrichClientData);
+      } catch (e) { }
     }
     return [];
   },
@@ -361,25 +472,29 @@ export const dbService = {
     try {
       const remote = await apiFetch(`/api/clients/${id}`);
       if (remote && remote.success && remote.data) {
-        return remote.data;
+        return enrichClientData(remote.data);
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await delay(50);
     const clients = await dbService.getClients();
-    return clients.find(c => c.id === id);
+    const found = clients.find(c => c.id === id);
+    return found ? enrichClientData(found) : null;
   },
   createClient: async (client) => {
+    persistClientMeta(client);
     try {
       const res = await apiFetch('/api/clients', {
         method: 'POST',
         body: JSON.stringify(client)
       });
       if (res && res.success && res.data) {
+        persistClientMeta({ ...client, id: res.data.id });
+        const enriched = enrichClientData(res.data);
         const clients = loadState('crm-clients', []);
-        clients.unshift(res.data);
+        clients.unshift(enriched);
         saveState('crm-clients', clients);
-        return res.data;
+        return enriched;
       }
     } catch (e) {
       console.warn('[dbService] createClient API warning:', e.message);
@@ -387,26 +502,30 @@ export const dbService = {
 
     await delay(50);
     const clients = loadState('crm-clients', []);
-    const newClient = {
-      id: client.id || ('CL' + (2000 + clients.length + 1)),
+    const newClient = enrichClientData({
+      id: client.id || ('CL-' + Math.floor(1000 + Math.random() * 9000)),
       onboardingDate: new Date().toISOString(),
       ...client
-    };
+    });
+    persistClientMeta(newClient);
     clients.unshift(newClient);
     saveState('crm-clients', clients);
     return newClient;
   },
   updateClient: async (client) => {
+    persistClientMeta(client);
     try {
       const res = await apiFetch(`/api/clients/${client.id}`, {
         method: 'PUT',
         body: JSON.stringify(client)
       });
       if (res && res.success && res.data) {
+        const enriched = enrichClientData({ ...client, ...res.data });
+        persistClientMeta(enriched);
         const clients = loadState('crm-clients', []);
-        const updated = clients.map(c => c.id === client.id ? { ...c, ...res.data } : c);
+        const updated = clients.map(c => c.id === client.id ? { ...c, ...enriched } : c);
         saveState('crm-clients', updated);
-        return res.data;
+        return enriched;
       }
     } catch (e) {
       console.warn('[dbService] updateClient API warning:', e.message);
@@ -414,9 +533,31 @@ export const dbService = {
 
     await delay(50);
     const clients = loadState('crm-clients', []);
-    const updated = clients.map(c => c.id === client.id ? { ...c, ...client } : c);
+    const enriched = enrichClientData(client);
+    const updated = clients.map(c => c.id === client.id ? { ...c, ...enriched } : c);
     saveState('crm-clients', updated);
-    return client;
+    return enriched;
+  },
+  deleteClient: async (id) => {
+    try {
+      const res = await apiFetch(`/api/clients/${id}`, {
+        method: 'DELETE'
+      });
+      if (res && res.success) {
+        const clients = loadState('crm-clients', []);
+        const filtered = clients.filter(c => c.id !== id);
+        saveState('crm-clients', filtered);
+        return true;
+      }
+    } catch (e) {
+      console.warn('[dbService] deleteClient API warning:', e.message);
+    }
+
+    await delay(50);
+    const clients = loadState('crm-clients', []);
+    const filtered = clients.filter(c => c.id !== id);
+    saveState('crm-clients', filtered);
+    return true;
   },
   updateClientVisaStatus: async (clientId, visaStatus, status) => {
     await delay(50);
@@ -451,7 +592,7 @@ export const dbService = {
     await delay(50);
     const cached = localStorage.getItem('crm-consultations');
     if (cached) {
-      try { return JSON.parse(cached); } catch (e) {}
+      try { return JSON.parse(cached); } catch (e) { }
     }
     return [];
   },
@@ -552,7 +693,7 @@ export const dbService = {
     await delay(50);
     const cached = localStorage.getItem('crm-payments');
     if (cached) {
-      try { return JSON.parse(cached); } catch (e) {}
+      try { return JSON.parse(cached); } catch (e) { }
     }
     return [];
   },
@@ -631,12 +772,12 @@ export const dbService = {
           return remote.data;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await delay(50);
     const cached = localStorage.getItem('crm-quotes');
     if (cached) {
-      try { return JSON.parse(cached); } catch (e) {}
+      try { return JSON.parse(cached); } catch (e) { }
     }
     return [];
   },
@@ -646,7 +787,7 @@ export const dbService = {
       if (remote && remote.success && remote.data) {
         return remote.data;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await delay(50);
     const quotes = await dbService.getQuotes();
@@ -664,7 +805,7 @@ export const dbService = {
         saveState('crm-quotes', quotes);
         return res.data;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await delay(50);
     const quotes = loadState('crm-quotes', []);
@@ -689,7 +830,7 @@ export const dbService = {
         saveState('crm-quotes', updated);
         return res.data;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await delay(50);
     const quotes = loadState('crm-quotes', []);
@@ -715,7 +856,7 @@ export const dbService = {
     await delay(50);
     const cached = localStorage.getItem('crm-bookings');
     if (cached) {
-      try { return JSON.parse(cached); } catch (e) {}
+      try { return JSON.parse(cached); } catch (e) { }
     }
     return [];
   },
@@ -765,7 +906,7 @@ export const dbService = {
     await delay(50);
     const cached = localStorage.getItem('crm-documents');
     if (cached) {
-      try { return JSON.parse(cached); } catch (e) {}
+      try { return JSON.parse(cached); } catch (e) { }
     }
     return [];
   },
@@ -985,7 +1126,7 @@ export const dbService = {
     await delay(50);
     const cached = localStorage.getItem('crm-agents-list');
     if (cached) {
-      try { return JSON.parse(cached); } catch (e) {}
+      try { return JSON.parse(cached); } catch (e) { }
     }
     return [];
   },
@@ -1129,19 +1270,19 @@ export const dbService = {
     const refunds = loadState('crm-refund-requests', []);
     const payments = loadState('crm-payments', MOCK_PAYMENTS);
     const clients = loadState('crm-clients', MOCK_CLIENTS);
-    
+
     const client = clients.find(c => c.id === refund.clientId);
     const clientName = client ? `${client.firstName} ${client.lastName}` : 'Unknown Client';
-    
+
     let refundAmount = Number(refund.amount) || 0;
-    
+
     // Automatic 50% Refund Calculation for Visa Rejections Only
     if (refund.category === 'Visa Rejection') {
       const clientPayments = payments.filter(p => p.clientId === refund.clientId && p.status === 'Paid');
       const totalPaid = clientPayments.reduce((acc, curr) => acc + (curr.totalPaid || curr.amount), 0);
       refundAmount = totalPaid * 0.5;
     }
-    
+
     const newRefund = {
       id: 'REF-' + String(refunds.length + 101),
       clientName,
@@ -1153,7 +1294,7 @@ export const dbService = {
       ],
       ...refund
     };
-    
+
     refunds.unshift(newRefund);
     saveState('crm-refund-requests', refunds);
     return newRefund;
@@ -1162,12 +1303,12 @@ export const dbService = {
     await delay();
     const refunds = loadState('crm-refund-requests', []);
     const payments = loadState('crm-payments', MOCK_PAYMENTS);
-    
+
     const updated = refunds.map(r => {
       if (r.id === refundId) {
         const auditLogs = [...(r.auditLogs || [])];
         auditLogs.push({ date: new Date().toISOString(), action: `Refund status updated to ${status}.`, user });
-        
+
         // If processed, create negative payment entry
         if (status === 'Processed' && r.status !== 'Processed') {
           const newPayment = {
@@ -1192,7 +1333,7 @@ export const dbService = {
       }
       return r;
     });
-    
+
     saveState('crm-refund-requests', updated);
     return updated.find(r => r.id === refundId);
   },
@@ -1238,20 +1379,20 @@ export const dbService = {
       { agentId: 'c4', type: 'fixed', value: 200 },
       { agentId: 'c5', type: '10%', value: 10 }
     ]);
-    
+
     // Find all paid payments (excluding refunds)
     const paidPayments = payments.filter(p => (p.status === 'Paid' || p.status === 'Payment Successful') && (p.amount > 0 || p.totalPaid > 0));
-    
+
     const reports = paidPayments.map(pay => {
       // Find client
       const client = clients.find(c => c.id === pay.clientId);
       const agentId = client?.assignedConsultantId || client?.assignedAgentId || 'unassigned';
       const agent = agents.find(a => a.id === agentId);
       const agentName = agent ? agent.name : (pay.agentName || 'Wael Madi');
-      
+
       // Find rate structure
       const rate = rates.find(r => r.agentId === agentId) || { type: '10%', value: 10 };
-      
+
       let commissionEarned = 0;
       if (rate.type === '5%') {
         commissionEarned = pay.totalPaid * 0.05;
@@ -1262,10 +1403,10 @@ export const dbService = {
       } else if (rate.type === 'fixed') {
         commissionEarned = rate.value;
       }
-      
+
       // Mock payment tracking (e.g. invoices processed before June 15th are marked paid)
       const commissionPaid = new Date(pay.billingDate) < new Date('2026-06-15') ? commissionEarned : 0;
-      
+
       return {
         id: 'COMM-' + pay.id,
         paymentId: pay.id,
@@ -1281,7 +1422,7 @@ export const dbService = {
         date: pay.billingDate
       };
     });
-    
+
     return reports;
   },
 
@@ -1326,35 +1467,35 @@ export const dbService = {
     const consultations = loadState('crm-consultations', MOCK_CONSULTATIONS);
     const clients = loadState('crm-clients', MOCK_CLIENTS);
     const consultants = loadState('crm-agents-list', AGENTS);
-    
+
     const client = clients.find(c => c.id === clientId);
     const clientName = client ? `${client.firstName} ${client.lastName}` : 'Unknown Client';
-    
+
     // Check if auto assign setting is enabled
     const autoAssignSaved = localStorage.getItem('crm-settings-autoassign');
     const autoAssignEnabled = autoAssignSaved !== null ? JSON.parse(autoAssignSaved) : true;
-    
+
     let assignedConsultantId = 'unassigned';
     let status = 'Pending Assignment';
     let meetingLink = '';
-    
+
     if (autoAssignEnabled && consultants.length > 0) {
       // Find matching consultant by workload (lowest casesCount)
-      const selected = consultants.reduce((min, curr) => 
+      const selected = consultants.reduce((min, curr) =>
         (curr.casesCount || 0) < (min.casesCount || 0) ? curr : min
-      , consultants[0]);
-      
+        , consultants[0]);
+
       if (selected) {
         assignedConsultantId = selected.id;
         status = 'Scheduled';
         meetingLink = getMeetingUrl(generateMeetingRoom(clientId, clientName));
-        
+
         // Increment workload
-        const updatedAgents = consultants.map(c => 
+        const updatedAgents = consultants.map(c =>
           c.id === selected.id ? { ...c, casesCount: (c.casesCount || 0) + 1 } : c
         );
         saveState('crm-agents-list', updatedAgents);
-        
+
         // Update client assigned manager too
         if (client) {
           client.assignedConsultantId = selected.id;
@@ -1362,7 +1503,7 @@ export const dbService = {
         }
       }
     }
-    
+
     const newConsultation = {
       id: 'CS' + (3000 + consultations.length + 1),
       leadId: clientId,
@@ -1376,10 +1517,10 @@ export const dbService = {
       notes: notes || 'Client scheduled free consultation from portal.',
       outcome: null
     };
-    
+
     consultations.unshift(newConsultation);
     saveState('crm-consultations', consultations);
-    
+
     // Trigger agent notification if scheduled
     if (status === 'Scheduled' && assignedConsultantId !== 'unassigned') {
       const notifications = loadState('crm-notifications', NOTIFICATIONS);
@@ -1393,7 +1534,7 @@ export const dbService = {
       });
       saveState('crm-notifications', notifications);
     }
-    
+
     return newConsultation;
   },
   assignAgentToConsultation: async (consultationId, agentId) => {
@@ -1401,13 +1542,13 @@ export const dbService = {
     const consultations = loadState('crm-consultations', MOCK_CONSULTATIONS);
     const clients = loadState('crm-clients', MOCK_CLIENTS);
     const agents = loadState('crm-agents-list', AGENTS);
-    
+
     const cons = consultations.find(c => c.id === consultationId);
     if (!cons) return null;
-    
+
     const selectedAgent = agents.find(a => a.id === agentId);
     const agentName = selectedAgent ? selectedAgent.name : 'Unknown';
-    
+
     const updatedCons = consultations.map(c => {
       if (c.id === consultationId) {
         return {
@@ -1420,13 +1561,13 @@ export const dbService = {
       return c;
     });
     saveState('crm-consultations', updatedCons);
-    
+
     // Increment workload
-    const updatedAgents = agents.map(a => 
+    const updatedAgents = agents.map(a =>
       a.id === agentId ? { ...a, casesCount: (a.casesCount || 0) + 1 } : a
     );
     saveState('crm-agents-list', updatedAgents);
-    
+
     // Update client record
     const updatedClients = clients.map(cl => {
       if (cl.id === cons.leadId) {
@@ -1435,7 +1576,7 @@ export const dbService = {
       return cl;
     });
     saveState('crm-clients', updatedClients);
-    
+
     // Trigger notification
     const notifications = loadState('crm-notifications', NOTIFICATIONS);
     notifications.unshift({
@@ -1447,17 +1588,17 @@ export const dbService = {
       time: 'Just now'
     });
     saveState('crm-notifications', notifications);
-    
+
     return updatedCons.find(c => c.id === consultationId);
   },
   completeConsultationAndUnlockDocs: async (consultationId) => {
     await delay();
     const consultations = loadState('crm-consultations', MOCK_CONSULTATIONS);
     const clients = loadState('crm-clients', MOCK_CLIENTS);
-    
+
     const cons = consultations.find(c => c.id === consultationId);
     if (!cons) return null;
-    
+
     const updatedCons = consultations.map(c => {
       if (c.id === consultationId) {
         return {
@@ -1473,7 +1614,7 @@ export const dbService = {
       return c;
     });
     saveState('crm-consultations', updatedCons);
-    
+
     // Unlock document upload permission for client
     const updatedClients = clients.map(cl => {
       if (cl.id === cons.leadId) {
@@ -1486,7 +1627,7 @@ export const dbService = {
       return cl;
     });
     saveState('crm-clients', updatedClients);
-    
+
     return updatedCons.find(c => c.id === consultationId);
   },
 

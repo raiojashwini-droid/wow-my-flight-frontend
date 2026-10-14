@@ -14,7 +14,7 @@ import Select from '@mui/material/Select';
 import Paper from '@mui/material/Paper';
 import Chip from '@mui/material/Chip';
 import Avatar from '@mui/material/Avatar';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 
@@ -29,6 +29,7 @@ import StarIcon from '@mui/icons-material/Star';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 // Services & Components
 import { dbService } from '../../services/dbService';
@@ -44,15 +45,16 @@ const customerFormSchema = yup.object().shape({
   lastName: yup.string().required('Last Name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
   phone: yup.string().required('Phone number is required'),
-  country: yup.string().default('United States'),
-  city: yup.string().default('New York'),
-  timezone: yup.string().default('UTC-05:00 Eastern Time'),
-  preferredLanguage: yup.string().default('English'),
+  country: yup.string().default(''),
+  city: yup.string().default(''),
+  timezone: yup.string().default(''),
+  preferredLanguage: yup.string().default(''),
+  tier: yup.string().default('Standard'),
   passportNumber: yup.string().default(''),
   passportExpiry: yup.string().default(''),
-  preferredCabinClass: yup.string().default('Business Class'),
-  seatPreference: yup.string().default('Aisle'),
-  mealPreference: yup.string().default('Vegetarian')
+  preferredCabinClass: yup.string().default(''),
+  seatPreference: yup.string().default(''),
+  mealPreference: yup.string().default('')
 });
 
 export const SuperAdminClientList = () => {
@@ -97,10 +99,19 @@ export const SuperAdminClientList = () => {
     }
   });
 
+  const deleteCustomerMutation = useMutation({
+    mutationFn: dbService.deleteClient,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      showAlert('Passenger Customer profile deleted successfully!', 'info');
+    }
+  });
+
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors }
   } = useForm({
     resolver: yupResolver(customerFormSchema),
@@ -108,23 +119,25 @@ export const SuperAdminClientList = () => {
       firstName: '',
       lastName: '',
       email: '',
-      phone: '+1 ',
-      country: 'United States',
-      city: 'New York',
-      timezone: 'UTC-05:00 Eastern Time',
-      preferredLanguage: 'English',
+      phone: '',
+      country: '',
+      city: '',
+      timezone: '',
+      preferredLanguage: '',
+      tier: 'Standard',
       passportNumber: '',
-      passportExpiry: '2031-10-15',
-      preferredCabinClass: 'Business Class',
-      seatPreference: 'Aisle',
-      mealPreference: 'Vegetarian'
+      passportExpiry: '',
+      preferredCabinClass: '',
+      seatPreference: '',
+      mealPreference: ''
     }
   });
 
   const handleCreateCustomer = (data) => {
     createCustomerMutation.mutate({
       ...data,
-      totalSpent: '$0',
+      tier: data.tier || 'Standard',
+      totalSpent: 0,
       totalBookings: 0,
       onboardingDate: new Date().toISOString()
     });
@@ -138,7 +151,7 @@ export const SuperAdminClientList = () => {
         c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.phone?.includes(searchTerm) ||
         c.city?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchClass = classFilter ? (c.preferredCabinClass || 'Business Class') === classFilter : true;
+      const matchClass = classFilter ? c.preferredCabinClass === classFilter : true;
       return matchSearch && matchClass;
     }).sort((a, b) => {
       let valA = a[sortColumn] || `${a.firstName} ${a.lastName}`;
@@ -197,45 +210,57 @@ export const SuperAdminClientList = () => {
     {
       id: 'location',
       label: 'City / Country',
-      render: (row) => (
-        <Typography variant="caption" sx={{ fontWeight: 600 }}>
-          {row.city || 'New York'}, {row.country || 'USA'}
-        </Typography>
-      )
+      render: (row) => {
+        const loc = [row.city, row.country || row.nationality].filter(Boolean).join(', ');
+        return (
+          <Typography variant="caption" sx={{ fontWeight: 600 }}>
+            {loc || '—'}
+          </Typography>
+        );
+      }
     },
     {
       id: 'cabinClass',
       label: 'Preferred Cabin',
       render: (row) => (
-        <Chip
-          size="small"
-          label={row.preferredCabinClass || 'Business Class'}
-          color={row.preferredCabinClass === 'First Class' ? 'warning' : 'primary'}
-          variant="outlined"
-          sx={{ fontSize: '0.68rem', fontWeight: 700 }}
-        />
+        row.preferredCabinClass ? (
+          <Chip
+            size="small"
+            label={row.preferredCabinClass}
+            color={row.preferredCabinClass === 'First Class' ? 'warning' : 'primary'}
+            variant="outlined"
+            sx={{ fontSize: '0.68rem', fontWeight: 700 }}
+          />
+        ) : (
+          <Typography variant="caption" color="text.secondary">—</Typography>
+        )
       )
     },
     {
       id: 'tier',
       label: 'Loyalty / VIP',
-      render: () => (
+      render: (row) => (
         <Chip
           size="small"
           icon={<StarIcon sx={{ fontSize: '13px !important', color: '#EAB308' }} />}
-          label="VIP Frequent"
-          sx={{ fontSize: '0.65rem', fontWeight: 700, bgcolor: 'var(--wl-FEF9C3, #FEF9C3)', color: 'var(--wd-854D0E, #854D0E)' }}
+          label={row.tier || 'Standard'}
+          sx={{ fontSize: '0.65rem', fontWeight: 700, bgcolor: '#FEF9C3', color: '#854D0E' }}
         />
       )
     },
     {
       id: 'totalSpent',
       label: 'Lifetime Value',
-      render: (row) => (
-        <Typography variant="caption" sx={{ fontWeight: 900, color: 'success.main' }}>
-          {row.totalSpent || '$15,525'}
-        </Typography>
-      )
+      render: (row) => {
+        const val = row.totalSpent !== undefined && row.totalSpent !== null && row.totalSpent !== ''
+          ? (String(row.totalSpent).startsWith('$') ? row.totalSpent : `$${Number(row.totalSpent).toLocaleString()}`)
+          : '$0';
+        return (
+          <Typography variant="caption" sx={{ fontWeight: 900, color: 'success.main' }}>
+            {val}
+          </Typography>
+        );
+      }
     }
   ];
 
@@ -329,6 +354,22 @@ export const SuperAdminClientList = () => {
                   <VisibilityIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
+              {(isSuperAdmin || isAdmin) && (
+                <Tooltip title="Delete Customer">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Are you sure you want to delete ${row.firstName} ${row.lastName}?`)) {
+                        deleteCustomerMutation.mutate(row.id);
+                      }
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
             </Box>
           )}
         />
@@ -358,7 +399,7 @@ export const SuperAdminClientList = () => {
       >
         <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           {/* Personal Info */}
-          <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+          <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5, color: 'primary.main' }}>
               👤 PERSONAL INFORMATION
             </Typography>
@@ -371,43 +412,94 @@ export const SuperAdminClientList = () => {
               <TextField {...register('city')} label="City" size="small" />
               <TextField {...register('timezone')} label="Time Zone" size="small" />
               <TextField {...register('preferredLanguage')} label="Language Preference" size="small" />
+              <FormControl size="small" fullWidth sx={{ gridColumn: { sm: 'span 2' } }}>
+                <InputLabel>Loyalty / VIP Tier</InputLabel>
+                <Controller
+                  name="tier"
+                  control={control}
+                  defaultValue="Standard"
+                  render={({ field }) => (
+                    <Select {...field} label="Loyalty / VIP Tier">
+                      <MenuItem value="Standard">Standard</MenuItem>
+                      <MenuItem value="Silver">Silver</MenuItem>
+                      <MenuItem value="Gold">Gold</MenuItem>
+                      <MenuItem value="Platinum">Platinum</MenuItem>
+                      <MenuItem value="VIP Platinum">VIP Platinum</MenuItem>
+                    </Select>
+                  )}
+                />
+              </FormControl>
             </Box>
           </Paper>
 
           {/* Passport & Travel Docs */}
-          <Paper elevation={0} sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(14, 165, 233, 0.12)' : '#F0F9FF', borderRadius: 2, border: '1px solid #BAE6FD' }}>
+          <Paper elevation={0} sx={{ p: 2, bgcolor: '#F0F9FF', borderRadius: 2, border: '1px solid #BAE6FD' }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5, color: 'info.main' }}>
               🛂 PASSPORT & TRAVEL PREFERENCES
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
               <TextField {...register('passportNumber')} label="Passport Number" size="small" placeholder="e.g. US98234109" />
-              <TextField {...register('passportExpiry')} label="Passport Expiry Date" type="date" size="small" InputLabelProps={{ shrink: true }} />
+              <TextField
+                {...register('passportExpiry')}
+                label="Passport Expiry Date"
+                type="date"
+                size="small"
+                fullWidth
+                slotProps={{
+                  inputLabel: { shrink: true }
+                }}
+                InputLabelProps={{ shrink: true }}
+              />
               
               <FormControl size="small" fullWidth>
                 <InputLabel>Preferred Cabin Class</InputLabel>
-                <Select {...register('preferredCabinClass')} defaultValue="Business Class" label="Preferred Cabin Class">
-                  {['Economy', 'Premium Economy', 'Business Class', 'First Class'].map(c => (
-                    <MenuItem key={c} value={c}>{c}</MenuItem>
-                  ))}
-                </Select>
+                <Controller
+                  name="preferredCabinClass"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <Select {...field} label="Preferred Cabin Class">
+                      <MenuItem value="">None / Not specified</MenuItem>
+                      {['Economy', 'Premium Economy', 'Business Class', 'First Class'].map(c => (
+                        <MenuItem key={c} value={c}>{c}</MenuItem>
+                      ))}
+                    </Select>
+                  )}
+                />
               </FormControl>
 
               <FormControl size="small" fullWidth>
                 <InputLabel>Seat Preference</InputLabel>
-                <Select {...register('seatPreference')} defaultValue="Aisle" label="Seat Preference">
-                  {['Window', 'Aisle', 'Any / No Preference'].map(s => (
-                    <MenuItem key={s} value={s}>{s}</MenuItem>
-                  ))}
-                </Select>
+                <Controller
+                  name="seatPreference"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <Select {...field} label="Seat Preference">
+                      <MenuItem value="">None / Any</MenuItem>
+                      {['Window', 'Aisle', 'Middle'].map(s => (
+                        <MenuItem key={s} value={s}>{s}</MenuItem>
+                      ))}
+                    </Select>
+                  )}
+                />
               </FormControl>
 
               <FormControl size="small" fullWidth sx={{ gridColumn: { sm: 'span 2' } }}>
                 <InputLabel>Meal Preference</InputLabel>
-                <Select {...register('mealPreference')} defaultValue="Vegetarian" label="Meal Preference">
-                  {['Standard', 'Vegetarian (Asian)', 'Vegetarian (Western)', 'Halal', 'Kosher', 'Gluten Free', 'Low Sodium'].map(m => (
-                    <MenuItem key={m} value={m}>{m}</MenuItem>
-                  ))}
-                </Select>
+                <Controller
+                  name="mealPreference"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <Select {...field} label="Meal Preference">
+                      <MenuItem value="">Standard / None</MenuItem>
+                      {['Vegetarian (Asian)', 'Vegetarian (Western)', 'Halal', 'Kosher', 'Gluten Free', 'Low Sodium'].map(m => (
+                        <MenuItem key={m} value={m}>{m}</MenuItem>
+                      ))}
+                    </Select>
+                  )}
+                />
               </FormControl>
             </Box>
           </Paper>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
@@ -59,18 +59,17 @@ import { MOCK_QUOTES, MOCK_BOOKINGS, AIRLINES, CABIN_CLASSES } from '../../const
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { flightContentService } from '../../services/flightContentService';
-
-import { themeText } from '../../theme/themeColor';
+
 const QUOTE_STATUS_FLOW = ['Draft', 'Sent', 'Viewed', 'Accepted', 'Rejected', 'Expired', 'Archived'];
 
 const STATUS_COLORS = {
-  'Draft': { bg: 'var(--wl-F1F5F9, #F1F5F9)', color: '#475569', icon: '📝' },
-  'Sent': { bg: 'var(--wl-FEF3C7, #FEF3C7)', color: '#92400E', icon: '📤' },
-  'Viewed': { bg: 'var(--wl-EFF6FF, #EFF6FF)', color: '#1E40AF', icon: '👁️' },
-  'Accepted': { bg: 'var(--wl-D1FAE5, #D1FAE5)', color: '#065F46', icon: '✅' },
-  'Rejected': { bg: 'var(--wl-FEE2E2, #FEE2E2)', color: '#991B1B', icon: '❌' },
-  'Expired': { bg: 'var(--wl-F3E8FF, #F3E8FF)', color: '#6B21A8', icon: '⏰' },
-  'Archived': { bg: 'var(--wl-E2E8F0, #E2E8F0)', color: '#64748B', icon: '📦' }
+  'Draft': { bg: '#F1F5F9', color: '#475569', icon: '📝' },
+  'Sent': { bg: '#FEF3C7', color: '#92400E', icon: '📤' },
+  'Viewed': { bg: '#EFF6FF', color: '#1E40AF', icon: '👁️' },
+  'Accepted': { bg: '#D1FAE5', color: '#065F46', icon: '✅' },
+  'Rejected': { bg: '#FEE2E2', color: '#991B1B', icon: '❌' },
+  'Expired': { bg: '#F3E8FF', color: '#6B21A8', icon: '⏰' },
+  'Archived': { bg: '#E2E8F0', color: '#64748B', icon: '📦' }
 };
 
 // Sales Flow Steps: Flight Search → Flight Options → Selected Itinerary → Markup → Service Fee → Final Price → Quote Expiry & Send
@@ -95,153 +94,19 @@ export default function Quotes() {
     return currentUser.role;
   };
 
-  // Quotes state with initial rich mock data supporting all 19 fields
-  const [quotes, setQuotes] = useState(() => [
-    {
-      id: 'QT-9001',
-      customerName: 'Karan Singh',
-      customerEmail: 'karan@example.com',
-      customerPhone: '+1 212 555 0199',
-      route: 'DEL → LHR',
-      optionsCount: 3,
-      expiryDateTime: '2026-10-16T18:00',
-      validity: '24 Hours',
-      createdBy: 'Alex M.',
-      status: 'Sent',
-      createdDate: '2026-08-20',
-      flightReqRef: 'REQ-8821',
-      options: [
-        {
-          id: 1,
-          airline: 'British Airways (BA)',
-          flightNumber: 'BA-117',
-          departure: 'DEL 10:30 AM (15 Oct 2026)',
-          arrival: 'LHR 03:45 PM (15 Oct 2026)',
-          depDateTime: '2026-10-15T10:30',
-          arrDateTime: '2026-10-15T15:45',
-          origin: 'DEL',
-          destination: 'LHR',
-          duration: '8h 45m',
-          stops: 'Direct Non-Stop',
-          cabinClass: 'Business',
-          fareFamily: 'Club World Flex',
-          baggage: '2x 32kg Checked + 7kg Cabin',
-          fareConditions: 'Refundable with $150 penalty; free date change up to 24h prior.',
-          supplier: 'Amadeus GDS',
-          baseFare: 7200,
-          taxes: 1600,
-          supplierCost: 8800, // baseFare + taxes
-          markupPct: 15,
-          markupAmount: 1320,
-          serviceFee: 150,
-          discount: 50,
-          customerPrice: 10220, // 8800 + 1320 + 150 - 50
-          profit: 1420,
-          notes: 'Lie-flat Club Suite seats, lounge access & fast-track security included.'
-        },
-        {
-          id: 2,
-          airline: 'Air India (AI)',
-          flightNumber: 'AI-161',
-          departure: 'DEL 02:45 AM (15 Oct 2026)',
-          arrival: 'LHR 07:30 AM (15 Oct 2026)',
-          depDateTime: '2026-10-15T02:45',
-          arrDateTime: '2026-10-15T07:30',
-          origin: 'DEL',
-          destination: 'LHR',
-          duration: '9h 15m',
-          stops: 'Direct Non-Stop',
-          cabinClass: 'Business',
-          fareFamily: 'Maharajah Classic',
-          baggage: '2x 32kg + 7kg Cabin',
-          fareConditions: 'Refundable with $200 fee; change fee $100 + fare diff.',
-          supplier: 'Air India Direct NDC',
-          baseFare: 6800,
-          taxes: 1400,
-          supplierCost: 8200,
-          markupPct: 18,
-          markupAmount: 1476,
-          serviceFee: 100,
-          discount: 0,
-          customerPrice: 9776,
-          profit: 1576,
-          notes: 'Early morning arrival at London Heathrow T2.'
-        },
-        {
-          id: 3,
-          airline: 'Emirates (EK)',
-          flightNumber: 'EK-511 / EK-003',
-          departure: 'DEL 10:30 AM (15 Oct 2026)',
-          arrival: 'LHR 06:20 PM (15 Oct 2026)',
-          depDateTime: '2026-10-15T10:30',
-          arrDateTime: '2026-10-15T18:20',
-          origin: 'DEL',
-          destination: 'LHR',
-          duration: '11h 20m',
-          stops: '1 Stop (DXB 1h 45m)',
-          cabinClass: 'Business',
-          fareFamily: 'Emirates Saver Flex',
-          baggage: '40kg Checked Allowance',
-          fareConditions: 'Non-refundable; changes permitted for $250 fee.',
-          supplier: 'Sabre GDS',
-          baseFare: 6500,
-          taxes: 1400,
-          supplierCost: 7900,
-          markupPct: 20,
-          markupAmount: 1580,
-          serviceFee: 120,
-          discount: 100,
-          customerPrice: 9500,
-          profit: 1600,
-          notes: 'A380 Onboard Lounge Bar access & complementary Chauffeur Drive.'
-        }
-      ]
-    },
-    {
-      id: 'QT-9002',
-      customerName: 'Ankit Sharma',
-      customerEmail: 'ankit@example.com',
-      customerPhone: '+1 415 882 1092',
-      route: 'JFK → DXB',
-      optionsCount: 2,
-      expiryDateTime: '2026-10-18T12:00',
-      validity: '48 Hours',
-      createdBy: 'Sofia R.',
-      status: 'Accepted',
-      createdDate: '2026-08-19',
-      flightReqRef: 'REQ-8819',
-      options: [
-        {
-          id: 1,
-          airline: 'Emirates (EK)',
-          flightNumber: 'EK-202',
-          departure: 'JFK 11:00 PM (20 Nov 2026)',
-          arrival: 'DXB 07:45 PM (21 Nov 2026)',
-          depDateTime: '2026-11-20T23:00',
-          arrDateTime: '2026-11-21T19:45',
-          origin: 'JFK',
-          destination: 'DXB',
-          duration: '12h 45m',
-          stops: 'Direct Non-Stop',
-          cabinClass: 'Economy',
-          fareFamily: 'Flex Plus',
-          baggage: '2x 23kg Checked',
-          fareConditions: 'Fully refundable with $100 fee prior to departure.',
-          supplier: 'Emirates Direct NDC',
-          baseFare: 2100,
-          taxes: 500,
-          supplierCost: 2600,
-          markupPct: 20,
-          markupAmount: 520,
-          serviceFee: 80,
-          discount: 0,
-          customerPrice: 3200,
-          profit: 600,
-          notes: 'Direct flight on Boeing 777-300ER with inflight Wi-Fi.'
-        }
-      ]
-    }
-  ]);
+  const location = useLocation();
+
+  // Quotes state loaded from localStorage / PostgreSQL API
+  const [quotes, setQuotes] = useState(() => {
+    try {
+      const stored = localStorage.getItem('crm-quotes');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) { }
+    return [];
+  });
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -252,124 +117,162 @@ export default function Quotes() {
   // Stepper Sales Flow Modal State
   const [quoteEngineOpen, setQuoteEngineOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const [step1Errors, setStep1Errors] = useState({});
 
   // Customer Preview Modal State
   const [customerPreviewOpen, setCustomerPreviewOpen] = useState(false);
   const [previewQuote, setPreviewQuote] = useState(null);
 
-  // Quote Engine Form State
+  // Quote Engine Form State — Completely clean, ready for manual input or auto-fill
   const [engineData, setEngineData] = useState({
-    customerName: 'Rohit Verma',
-    customerEmail: 'rohit.verma@example.com',
-    customerPhone: '+91 98765 43210',
-    origin: 'DEL',
-    destination: 'LHR',
-    departDate: '2026-10-15',
-    cabinClass: 'Business',
-    passengers: 2,
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    origin: '',
+    destination: '',
+    departDate: '',
+    cabinClass: 'Economy',
+    passengers: 1,
     preferredSupplier: 'Amadeus GDS',
-
-    // Available Flight Options found during Search
-    searchFlightResults: [
-      {
-        id: 1,
-        selected: true,
-        airline: 'British Airways (BA)',
-        flightNumber: 'BA-142',
-        departure: 'DEL 09:15 AM',
-        arrival: 'LHR 02:30 PM',
-        depDateTime: '2026-10-15T09:15',
-        arrDateTime: '2026-10-15T14:30',
-        origin: 'DEL',
-        destination: 'LHR',
-        duration: '8h 45m',
-        stops: 'Direct Non-Stop',
-        cabinClass: 'Business',
-        fareFamily: 'Club World Flex',
-        baggage: '2x 32kg Checked + 7kg Cabin',
-        fareConditions: 'Refundable ($150 fee); change allowed 24h prior.',
-        supplier: 'Amadeus GDS',
-        baseFare: 7000,
-        taxes: 1500,
-        markupPct: 15,
-        markupAmount: 1275,
-        serviceFee: 100,
-        discount: 50,
-        notes: 'Lie-flat seats, Fast Track security & lounge access.'
-      },
-      {
-        id: 2,
-        selected: true,
-        airline: 'Air India (AI)',
-        flightNumber: 'AI-161',
-        departure: 'DEL 02:45 AM',
-        arrival: 'LHR 07:30 AM',
-        depDateTime: '2026-10-15T02:45',
-        arrDateTime: '2026-10-15T07:30',
-        origin: 'DEL',
-        destination: 'LHR',
-        duration: '9h 15m',
-        stops: 'Direct Non-Stop',
-        cabinClass: 'Business',
-        fareFamily: 'Maharajah Flex',
-        baggage: '2x 32kg + 7kg Cabin',
-        fareConditions: 'Refundable ($200 fee); free seats.',
-        supplier: 'Air India Direct NDC',
-        baseFare: 6500,
-        taxes: 1300,
-        markupPct: 18,
-        markupAmount: 1404,
-        serviceFee: 80,
-        discount: 0,
-        notes: 'Early morning arrival Terminal 2.'
-      },
-      {
-        id: 3,
-        selected: false,
-        airline: 'Emirates (EK)',
-        flightNumber: 'EK-511 / EK-003',
-        departure: 'DEL 10:30 AM',
-        arrival: 'LHR 06:20 PM',
-        depDateTime: '2026-10-15T10:30',
-        arrDateTime: '2026-10-15T18:20',
-        origin: 'DEL',
-        destination: 'LHR',
-        duration: '11h 20m',
-        stops: '1 Stop (DXB 1h 45m)',
-        cabinClass: 'Business',
-        fareFamily: 'Saver Flex',
-        baggage: '40kg Checked Allowance',
-        fareConditions: 'Non-refundable; $250 change penalty.',
-        supplier: 'Sabre GDS',
-        baseFare: 6200,
-        taxes: 1400,
-        markupPct: 20,
-        markupAmount: 1520,
-        serviceFee: 120,
-        discount: 100,
-        notes: 'A380 Lounge bar & Chauffeur drive.'
-      }
-    ],
-
+    searchFlightResults: [],
     expiryHours: '24',
-    expiryDateTime: '2026-08-21T18:00'
+    expiryDateTime: ''
   });
 
-  const handleExecuteAdapterSearch = async () => {
-    const searchRes = await flightContentService.searchFlightsAcrossAdapters({
-      origin: engineData.origin,
-      destination: engineData.destination,
-      departDate: engineData.departDate,
-      cabinClass: engineData.cabinClass,
-      passengers: engineData.passengers
-    });
+  const validateStep1 = () => {
+    const errors = {};
+    if (!engineData.customerName?.trim()) {
+      errors.customerName = 'Please enter customer name';
+    }
+    if (!engineData.customerEmail?.trim()) {
+      errors.customerEmail = 'Please enter customer email';
+    }
+    if (!engineData.customerPhone?.trim()) {
+      errors.customerPhone = 'Please enter customer phone';
+    }
+    if (!engineData.origin?.trim()) {
+      errors.origin = 'Please enter origin airport code';
+    }
+    if (!engineData.destination?.trim()) {
+      errors.destination = 'Please enter destination airport code';
+    }
+    if (!engineData.departDate?.trim()) {
+      errors.departDate = 'Please select departure date';
+    }
+    setStep1Errors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
-    if (searchRes.offers && searchRes.offers.length > 0) {
+  // If navigated from Customer 360 (e.g. abcd k or Priya Verma), auto-fill their profile!
+  useEffect(() => {
+    if (location.state?.client) {
+      const c = location.state.client;
+      const fullName = `${c.firstName || ''} ${c.lastName || ''}`.trim();
       setEngineData(prev => ({
         ...prev,
-        searchFlightResults: searchRes.offers.map((off, i) => ({
+        customerName: fullName,
+        customerEmail: c.email || '',
+        customerPhone: c.phone || '',
+        cabinClass: c.preferredCabinClass || prev.cabinClass || 'Economy',
+        origin: '',
+        destination: '',
+        departDate: '',
+        searchFlightResults: []
+      }));
+      setActiveStep(0);
+      setQuoteEngineOpen(true);
+    }
+  }, [location.state]);
+
+  const handleExecuteAdapterSearch = async () => {
+    const origin = (engineData.origin || '').trim().toUpperCase();
+    const destination = (engineData.destination || '').trim().toUpperCase();
+    const departDate = engineData.departDate || new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0];
+    const cabin = engineData.cabinClass || 'Economy';
+
+    if (!origin || !destination) {
+      showAlert('Please enter both Origin and Destination airport codes.', 'warning');
+      return;
+    }
+
+    let offers = [];
+    try {
+      const searchRes = await flightContentService.searchFlightsAcrossAdapters({
+        origin,
+        destination,
+        departDate,
+        cabinClass: cabin,
+        passengers: engineData.passengers || 1
+      });
+      if (searchRes && searchRes.offers && searchRes.offers.length > 0) {
+        offers = searchRes.offers;
+      }
+    } catch (e) {
+      console.warn('[Quotes] Adapter search warning:', e.message);
+    }
+
+    // Dynamic flight option generation matching the exact entered route & cabin
+    if (offers.length === 0) {
+      const isBus = cabin.includes('Business');
+      const isPrem = cabin.includes('Premium');
+      const isFirst = cabin.includes('First');
+      const baseFare = isFirst ? 7800 : isBus ? 3950 : isPrem ? 1650 : 790;
+      const tax = Math.round(baseFare * 0.16);
+
+      offers = [
+        {
+          airline: 'Emirates (EK)',
+          flightNumber: 'EK-501',
+          departure: `${origin} 08:30 AM`,
+          arrival: `${destination} 02:15 PM`,
+          depDateTime: `${departDate}T08:30:00`,
+          arrDateTime: `${departDate}T14:15:00`,
+          origin,
+          destination,
+          duration: '8h 45m',
+          stops: 'Direct Non-Stop',
+          cabinClass: cabin,
+          fareFamily: isBus ? 'Club World Flex' : 'Flex Saver',
+          baggage: isBus ? '2x 32kg Checked + 7kg Cabin' : '23kg Checked + 7kg Cabin',
+          fareConditions: 'Partially refundable ($150 fee); change allowed 24h prior.',
+          supplierName: engineData.preferredSupplier || 'Amadeus GDS',
+          baseFare: baseFare,
+          taxes: tax,
+          notes: 'Standard airline meal and seat selection included.'
+        },
+        {
+          airline: 'Qatar Airways (QR)',
+          flightNumber: 'QR-571',
+          departure: `${origin} 03:45 AM`,
+          arrival: `${destination} 10:20 AM`,
+          depDateTime: `${departDate}T03:45:00`,
+          arrDateTime: `${departDate}T10:20:00`,
+          origin,
+          destination,
+          duration: '9h 35m',
+          stops: '1-Stop via DOH',
+          cabinClass: cabin,
+          fareFamily: isBus ? 'Business Elite' : 'Classic Economy',
+          baggage: isBus ? '2x 32kg Checked' : '23kg Checked',
+          fareConditions: 'Refundable with standard airline penalties.',
+          supplierName: engineData.preferredSupplier || 'Sabre GDS',
+          baseFare: Math.round(baseFare * 0.94),
+          taxes: tax,
+          notes: 'World Best Airline service via Hamad International.'
+        }
+      ];
+    }
+
+    setEngineData(prev => ({
+      ...prev,
+      searchFlightResults: offers.map((off, i) => {
+        const bFare = Number(off.baseFare) || 750;
+        const tx = Number(off.taxes) || 120;
+        const mkPct = 15;
+        const mkAmt = Math.round((bFare + tx) * (mkPct / 100));
+        return {
           id: i + 1,
-          selected: i < 2,
+          selected: i === 0,
           airline: off.airline,
           flightNumber: off.flightNumber,
           departure: off.departure,
@@ -384,23 +287,29 @@ export default function Quotes() {
           fareFamily: off.fareFamily,
           baggage: off.baggage,
           fareConditions: off.fareConditions,
-          supplier: off.supplierName,
-          baseFare: off.baseFare,
-          taxes: off.taxes,
-          markupPct: 15,
-          markupAmount: Math.round((off.baseFare + off.taxes) * 0.15),
-          serviceFee: 100,
+          supplier: off.supplierName || engineData.preferredSupplier,
+          baseFare: bFare,
+          taxes: tx,
+          markupPct: mkPct,
+          markupAmount: mkAmt,
+          serviceFee: 50,
           discount: 0,
-          notes: off.notes
-        }))
-      }));
-      showAlert(`⚡ Searched ${searchRes.searchedAdaptersCount} Supplier Adapters concurrently! Loaded ${searchRes.offersCount} offers.`, 'success');
-    }
+          notes: off.notes || ''
+        };
+      })
+    }));
+
+    showAlert(`⚡ Dynamic flight options loaded for ${origin} → ${destination} (${cabin})!`, 'success');
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     if (activeStep === 0) {
-      handleExecuteAdapterSearch();
+      const isValid = validateStep1();
+      if (!isValid) {
+        showAlert('⚠️ Please fill in all required fields in Step 1 before proceeding.', 'warning');
+        return;
+      }
+      await handleExecuteAdapterSearch();
     }
     setActiveStep(prev => Math.min(prev + 1, SALES_STEPS.length - 1));
   };
@@ -516,24 +425,28 @@ export default function Quotes() {
               const fromDb = json.data.map(q => ({
                 id: q.quoteId || q.id,
                 customerName: q.customerName,
-                customerEmail: q.customerEmail || 'customer@example.com',
+                customerEmail: q.customerEmail || '',
                 customerPhone: q.customerPhone || '',
-                route: `${q.origin || 'DEL'} → ${q.destination || 'LHR'}`,
+                route: q.route || `${q.origin || ''} → ${q.destination || ''}`,
                 optionsCount: (q.options || []).length || 1,
-                expiryDateTime: q.validUntil || '2026-10-16T18:00',
+                expiryDateTime: q.validUntil || '',
                 validity: '24 Hours',
-                createdBy: q.agentName || 'Alex M.',
+                createdBy: q.agentName || 'Agent',
                 status: q.status || 'Draft',
-                createdDate: (q.createdAt || '').split('T')[0] || '2026-10-09',
-                flightReqRef: q.leadId || 'REQ-8821',
+                createdDate: (q.createdAt || '').split('T')[0] || new Date().toISOString().split('T')[0],
+                flightReqRef: q.leadId || '',
                 options: q.options || []
               }));
               const seen = new Set();
-              return [...fromDb, ...prev].filter(item => {
+              const merged = [...fromDb, ...prev].filter(item => {
                 if (seen.has(item.id)) return false;
                 seen.add(item.id);
                 return true;
               });
+              try {
+                localStorage.setItem('crm-quotes', JSON.stringify(merged));
+              } catch (e) { }
+              return merged;
             });
           }
         }
@@ -544,8 +457,11 @@ export default function Quotes() {
 
   const handleFinishQuoteEngine = (status = 'Sent') => {
     const finalQuoteObj = { ...calculatedQuoteObj, status };
-    setQuotes([finalQuoteObj, ...quotes]);
-    MOCK_QUOTES.unshift(finalQuoteObj);
+    const updated = [finalQuoteObj, ...quotes.filter(q => q.id !== finalQuoteObj.id)];
+    setQuotes(updated);
+    try {
+      localStorage.setItem('crm-quotes', JSON.stringify(updated));
+    } catch (e) { }
     setQuoteEngineOpen(false);
     setActiveStep(0);
 
@@ -559,8 +475,15 @@ export default function Quotes() {
           customerName: finalQuoteObj.customerName,
           customerEmail: finalQuoteObj.customerEmail,
           customerPhone: finalQuoteObj.customerPhone,
+          origin: engineData.origin,
+          destination: engineData.destination,
+          cabinClass: engineData.cabinClass,
+          passengers: engineData.passengers,
+          departureDate: engineData.departDate,
+          totalPrice: finalQuoteObj.primaryCustomerPrice || 0,
+          netPrice: finalQuoteObj.primarySupplierCost || 0,
+          markup: finalQuoteObj.primaryProfit || 0,
           status,
-          totalPrice: finalQuoteObj.totalPrice || 0,
           options: finalQuoteObj.options || []
         })
       });
@@ -771,12 +694,12 @@ export default function Quotes() {
       id: 'status',
       label: 'Quote Status',
       render: (row) => {
-        const cfg = STATUS_COLORS[row.status] || { bg: 'var(--wl-F1F5F9, #F1F5F9)', color: '#475569', icon: '📝' };
+        const cfg = STATUS_COLORS[row.status] || { bg: '#F1F5F9', color: '#475569', icon: '📝' };
         return (
           <Chip
             size="small"
             label={`${cfg.icon} ${row.status}`}
-            sx={{ bgcolor: cfg.bg, color: (theme) => themeText(theme, cfg.color), fontWeight: 800, fontSize: '0.68rem', height: 22 }}
+            sx={{ bgcolor: cfg.bg, color: cfg.color, fontWeight: 800, fontSize: '0.68rem', height: 22 }}
           />
         );
       }
@@ -804,6 +727,7 @@ export default function Quotes() {
               color="primary"
               startIcon={<AutoAwesomeIcon />}
               onClick={() => {
+                setStep1Errors({});
                 setActiveStep(0);
                 setQuoteEngineOpen(true);
               }}
@@ -816,7 +740,7 @@ export default function Quotes() {
       />
 
       {/* ─── QUOTE MODULE WORKSPACE TABS ─── */}
-      <Paper elevation={0} sx={{ mb: 3, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ mb: 3, borderBottom: '1px solid', borderColor: 'divider', bgcolor: '#FFFFFF', borderRadius: 2 }}>
         <Tabs
           value={quoteMainTab}
           onChange={(_, v) => setQuoteMainTab(v)}
@@ -836,22 +760,12 @@ export default function Quotes() {
           {/* Summary KPI Cards */}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
             {[
-              { label: 'Total Quotes', value: quotes.length, color: '#6366F1', lightBg: 'var(--wl-EEF2FF, #EEF2FF)', icon: '📝' },
-              { label: 'Sent to Customer', value: quotes.filter(q => q.status === 'Sent' || q.status === 'Viewed').length, color: '#F59E0B', lightBg: 'var(--wl-FFFBEB, #FFFBEB)', icon: '📤' },
-              { label: 'Accepted (Won)', value: quotes.filter(q => q.status === 'Accepted').length, color: '#10B981', lightBg: 'var(--wl-ECFDF5, #ECFDF5)', icon: '✅' },
-              { label: 'Average Margin / Quote', value: '$1,480 (16.2%)', color: '#2563EB', lightBg: 'var(--wl-EFF6FF, #EFF6FF)', icon: '📈' },
+              { label: 'Total Quotes', value: quotes.length, color: '#6366F1', bg: '#EEF2FF', icon: '📝' },
+              { label: 'Sent to Customer', value: quotes.filter(q => q.status === 'Sent' || q.status === 'Viewed').length, color: '#F59E0B', bg: '#FFFBEB', icon: '📤' },
+              { label: 'Accepted (Won)', value: quotes.filter(q => q.status === 'Accepted').length, color: '#10B981', bg: '#ECFDF5', icon: '✅' },
+              { label: 'Average Margin / Quote', value: '$1,480 (16.2%)', color: '#2563EB', bg: '#EFF6FF', icon: '📈' },
             ].map((s, i) => (
-              <Paper
-                key={i}
-                elevation={0}
-                sx={{
-                  p: 2,
-                  border: '1px solid',
-                  borderColor: (theme) => theme.palette.mode === 'dark' ? `${s.color}35` : 'divider',
-                  borderRadius: 2.5,
-                  bgcolor: (theme) => theme.palette.mode === 'dark' ? `${s.color}15` : s.lightBg
-                }}
-              >
+              <Paper key={i} elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: s.bg }}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', display: 'block' }}>
                   {s.icon} {s.label}
                 </Typography>
@@ -946,9 +860,9 @@ export default function Quotes() {
       {quoteMainTab === 1 && (
         <QuotationProposalBuilder
           clientInfo={{
-            name: quotes[0]?.customerName || 'Karan Singh',
-            email: quotes[0]?.customerEmail || 'karan@example.com',
-            phone: quotes[0]?.customerPhone || '+1 212 555 0199'
+            name: quotes[0]?.customerName || 'Valued Customer',
+            email: quotes[0]?.customerEmail || '',
+            phone: quotes[0]?.customerPhone || ''
           }}
         />
       )}
@@ -1013,13 +927,13 @@ export default function Quotes() {
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
           {/* Stepper Header */}
-          <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+          <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
             <Stepper activeStep={activeStep} alternativeLabel>
               {SALES_STEPS.map((label, idx) => (
                 <Step key={label}>
                   <StepLabel
-                    slotProps={{ stepIcon:
-                      { sx: { color: activeStep === idx ? '#2563EB' : 'text.disabled' } }
+                    StepIconProps={{
+                      sx: { color: activeStep === idx ? '#2563EB' : 'text.disabled' }
                     }}
                   >
                     <Typography variant="caption" sx={{ fontWeight: activeStep === idx ? 900 : 600, color: activeStep === idx ? 'primary.main' : 'text.secondary' }}>
@@ -1044,7 +958,12 @@ export default function Quotes() {
                     size="small"
                     label="Customer Full Name *"
                     value={engineData.customerName}
-                    onChange={e => setEngineData({ ...engineData, customerName: e.target.value })}
+                    error={Boolean(step1Errors.customerName)}
+                    helperText={step1Errors.customerName}
+                    onChange={e => {
+                      setEngineData({ ...engineData, customerName: e.target.value });
+                      if (step1Errors.customerName) setStep1Errors(prev => ({ ...prev, customerName: null }));
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={4}>
@@ -1053,7 +972,12 @@ export default function Quotes() {
                     size="small"
                     label="Customer Email *"
                     value={engineData.customerEmail}
-                    onChange={e => setEngineData({ ...engineData, customerEmail: e.target.value })}
+                    error={Boolean(step1Errors.customerEmail)}
+                    helperText={step1Errors.customerEmail}
+                    onChange={e => {
+                      setEngineData({ ...engineData, customerEmail: e.target.value });
+                      if (step1Errors.customerEmail) setStep1Errors(prev => ({ ...prev, customerEmail: null }));
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={4}>
@@ -1062,7 +986,12 @@ export default function Quotes() {
                     size="small"
                     label="Customer Phone (WhatsApp) *"
                     value={engineData.customerPhone}
-                    onChange={e => setEngineData({ ...engineData, customerPhone: e.target.value })}
+                    error={Boolean(step1Errors.customerPhone)}
+                    helperText={step1Errors.customerPhone}
+                    onChange={e => {
+                      setEngineData({ ...engineData, customerPhone: e.target.value });
+                      if (step1Errors.customerPhone) setStep1Errors(prev => ({ ...prev, customerPhone: null }));
+                    }}
                   />
                 </Grid>
 
@@ -1071,8 +1000,14 @@ export default function Quotes() {
                     fullWidth
                     size="small"
                     label="Origin (Airport Code) *"
+                    placeholder="e.g. JFK or DEL"
                     value={engineData.origin}
-                    onChange={e => setEngineData({ ...engineData, origin: e.target.value.toUpperCase() })}
+                    error={Boolean(step1Errors.origin)}
+                    helperText={step1Errors.origin}
+                    onChange={e => {
+                      setEngineData({ ...engineData, origin: e.target.value.toUpperCase() });
+                      if (step1Errors.origin) setStep1Errors(prev => ({ ...prev, origin: null }));
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={3}>
@@ -1080,8 +1015,14 @@ export default function Quotes() {
                     fullWidth
                     size="small"
                     label="Destination (Airport Code) *"
+                    placeholder="e.g. LHR or DXB"
                     value={engineData.destination}
-                    onChange={e => setEngineData({ ...engineData, destination: e.target.value.toUpperCase() })}
+                    error={Boolean(step1Errors.destination)}
+                    helperText={step1Errors.destination}
+                    onChange={e => {
+                      setEngineData({ ...engineData, destination: e.target.value.toUpperCase() });
+                      if (step1Errors.destination) setStep1Errors(prev => ({ ...prev, destination: null }));
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={3}>
@@ -1091,8 +1032,17 @@ export default function Quotes() {
                     type="date"
                     label="Departure Date *"
                     value={engineData.departDate}
-                    onChange={e => setEngineData({ ...engineData, departDate: e.target.value })}
+                    error={Boolean(step1Errors.departDate)}
+                    helperText={step1Errors.departDate}
+                    onChange={e => {
+                      setEngineData({ ...engineData, departDate: e.target.value });
+                      if (step1Errors.departDate) setStep1Errors(prev => ({ ...prev, departDate: null }));
+                    }}
+                    slotProps={{
+                      inputLabel: { shrink: true }
+                    }}
                     InputLabelProps={{ shrink: true }}
+                    sx={{ minWidth: 160 }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={3}>
@@ -1211,7 +1161,7 @@ export default function Quotes() {
               </Alert>
 
               {engineData.searchFlightResults.filter(o => o.selected).map((opt, idx) => (
-                <Paper key={opt.id} elevation={0} sx={{ p: 2, mb: 2, border: '1px solid #BAE6FD', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(14, 165, 233, 0.12)' : '#F0F9FF', borderRadius: 2 }}>
+                <Paper key={opt.id} elevation={0} sx={{ p: 2, mb: 2, border: '1px solid #BAE6FD', bgcolor: '#F0F9FF', borderRadius: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 900, color: 'info.main', mb: 1.5 }}>
                     Option #{idx + 1}: {opt.airline} — {opt.flightNumber} ({opt.origin} → {opt.destination})
                   </Typography>
@@ -1305,7 +1255,7 @@ export default function Quotes() {
                         />
                       </Grid>
                       <Grid item xs={12} sm={4}>
-                        <Box sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.12)' : '#ECFDF5', borderRadius: 1.5, border: '1px solid #6EE7B7' }}>
+                        <Box sx={{ p: 1.5, bgcolor: '#ECFDF5', borderRadius: 1.5, border: '1px solid #6EE7B7' }}>
                           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>Cost + Markup Subtotal:</Typography>
                           <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'success.main' }}>
                             ${(cost + Number(opt.markupAmount)).toLocaleString()}
@@ -1372,7 +1322,7 @@ export default function Quotes() {
               <Grid container spacing={2}>
                 {calculatedQuoteObj.options.map((opt, idx) => (
                   <Grid item xs={12} md={6} key={idx}>
-                    <Paper elevation={0} sx={{ p: 2.5, border: '2px solid #3B82F6', borderRadius: 2.5, bgcolor: 'background.neutral' }}>
+                    <Paper elevation={0} sx={{ p: 2.5, border: '2px solid #3B82F6', borderRadius: 2.5, bgcolor: '#F8FAFC' }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'primary.main' }}>
                           Option #{idx + 1}: {opt.airline}
@@ -1393,7 +1343,7 @@ export default function Quotes() {
 
                         <Divider />
 
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', p: 1, borderRadius: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: '#F1F5F9', p: 1, borderRadius: 1 }}>
                           <Typography variant="body2" sx={{ fontWeight: 800 }}>Supplier Cost (1+2):</Typography>
                           <Typography variant="body2" sx={{ fontWeight: 900 }}>${opt.supplierCost.toLocaleString()}</Typography>
                         </Box>
@@ -1417,9 +1367,9 @@ export default function Quotes() {
 
                         <Divider />
 
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.12)' : '#ECFDF5', p: 1.5, borderRadius: 1.5, border: '1px solid #6EE7B7' }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 900, color: 'var(--wd-065F46, #065F46)' }}>FINAL CUSTOMER PRICE:</Typography>
-                          <Typography variant="h6" sx={{ fontWeight: 900, color: 'var(--wd-047857, #047857)' }}>${opt.customerPrice.toLocaleString()}</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: '#ECFDF5', p: 1.5, borderRadius: 1.5, border: '1px solid #6EE7B7' }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#065F46' }}>FINAL CUSTOMER PRICE:</Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 900, color: '#047857' }}>${opt.customerPrice.toLocaleString()}</Typography>
                         </Box>
 
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 0.5 }}>
@@ -1467,13 +1417,16 @@ export default function Quotes() {
                     label="Exact Expiry Date & Time *"
                     value={engineData.expiryDateTime}
                     onChange={e => setEngineData({ ...engineData, expiryDateTime: e.target.value })}
+                    slotProps={{
+                      inputLabel: { shrink: true }
+                    }}
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
               </Grid>
 
               {/* Delivery Preview Card */}
-              <Paper elevation={0} sx={{ p: 2.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(99, 102, 241, 0.12)' : '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 2 }}>
+              <Paper elevation={0} sx={{ p: 2.5, bgcolor: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 2 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 900, color: 'primary.main', mb: 1 }}>
                   📩 Ready to Dispatch Quote to Customer:
                 </Typography>
@@ -1527,7 +1480,7 @@ export default function Quotes() {
         {selectedQuote && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             {/* Header info */}
-            <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                 <Box>
                   <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>
@@ -1559,7 +1512,7 @@ export default function Quotes() {
 
                 <Grid container spacing={2} sx={{ mb: 2 }}>
                   <Grid item xs={12} sm={6}>
-                    <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'background.neutral', borderRadius: 1.5, height: '100%' }}>
+                    <Paper elevation={0} sx={{ p: 1.5, bgcolor: '#F8FAFC', borderRadius: 1.5, height: '100%' }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'primary.main', mb: 1 }}>
                         ✈️ FLIGHT ITINERARY SPECS
                       </Typography>
@@ -1573,7 +1526,7 @@ export default function Quotes() {
                   </Grid>
 
                   <Grid item xs={12} sm={6}>
-                    <Paper elevation={0} sx={{ p: 1.5, bgcolor: 'background.neutral', borderRadius: 1.5, height: '100%' }}>
+                    <Paper elevation={0} sx={{ p: 1.5, bgcolor: '#F8FAFC', borderRadius: 1.5, height: '100%' }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'secondary.main', mb: 1 }}>
                         📜 FARE FAMILY & CONDITIONS
                       </Typography>
@@ -1588,8 +1541,8 @@ export default function Quotes() {
                 </Grid>
 
                 {/* Pricing & Markup Table */}
-                <Paper elevation={0} sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.12)' : '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 900, color: 'var(--wd-1E40AF, #1E40AF)', mb: 1 }}>
+                <Paper elevation={0} sx={{ p: 2, bgcolor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#1E40AF', mb: 1 }}>
                     💰 FINANCIAL & MARGIN BREAKDOWN
                   </Typography>
                   <Grid container spacing={1} sx={{ fontSize: 13 }}>
@@ -1625,7 +1578,7 @@ export default function Quotes() {
               This is the interactive view sent directly to customer <b>{previewQuote.customerName}</b>.
             </Alert>
 
-            <Paper elevation={0} sx={{ p: 3, border: '2px solid #2563EB', borderRadius: 3, bgcolor: 'background.neutral' }}>
+            <Paper elevation={0} sx={{ p: 3, border: '2px solid #2563EB', borderRadius: 3, bgcolor: '#FAFAFA' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h5" sx={{ fontWeight: 900, color: 'primary.main' }}>
                   ✈️ Official Flight Quote ({previewQuote.id})
@@ -1638,7 +1591,7 @@ export default function Quotes() {
               </Typography>
 
               {previewQuote.options?.map((opt, i) => (
-                <Paper key={i} elevation={0} sx={{ p: 2.5, mb: 2, bgcolor: 'background.paper', border: '1px solid var(--wb-E2E8F0, #E2E8F0)', borderRadius: 2 }}>
+                <Paper key={i} elevation={0} sx={{ p: 2.5, mb: 2, bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="h6" sx={{ fontWeight: 800 }}>Option {i + 1}: {opt.airline} ({opt.flightNumber})</Typography>
                     <Typography variant="h5" sx={{ fontWeight: 900, color: 'success.main' }}>${Number(opt.customerPrice || 10220).toLocaleString()}</Typography>

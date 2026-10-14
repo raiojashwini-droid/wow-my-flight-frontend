@@ -630,6 +630,8 @@ export const AppRoutes = () => {
         <Route path="/:role/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute><SuperAdminClientList /></ProtectedRoute>} />
         <Route path="/:role/customers" element={<ProtectedRoute><SuperAdminClientList /></ProtectedRoute>} />
+        <Route path="/customers/details/:id" element={<ProtectedRoute><SuperAdminClientDetails /></ProtectedRoute>} />
+        <Route path="/:role/customers/details/:id" element={<ProtectedRoute><SuperAdminClientDetails /></ProtectedRoute>} />
         <Route path="/agents" element={<ProtectedRoute><SuperAdminAgents /></ProtectedRoute>} />
         <Route path="/:role/agents" element={<ProtectedRoute><SuperAdminAgents /></ProtectedRoute>} />
         <Route path="/agents/performance" element={<ProtectedRoute><SuperAdminAgentsPerformance /></ProtectedRoute>} />

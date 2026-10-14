@@ -61,7 +61,7 @@ import PaymentLinkModal from '../../components/PaymentLinkModal';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { CABIN_CLASSES, LEAD_LABELS, MOCK_BOOKINGS } from '../../constants/mockData';
-
+
 import { themeText } from '../../theme/themeColor';
 const AIRPORT_OPTIONS = [
   'DEL - New Delhi Indira Gandhi',
@@ -100,9 +100,9 @@ const leadFormSchema = yup.object().shape({
   lastName: yup.string().required('Last name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
   phone: yup.string().required('Phone number is required'),
-  country: yup.string().default('USA'),
-  city: yup.string().default('New York'),
-  timezone: yup.string().default('America/New_York'),
+  country: yup.string().default(''),
+  city: yup.string().default(''),
+  timezone: yup.string().default(''),
   origin: yup.string().required('Origin airport is required'),
   destination: yup.string().required('Destination airport is required'),
   travelDate: yup.string().required('Travel date is required'),
@@ -112,9 +112,9 @@ const leadFormSchema = yup.object().shape({
   children: yup.number().min(0).default(0),
   infants: yup.number().min(0).default(0),
   flexibility: yup.string().default('Exact Dates'),
-  budget: yup.string().default('$1,000 - $2,500'),
+  budget: yup.string().default(''),
   source: yup.string().required('Lead source is required'),
-  priority: yup.string().default('High'),
+  priority: yup.string().default('Medium'),
   notes: yup.string().default('')
 });
 
@@ -187,13 +187,16 @@ export const SuperAdminLeadList = () => {
 
   const [startDate, setStartDate] = useState(location.state?.startDate || '');
   const [endDate, setEndDate] = useState(location.state?.endDate || '');
-  const mockToday = '2026-06-18';
+  const todayStr = dayjs().format('YYYY-MM-DD');
+  const d7Str = dayjs().subtract(7, 'day').format('YYYY-MM-DD');
+  const d30Str = dayjs().subtract(30, 'day').format('YYYY-MM-DD');
 
   const filterByDate = (dateStr, start, end) => {
     if (!start && !end) return true;
     if (!dateStr) return false;
-    const formatted = dateStr.substring(0, 10);
+    const formatted = dateStr.length === 10 ? dateStr : dayjs(dateStr).format('YYYY-MM-DD');
     if (start && !end) return formatted === start;
+    if (!start && end) return formatted <= end;
     return formatted >= start && formatted <= end;
   };
 
@@ -210,7 +213,7 @@ export const SuperAdminLeadList = () => {
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [targetConsultantId, setTargetConsultantId] = useState('');
-  const [selectedLabels, setSelectedLabels] = useState(['Hot Lead']);
+  const [selectedLabels, setSelectedLabels] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [localActivities, setLocalActivities] = useState({});
 
@@ -254,16 +257,19 @@ export const SuperAdminLeadList = () => {
 
   const handleOpenWhatsAppModal = (lead) => {
     setWhatsappModalLead(lead);
+    const route = [lead.origin, lead.destination].filter(Boolean).join(' ➔ ') || 'your requested route';
+    const dates = lead.travelDate ? lead.travelDate : 'your travel dates';
     setWhatsappMessageText(
-      `Hi ${lead.firstName}, this is WowMyFlight Travel Desk regarding your flight inquiry for ${lead.origin || 'JFK'} ➔ ${lead.destination || 'LHR'}. We have secured exclusive airline promo fares for your dates (${lead.travelDate || 'Oct 2026'}). Shall I share the flight schedule?`
+      `Hi ${lead.firstName}, this is WowMyFlight Travel Desk regarding your flight inquiry for ${route}. We have secured exclusive airline promo fares for ${dates}. Shall I share the flight schedule?`
     );
   };
 
   const handleOpenEmailModal = (lead) => {
     setEmailModalLead(lead);
-    setEmailSubject(`✈️ Flight Proposal: ${lead.origin || 'JFK'} to ${lead.destination || 'LHR'} - WowMyFlight`);
+    const route = [lead.origin, lead.destination].filter(Boolean).join(' to ') || 'your requested route';
+    setEmailSubject(`✈️ Flight Proposal: ${route} - WowMyFlight`);
     setEmailBody(
-      `Dear ${lead.firstName},\n\nThank you for reaching out to WowMyFlight. Based on your flight search for ${lead.origin || 'JFK'} to ${lead.destination || 'LHR'} (${lead.cabinClass || 'Business'} Class), we have secured special discounted rates for ${lead.adults || 1} passenger(s).\n\nPlease let us know if you would like to proceed with seat assignment or date adjustments.\n\nWarm regards,\nWowMyFlight Executive Concierge`
+      `Dear ${lead.firstName},\n\nThank you for reaching out to WowMyFlight. Based on your flight inquiry for ${route} (${lead.cabinClass || lead.serviceId || 'Standard'} Class), we have secured special discounted rates for ${lead.adults || lead.passengers || 1} passenger(s).\n\nPlease let us know if you would like to proceed with flight options or date adjustments.\n\nWarm regards,\nWowMyFlight Executive Concierge`
     );
   };
 
@@ -332,22 +338,22 @@ export const SuperAdminLeadList = () => {
       firstName: '',
       lastName: '',
       email: '',
-      phone: '+1 ',
-      country: 'USA',
-      city: 'New York',
-      timezone: 'America/New_York',
-      origin: 'JFK',
-      destination: 'LHR',
-      travelDate: '2026-10-15',
-      returnDate: '2026-10-22',
-      cabinClass: 'Business',
-      adults: 2,
+      phone: '',
+      country: '',
+      city: '',
+      timezone: '',
+      origin: '',
+      destination: '',
+      travelDate: '',
+      returnDate: '',
+      cabinClass: 'Economy',
+      adults: 1,
       children: 0,
       infants: 0,
       flexibility: 'Exact Dates',
-      budget: '$2,500 - $5,000',
-      source: 'Google Ads',
-      priority: 'High',
+      budget: '',
+      source: '',
+      priority: 'Medium',
       notes: ''
     }
   });
@@ -414,13 +420,13 @@ export const SuperAdminLeadList = () => {
       customerName: `${lead.firstName} ${lead.lastName}`,
       customerEmail: lead.email,
       customerPhone: lead.phone,
-      route: `${lead.origin || 'JFK'} - ${lead.destination || 'LHR'}`,
-      origin: lead.origin || 'JFK',
-      destination: lead.destination || 'LHR',
-      travelDate: lead.travelDate || '15 Oct 2026',
+      route: [lead.origin, lead.destination].filter(Boolean).join(' - ') || 'Not Specified',
+      origin: lead.origin || '',
+      destination: lead.destination || '',
+      travelDate: lead.travelDate || '',
       returnDate: lead.returnDate || '',
-      passengers: lead.adults || 2,
-      cabinClass: lead.cabinClass || 'Business',
+      passengers: lead.adults || lead.passengers || 1,
+      cabinClass: lead.cabinClass || 'Economy',
       tripType: lead.returnDate ? 'Round Trip' : 'One Way',
       pnr: 'NEWPNR',
       sellingPrice: 5175,
@@ -440,8 +446,10 @@ export const SuperAdminLeadList = () => {
   const filteredLeads = useMemo(() => {
     return leads
       .filter((lead) => {
-        if (!filterByDate(lead.createdDate, startDate, endDate)) return false;
-        const fullName = `${lead.firstName} ${lead.lastName}`.toLowerCase();
+        const rawDate = lead.createdDate || lead.createdAt;
+        const leadDate = rawDate ? dayjs(rawDate).format('YYYY-MM-DD') : '';
+        if (!filterByDate(leadDate, startDate, endDate)) return false;
+        const fullName = `${lead.firstName || ''} ${lead.lastName || ''}`.toLowerCase();
         const matchSearch =
           fullName.includes(searchTerm.toLowerCase()) ||
           lead.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -460,7 +468,7 @@ export const SuperAdminLeadList = () => {
 
         const matchStatus = filters.status ? lead.status === filters.status : true;
         const matchConsultant = filters.assignedConsultantId ? lead.assignedConsultantId === filters.assignedConsultantId : true;
-        const matchToday = filters.todayOnly ? lead.createdDate?.startsWith(mockToday) : true;
+        const matchToday = filters.todayOnly ? leadDate === todayStr : true;
 
         return matchSearch && matchStatus && matchConsultant && matchToday;
       })
@@ -470,6 +478,10 @@ export const SuperAdminLeadList = () => {
         if (sortColumn === 'name') {
           valA = `${a.firstName} ${a.lastName}`;
           valB = `${b.firstName} ${b.lastName}`;
+        }
+        if (sortColumn === 'createdDate') {
+          valA = a.createdDate || a.createdAt || '';
+          valB = b.createdDate || b.createdAt || '';
         }
         if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
         if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
@@ -506,7 +518,8 @@ export const SuperAdminLeadList = () => {
       id: 'labels',
       label: 'Labels',
       render: (row) => {
-        const labels = row.labels || ['Hot Lead', 'VIP'];
+        const labels = Array.isArray(row.labels) && row.labels.length > 0 ? row.labels : [];
+        if (labels.length === 0) return <Typography variant="caption" color="text.secondary">—</Typography>;
         return (
           <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap' }}>
             {labels.map(l => {
@@ -542,7 +555,7 @@ export const SuperAdminLeadList = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <FlightTakeoffIcon sx={{ fontSize: 14, color: 'primary.main' }} />
           <Typography variant="caption" sx={{ fontWeight: 700 }}>
-            {row.origin || 'JFK'} → {row.destination || 'LHR'} &nbsp;·&nbsp; {row.cabinClass || 'Business'}
+            {[row.origin, row.destination].filter(Boolean).join(' → ') || 'Route Not Specified'} &nbsp;·&nbsp; {row.cabinClass || row.serviceId || 'Standard'}
           </Typography>
         </Box>
       )
@@ -572,6 +585,24 @@ export const SuperAdminLeadList = () => {
           <VerifiedUserIcon sx={{ fontSize: 13, color: 'success.main' }} />
         </Box>
       )
+    },
+    {
+      id: 'createdDate',
+      label: 'Received',
+      sortable: true,
+      render: (row) => {
+        const rawDate = row.createdDate || row.createdAt;
+        return (
+          <Box>
+            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
+              {rawDate ? dayjs(rawDate).format('DD MMM YYYY') : '—'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+              {rawDate ? dayjs(rawDate).format('hh:mm A') : ''}
+            </Typography>
+          </Box>
+        );
+      }
     },
     {
       id: 'status',
@@ -626,7 +657,32 @@ export const SuperAdminLeadList = () => {
               variant="contained"
               color="primary"
               startIcon={<AddIcon />}
-              onClick={() => setAddModalOpen(true)}
+              onClick={() => {
+                reset({
+                  firstName: '',
+                  lastName: '',
+                  email: '',
+                  phone: '',
+                  country: '',
+                  city: '',
+                  timezone: '',
+                  origin: '',
+                  destination: '',
+                  travelDate: '',
+                  returnDate: '',
+                  cabinClass: 'Economy',
+                  adults: 1,
+                  children: 0,
+                  infants: 0,
+                  flexibility: 'Exact Dates',
+                  budget: '',
+                  source: '',
+                  priority: 'Medium',
+                  notes: ''
+                });
+                setSelectedLabels([]);
+                setAddModalOpen(true);
+              }}
               sx={{ fontWeight: 700 }}
             >
               Add New Lead
@@ -637,7 +693,7 @@ export const SuperAdminLeadList = () => {
       />
 
       {/* Date Filter & Presets */}
-      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', mr: 0.5 }}>Date Filter:</Typography>
         <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 0.5, bgcolor: 'background.paper' }}>
           {[
@@ -647,9 +703,9 @@ export const SuperAdminLeadList = () => {
             { label: 'All', key: 'all' }
           ].map(preset => {
             const isActive =
-              preset.key === 'today' ? startDate === mockToday && endDate === mockToday :
-              preset.key === '7d' ? startDate === '2026-06-12' && endDate === mockToday :
-              preset.key === '30d' ? startDate === '2026-05-20' && endDate === mockToday :
+              preset.key === 'today' ? startDate === todayStr && endDate === todayStr :
+              preset.key === '7d' ? startDate === d7Str && endDate === todayStr :
+              preset.key === '30d' ? startDate === d30Str && endDate === todayStr :
               preset.key === 'all' ? !startDate && !endDate : false;
             return (
               <Button
@@ -658,9 +714,9 @@ export const SuperAdminLeadList = () => {
                 variant={isActive ? 'contained' : 'text'}
                 color={isActive ? 'primary' : 'inherit'}
                 onClick={() => {
-                  if (preset.key === 'today') { setStartDate(mockToday); setEndDate(mockToday); }
-                  else if (preset.key === '7d') { setStartDate('2026-06-12'); setEndDate(mockToday); }
-                  else if (preset.key === '30d') { setStartDate('2026-05-20'); setEndDate(mockToday); }
+                  if (preset.key === 'today') { setStartDate(todayStr); setEndDate(todayStr); }
+                  else if (preset.key === '7d') { setStartDate(d7Str); setEndDate(todayStr); }
+                  else if (preset.key === '30d') { setStartDate(d30Str); setEndDate(todayStr); }
                   else { setStartDate(''); setEndDate(''); }
                 }}
                 sx={{ minWidth: 0, px: 1.5, py: 0.5, fontSize: '0.72rem', fontWeight: 700, borderRadius: 1.5 }}
@@ -669,6 +725,39 @@ export const SuperAdminLeadList = () => {
               </Button>
             );
           })}
+        </Box>
+
+        {/* Custom Date Range Pickers */}
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <TextField
+            type="date"
+            size="small"
+            label="From"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            slotProps={{ inputLabel: { shrink: true } }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 140, bgcolor: 'background.paper', borderRadius: 1 }}
+          />
+          <TextField
+            type="date"
+            size="small"
+            label="To"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            slotProps={{ inputLabel: { shrink: true } }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ width: 140, bgcolor: 'background.paper', borderRadius: 1 }}
+          />
+          {(startDate || endDate) && (
+            <Button
+              size="small"
+              onClick={() => { setStartDate(''); setEndDate(''); }}
+              sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'text.secondary' }}
+            >
+              Reset
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -810,7 +899,7 @@ export const SuperAdminLeadList = () => {
                   {selectedLead.firstName} {selectedLead.lastName}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
-                  CLIENT ID: {selectedLead.clientId || selectedLead.id || '463522372'}
+                  CLIENT ID: {selectedLead.clientId || selectedLead.id || '—'}
                 </Typography>
               </Box>
               <IconButton onClick={() => setDetailDrawerOpen(false)} size="small">
@@ -829,13 +918,13 @@ export const SuperAdminLeadList = () => {
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '110px 1fr', rowGap: 0.8, fontSize: 13 }}>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Country:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.country || 'USA'}</Typography>
-                  
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Time Zone:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.timeZone || selectedLead.timezone || 'UTC-05:00 Eastern Time'}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.country || selectedLead.nationality || '—'}</Typography>
                   
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>City:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.city || 'New York'}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.city || '—'}</Typography>
+
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Time Zone:</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.timezone || selectedLead.timeZone || '—'}</Typography>
                 </Box>
               </Paper>
 
@@ -846,40 +935,85 @@ export const SuperAdminLeadList = () => {
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '110px 1fr', rowGap: 0.8, fontSize: 13 }}>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Origin:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 800 }}>{selectedLead.origin || 'DEL (Delhi Indira Gandhi)'}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 800 }}>{selectedLead.origin || '—'}</Typography>
                   
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Destination:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 800 }}>{selectedLead.destination || 'LHR (London Heathrow)'}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 800 }}>{selectedLead.destination || '—'}</Typography>
                   
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Travel Date:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.travelDate || '15 Oct 2026'}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.travelDate || '—'}</Typography>
                   
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Return Date:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.returnDate || '22 Oct 2026'}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.returnDate || '—'}</Typography>
                   
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Cabin Class:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main' }}>{selectedLead.cabinClass || 'Business'}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main' }}>{selectedLead.cabinClass || selectedLead.serviceId || '—'}</Typography>
                   
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Passengers:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.adults || selectedLead.passengers || 2} Adults</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{(selectedLead.adults || selectedLead.passengers || 1)} Passenger(s)</Typography>
+
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Budget Range:</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'success.main' }}>{selectedLead.budget || '—'}</Typography>
+
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Flexibility:</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.flexibility || '—'}</Typography>
                 </Box>
               </Paper>
 
-              {/* Section 3: Registration Data */}
+              {/* Section 3: Registration Data & Lead Info */}
               <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, color: 'text.primary' }}>
                   📋 REGISTRATION DATA
                 </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '110px 1fr', rowGap: 0.8, fontSize: 13 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '110px 1fr', rowGap: 0.8, fontSize: 13, alignItems: 'center' }}>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Email:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.email}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.email || '—'}</Typography>
                   
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Phone:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.phone}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.phone || '—'}</Typography>
                   
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Source:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.source || 'Google Ads'}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.source || '—'}</Typography>
+
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Priority:</Typography>
+                  <Box>
+                    <Chip
+                      size="small"
+                      label={selectedLead.priority || 'Medium'}
+                      color={selectedLead.priority === 'High' ? 'error' : selectedLead.priority === 'Low' ? 'default' : 'warning'}
+                      sx={{ height: 20, fontSize: '0.65rem', fontWeight: 800 }}
+                    />
+                  </Box>
+
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Labels:</Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {Array.isArray(selectedLead.labels) && selectedLead.labels.length > 0 ? (
+                      selectedLead.labels.map(l => {
+                        const cfg = LABEL_COLORS[l] || { bg: '#EFF6FF', color: '#2563EB', emoji: '🏷️' };
+                        return (
+                          <Chip
+                            key={l}
+                            size="small"
+                            label={`${cfg.emoji} ${l}`}
+                            sx={{ bgcolor: cfg.bg, color: cfg.color, fontWeight: 700, fontSize: '0.65rem', height: 20 }}
+                          />
+                        );
+                      })
+                    ) : (
+                      <Typography variant="caption" sx={{ fontWeight: 600 }}>—</Typography>
+                    )}
+                  </Box>
                 </Box>
+              </Paper>
+
+              {/* Section 4: Itinerary Notes & Preferences */}
+              <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, color: 'text.primary' }}>
+                  📝 ITINERARY NOTES & PREFERENCES
+                </Typography>
+                <Typography variant="caption" sx={{ color: selectedLead.notes ? 'text.primary' : 'text.secondary', display: 'block', whiteSpace: 'pre-line', fontStyle: selectedLead.notes ? 'normal' : 'italic' }}>
+                  {selectedLead.notes || 'No special requirements noted.'}
+                </Typography>
               </Paper>
 
               {/* Section 4: Activity History Timeline */}
@@ -888,19 +1022,22 @@ export const SuperAdminLeadList = () => {
                   ⏱️ ACTIVITY HISTORY
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 160, overflowY: 'auto', mb: 1.5 }}>
-                  {(localActivities[selectedLead.id] || selectedLead.activities || [
-                    { time: '16:16:23', agent: 'agent1', status: 'New Dialed', comments: '—' },
-                    { time: '16:36:01', agent: 'agent1', status: 'Follow-up', comments: 'Interested in business class quotes' }
-                  ]).map((act, i) => (
-                    <Box key={i} sx={{ p: 1, bgcolor: 'background.neutral', borderRadius: 1.5, fontSize: 12, border: '1px solid var(--wb-E2E8F0, #E2E8F0)' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.3 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 800 }}>{act.agent}</Typography>
-                        <Typography variant="caption" color="text.secondary">{act.time}</Typography>
+                  {((localActivities[selectedLead.id] || selectedLead.activities) && (localActivities[selectedLead.id] || selectedLead.activities).length > 0) ? (
+                    (localActivities[selectedLead.id] || selectedLead.activities).map((act, i) => (
+                      <Box key={i} sx={{ p: 1, bgcolor: 'background.neutral', borderRadius: 1.5, fontSize: 12, border: '1px solid var(--wb-E2E8F0, #E2E8F0)' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.3 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 800 }}>{act.agent}</Typography>
+                          <Typography variant="caption" color="text.secondary">{act.time}</Typography>
+                        </Box>
+                        <Chip size="small" label={act.status} color="primary" variant="outlined" sx={{ fontSize: '0.62rem', height: 18, mb: 0.5 }} />
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{act.comments}</Typography>
                       </Box>
-                      <Chip size="small" label={act.status} color="primary" variant="outlined" sx={{ fontSize: '0.62rem', height: 18, mb: 0.5 }} />
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{act.comments}</Typography>
-                    </Box>
-                  ))}
+                    ))
+                  ) : (
+                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                      No activity history recorded yet.
+                    </Typography>
+                  )}
                 </Box>
 
                 <Box sx={{ display: 'flex', gap: 1 }}>
@@ -991,9 +1128,10 @@ export const SuperAdminLeadList = () => {
               <TextField {...register('firstName')} label="First Name *" size="small" error={!!errors.firstName} helperText={errors.firstName?.message} />
               <TextField {...register('lastName')} label="Last Name *" size="small" error={!!errors.lastName} helperText={errors.lastName?.message} />
               <TextField {...register('email')} label="Email Address *" size="small" error={!!errors.email} helperText={errors.email?.message} />
-              <TextField {...register('phone')} label="Phone Number (with Country Code) *" size="small" error={!!errors.phone} helperText={errors.phone?.message} />
-              <TextField {...register('country')} label="Country" size="small" />
-              <TextField {...register('city')} label="City" size="small" />
+              <TextField {...register('phone')} label="Phone Number (with Country Code) *" placeholder="e.g. +91 9876543210" size="small" error={!!errors.phone} helperText={errors.phone?.message} />
+              <TextField {...register('country')} label="Country" placeholder="e.g. India" size="small" />
+              <TextField {...register('city')} label="City" placeholder="e.g. Delhi" size="small" />
+              <TextField {...register('timezone')} label="Time Zone (optional)" placeholder="e.g. IST (UTC+5:30) or EST" size="small" sx={{ gridColumn: { sm: 'span 2' } }} />
             </Box>
           </Paper>
 
@@ -1003,35 +1141,55 @@ export const SuperAdminLeadList = () => {
               ✈️ FLIGHT REQUEST
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.5 }}>
-              <FormControl size="small" fullWidth>
+              <FormControl size="small" fullWidth error={!!errors.origin}>
                 <InputLabel>Origin Airport *</InputLabel>
-                <Select {...register('origin')} defaultValue="DEL" label="Origin Airport *">
+                <Select {...register('origin')} defaultValue="" label="Origin Airport *">
+                  <MenuItem value=""><em>Select Origin Airport</em></MenuItem>
                   {AIRPORT_OPTIONS.map(a => (
                     <MenuItem key={a} value={a.split(' - ')[0]}>{a}</MenuItem>
                   ))}
                 </Select>
+                {errors.origin && <Typography variant="caption" color="error" sx={{ mt: 0.3, display: 'block' }}>{errors.origin.message}</Typography>}
               </FormControl>
 
-              <FormControl size="small" fullWidth>
+              <FormControl size="small" fullWidth error={!!errors.destination}>
                 <InputLabel>Destination Airport *</InputLabel>
-                <Select {...register('destination')} defaultValue="LHR" label="Destination Airport *">
+                <Select {...register('destination')} defaultValue="" label="Destination Airport *">
+                  <MenuItem value=""><em>Select Destination Airport</em></MenuItem>
                   {AIRPORT_OPTIONS.map(a => (
                     <MenuItem key={a} value={a.split(' - ')[0]}>{a}</MenuItem>
                   ))}
                 </Select>
+                {errors.destination && <Typography variant="caption" color="error" sx={{ mt: 0.3, display: 'block' }}>{errors.destination.message}</Typography>}
               </FormControl>
 
-              <FormControl size="small" fullWidth>
+              <FormControl size="small" fullWidth error={!!errors.cabinClass}>
                 <InputLabel>Cabin Class *</InputLabel>
-                <Select {...register('cabinClass')} defaultValue="Business" label="Cabin Class *">
+                <Select {...register('cabinClass')} defaultValue="Economy" label="Cabin Class *">
                   {['Economy', 'Premium Economy', 'Business', 'First Class'].map(c => (
                     <MenuItem key={c} value={c}>{c}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
 
-              <TextField {...register('travelDate')} label="Travel Date *" type="date" size="small" InputLabelProps={{ shrink: true }} />
-              <TextField {...register('returnDate')} label="Return Date (optional)" type="date" size="small" InputLabelProps={{ shrink: true }} />
+              <TextField
+                {...register('travelDate')}
+                label="Travel Date *"
+                type="date"
+                size="small"
+                slotProps={{ inputLabel: { shrink: true } }}
+                InputLabelProps={{ shrink: true }}
+                error={!!errors.travelDate}
+                helperText={errors.travelDate?.message}
+              />
+              <TextField
+                {...register('returnDate')}
+                label="Return Date (optional)"
+                type="date"
+                size="small"
+                slotProps={{ inputLabel: { shrink: true } }}
+                InputLabelProps={{ shrink: true }}
+              />
               
               <FormControl size="small" fullWidth>
                 <InputLabel>Flexibility</InputLabel>
@@ -1042,14 +1200,15 @@ export const SuperAdminLeadList = () => {
                 </Select>
               </FormControl>
 
-              <TextField {...register('adults')} label="Adults (1-9) *" type="number" size="small" inputProps={{ min: 1, max: 9 }} />
-              <TextField {...register('children')} label="Children (0-6)" type="number" size="small" inputProps={{ min: 0, max: 6 }} />
-              <TextField {...register('infants')} label="Infants (0-4)" type="number" size="small" inputProps={{ min: 0, max: 4 }} />
+              <TextField {...register('adults')} label="Adults (1-9) *" type="number" size="small" defaultValue={1} inputProps={{ min: 1, max: 9 }} />
+              <TextField {...register('children')} label="Children (0-6)" type="number" size="small" defaultValue={0} inputProps={{ min: 0, max: 6 }} />
+              <TextField {...register('infants')} label="Infants (0-4)" type="number" size="small" defaultValue={0} inputProps={{ min: 0, max: 4 }} />
 
               <FormControl size="small" fullWidth sx={{ gridColumn: { sm: 'span 3' } }}>
-                <InputLabel>Budget Range *</InputLabel>
-                <Select {...register('budget')} defaultValue="$2,500 - $5,000" label="Budget Range *">
-                  {['$500 - $1,000', '$1,000 - $2,500', '$2,500 - $5,000', '$5,000+', 'No limit'].map(b => (
+                <InputLabel>Budget Range (optional)</InputLabel>
+                <Select {...register('budget')} defaultValue="" label="Budget Range (optional)">
+                  <MenuItem value=""><em>Select Budget Range (optional)</em></MenuItem>
+                  {['$500 - $1,000', '$1,000 - $2,500', '$2,500 - $5,000', '$5,000+', 'Flexible'].map(b => (
                     <MenuItem key={b} value={b}>{b}</MenuItem>
                   ))}
                 </Select>
@@ -1063,18 +1222,20 @@ export const SuperAdminLeadList = () => {
               🏷️ LEAD INFO & LABELS
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
-              <FormControl size="small" fullWidth>
+              <FormControl size="small" fullWidth error={!!errors.source}>
                 <InputLabel>Traffic Source *</InputLabel>
-                <Select {...register('source')} defaultValue="Google Ads" label="Traffic Source *">
-                  {['Google Ads', 'Facebook Ads', 'WhatsApp', 'Instagram', 'Referral', 'Walk-in'].map(s => (
+                <Select {...register('source')} defaultValue="" label="Traffic Source *">
+                  <MenuItem value=""><em>Select Traffic Source</em></MenuItem>
+                  {['Website Direct', 'Google Ads', 'Facebook Ads', 'WhatsApp', 'Instagram', 'Referral', 'Walk-in'].map(s => (
                     <MenuItem key={s} value={s}>{s}</MenuItem>
                   ))}
                 </Select>
+                {errors.source && <Typography variant="caption" color="error" sx={{ mt: 0.3, display: 'block' }}>{errors.source.message}</Typography>}
               </FormControl>
 
               <FormControl size="small" fullWidth>
                 <InputLabel>Priority</InputLabel>
-                <Select {...register('priority')} defaultValue="High" label="Priority">
+                <Select {...register('priority')} defaultValue="Medium" label="Priority">
                   {['High', 'Medium', 'Low'].map(p => (
                     <MenuItem key={p} value={p}>{p}</MenuItem>
                   ))}
@@ -1151,7 +1312,7 @@ export const SuperAdminLeadList = () => {
           {selectedLead && (
             <Typography variant="body2">
               Assign a dedicated Flight Specialist for{' '}
-              <strong>{selectedLead.firstName} {selectedLead.lastName}</strong> ({selectedLead.origin || 'JFK'} → {selectedLead.destination || 'LHR'}, {selectedLead.cabinClass || 'Business'}).
+              <strong>{selectedLead.firstName} {selectedLead.lastName}</strong> {[selectedLead.origin, selectedLead.destination].filter(Boolean).length > 0 ? `(${[selectedLead.origin, selectedLead.destination].filter(Boolean).join(' → ')}${selectedLead.cabinClass ? `, ${selectedLead.cabinClass}` : ''})` : ''}.
             </Typography>
           )}
           <FormControl fullWidth size="small">
@@ -1220,7 +1381,7 @@ export const SuperAdminLeadList = () => {
               sx={{ fontWeight: 800 }}
             />
             <Typography variant="caption" color="text.secondary">
-              Route: {callModalLead?.origin || 'JFK'} ➔ {callModalLead?.destination || 'LHR'} • {callModalLead?.cabinClass || 'Business'}
+              Route: {[callModalLead?.origin, callModalLead?.destination].filter(Boolean).join(' ➔ ') || 'Not Specified'} • {callModalLead?.cabinClass || 'Economy'}
             </Typography>
           </Box>
 
@@ -1313,9 +1474,9 @@ export const SuperAdminLeadList = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap' }}>
             {[
-              { label: '✈️ Exclusive Fare Quote', text: `Hi ${whatsappModalLead?.firstName}, we found special discounted unpublished fares for ${whatsappModalLead?.origin || 'JFK'} ➔ ${whatsappModalLead?.destination || 'LHR'} starting from $850 USD. Would you like to review the flight options?` },
-              { label: '⏳ Price Lock Alert', text: `Hi ${whatsappModalLead?.firstName}, this is WowMyFlight. The airline seat hold on your route (${whatsappModalLead?.origin || 'JFK'} to ${whatsappModalLead?.destination || 'LHR'}) expires in 3 hours. Reply to lock this rate.` },
-              { label: '👋 Introduction & Info', text: `Hello ${whatsappModalLead?.firstName}, thanks for reaching out to WowMyFlight! I am your dedicated Flight Specialist. Let me know your preferred departure times!` }
+              { label: '✈️ Exclusive Fare Quote', text: `Hi ${whatsappModalLead?.firstName || ''}, we found special discounted unpublished fares for ${[whatsappModalLead?.origin, whatsappModalLead?.destination].filter(Boolean).join(' ➔ ') || 'your requested flight'}. Would you like to review the flight options?` },
+              { label: '⏳ Price Lock Alert', text: `Hi ${whatsappModalLead?.firstName || ''}, this is WowMyFlight. The airline seat hold on your route (${[whatsappModalLead?.origin, whatsappModalLead?.destination].filter(Boolean).join(' to ') || 'your requested flight'}) expires in 3 hours. Reply to lock this rate.` },
+              { label: '👋 Introduction & Info', text: `Hello ${whatsappModalLead?.firstName || ''}, thanks for reaching out to WowMyFlight! I am your dedicated Flight Specialist. Let me know your preferred departure times!` }
             ].map((tmpl) => (
               <Chip
                 key={tmpl.label}
@@ -1444,7 +1605,7 @@ export const SuperAdminLeadList = () => {
         <Divider />
         <DialogContent sx={{ py: 2 }}>
           <Typography variant="body2">
-            Are you sure you want to delete lead <strong>{deleteConfirmLead?.firstName} {deleteConfirmLead?.lastName}</strong> ({deleteConfirmLead?.origin || 'JFK'} → {deleteConfirmLead?.destination || 'LHR'})?
+            Are you sure you want to delete lead <strong>{deleteConfirmLead?.firstName} {deleteConfirmLead?.lastName}</strong> {[deleteConfirmLead?.origin, deleteConfirmLead?.destination].filter(Boolean).length > 0 ? `(${[deleteConfirmLead?.origin, deleteConfirmLead?.destination].filter(Boolean).join(' → ')})` : ''}?
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
             This will permanently remove the lead record and all associated quote drafts.

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
@@ -50,7 +50,6 @@ import AppModal from '../../components/AppModal';
 import PaymentLinkModal from '../../components/PaymentLinkModal';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
-import { MOCK_BOOKINGS } from '../../constants/mockData';
 
 export const SuperAdminClientDetails = () => {
   const { id } = useParams();
@@ -79,79 +78,95 @@ export const SuperAdminClientDetails = () => {
     queryFn: dbService.getClients
   });
 
-  const client = clients.find((c) => c.id === id) || {
-    id: id || 'CL-9021',
-    firstName: 'Karan',
-    lastName: 'Singh',
-    email: 'karan.singh@example.com',
-    phone: '+1 212 555 0199',
-    country: 'United States',
-    nationality: 'American',
-    city: 'New York',
-    timezone: 'UTC-05:00 Eastern Time',
-    preferredLanguage: 'English',
-    passportNumber: 'US98234109',
-    passportExpiry: '2031-08-15',
-    otherNationalities: 'Indian (OCI)',
-    preferredCabinClass: 'Business Class',
-    frequentFlyer: [
-      { airline: 'British Airways', program: 'Executive Club', number: 'BA-9832104', status: 'Silver' },
-      { airline: 'Delta Airlines', program: 'SkyMiles', number: 'DL-4482019', status: 'Platinum Medallion' },
-      { airline: 'Emirates', program: 'Skywards', number: 'EK-7729103', status: 'Gold' }
-    ],
-    preferredAirlines: ['British Airways', 'American Airlines', 'Emirates', 'Air India'],
-    seatPreference: 'Aisle Seat (Exit Row preferred)',
-    mealPreference: 'Vegetarian (Asian Style)',
-    specialAssistance: 'Extra legroom required',
-    assignedConsultant: 'Maria S.',
-    totalSpent: '$24,225',
-    totalBookings: 4
-  };
+  const { data: singleClient } = useQuery({
+    queryKey: ['client', id],
+    queryFn: () => dbService.getClientById(id),
+    enabled: !!id
+  });
 
-  const clientBookings = (MOCK_BOOKINGS || []).filter(b =>
-    b.customerName?.toLowerCase().includes(client.firstName?.toLowerCase()) ||
-    b.customerEmail?.toLowerCase() === client.email?.toLowerCase()
-  );
+  const matchedClient = singleClient || clients.find((c) => c.id === id);
 
-  const mockBookingsList = clientBookings.length > 0 ? clientBookings : [
-    { id: 'BK-4591', route: 'DEL → LHR', travelDate: '15 Oct 2026', cabinClass: 'Business', sellingPrice: 5175, bookingStatus: 'TICKETED', pnr: 'ABC12D', ticketNumber: '001-9823410291', baggage: '2x 32kg' },
-    { id: 'BK-3820', route: 'JFK → DXB', travelDate: '20 Aug 2026', cabinClass: 'First', sellingPrice: 8500, bookingStatus: 'COMPLETED', pnr: 'DXB89F', ticketNumber: '176-4482019283', baggage: '3x 32kg' },
-    { id: 'BK-2910', route: 'LHR → JFK', travelDate: '12 May 2026', cabinClass: 'Business', sellingPrice: 4800, bookingStatus: 'COMPLETED', pnr: 'LHR33K', ticketNumber: '125-9982341022', baggage: '2x 32kg' },
-    { id: 'BK-1102', route: 'BOM → SIN', travelDate: '05 Jan 2026', cabinClass: 'Economy', sellingPrice: 1250, bookingStatus: 'COMPLETED', pnr: 'SIN55R', ticketNumber: '618-1123490211', baggage: '1x 23kg' },
-  ];
+  const client = useMemo(() => ({
+    id: id || '',
+    firstName: matchedClient?.firstName || '',
+    lastName: matchedClient?.lastName || '',
+    email: matchedClient?.email || '',
+    phone: matchedClient?.phone || '',
+    country: matchedClient?.country || matchedClient?.nationality || '',
+    nationality: matchedClient?.nationality || matchedClient?.country || '',
+    city: matchedClient?.city || '',
+    timezone: matchedClient?.timezone || '',
+    preferredLanguage: matchedClient?.preferredLanguage || '',
+    passportNumber: matchedClient?.passportNumber || '',
+    passportExpiry: matchedClient?.passportExpiry || '',
+    otherNationalities: matchedClient?.otherNationalities || '',
+    preferredCabinClass: matchedClient?.preferredCabinClass || '',
+    tier: matchedClient?.tier || 'Standard',
+    frequentFlyer: matchedClient?.frequentFlyer || [],
+    preferredAirlines: matchedClient?.preferredAirlines || [],
+    seatPreference: matchedClient?.seatPreference || '',
+    mealPreference: matchedClient?.mealPreference || '',
+    specialAssistance: matchedClient?.specialAssistance || '',
+    assignedConsultant: matchedClient?.assignedConsultant || '',
+    totalSpent: matchedClient?.totalSpent || '$0',
+    totalBookings: matchedClient?.totalBookings || 0,
+    ...matchedClient
+  }), [matchedClient, id]);
 
-  const mockQuotesList = [
-    { id: 'QT-8801', date: '2026-06-12', route: 'JFK → LHR (Business Direct)', airline: 'British Airways BA-117', grossPrice: 5175, netFare: 4500, margin: 675, status: 'CONVERTED / BOOKED' },
-    { id: 'QT-8742', date: '2026-05-02', route: 'DEL → SFO (Business 1-Stop)', airline: 'Qatar Airways QR-571', grossPrice: 6200, netFare: 5400, margin: 800, status: 'EXPIRED' },
-    { id: 'QT-8510', date: '2026-03-18', route: 'JFK → DXB (First Class)', airline: 'Emirates EK-202', grossPrice: 8500, netFare: 7400, margin: 1100, status: 'CONVERTED / BOOKED' },
-  ];
+  const mockBookingsList = [];
+  const mockInvoices = [];
+  const mockRefunds = [];
 
-  const mockInvoices = [
-    { id: 'INV-1092', bookingRef: 'BK-4591', amount: '$5,175.00', method: 'Stripe Credit Card', status: 'PAID', date: '2026-06-18', type: 'Full Flight Payment' },
-    { id: 'INV-0881', bookingRef: 'BK-3820', amount: '$8,500.00', method: 'Bank Wire Transfer', status: 'PAID', date: '2026-05-14', type: 'First Class Fare' },
-    { id: 'INV-0654', bookingRef: 'BK-2910', amount: '$4,800.00', method: 'Stripe Credit Card', status: 'PAID', date: '2026-04-02', type: 'Business Return' },
-    { id: 'INV-0312', bookingRef: 'BK-1102', amount: '$1,250.00', method: 'Apple Pay', status: 'PAID', date: '2025-12-20', type: 'Standard Fare' },
-  ];
+  const { data: customerQuotes = [] } = useQuery({
+    queryKey: ['customer-quotes', id, matchedClient?.email, matchedClient?.phone],
+    queryFn: async () => {
+      try {
+        const stored = localStorage.getItem('crm-quotes');
+        const localQuotes = stored ? JSON.parse(stored) : [];
+        let remoteQuotes = [];
+        try {
+          const backendUrl = dbService.getBackendUrl ? dbService.getBackendUrl() : 'http://localhost:3001';
+          const res = await fetch(`${backendUrl}/api/quotes`);
+          if (res.ok) {
+            const json = await res.json();
+            if (json.success && Array.isArray(json.data)) {
+              remoteQuotes = json.data;
+            }
+          }
+        } catch (e) { }
 
-  const mockRefunds = [
-    { id: 'RF-201', bookingRef: 'BK-1102', grossAmount: 1250, airlinePenalty: 250, agencyFee: 50, netRefund: 950, status: 'PROCESSED', date: '2026-01-10' },
-  ];
+        const all = [...localQuotes, ...remoteQuotes];
+        const seen = new Set();
+        const unique = all.filter(q => {
+          const qId = q.quoteId || q.id;
+          if (!qId || seen.has(qId)) return false;
+          seen.add(qId);
+          return true;
+        });
 
-  const [commLogs, setCommLogs] = useState([
-    { id: 1, channel: 'WhatsApp', time: 'Today, 14:20', agent: 'Maria S.', text: 'Sent updated flight options for JFK → LHR Business class direct flights (BA-117).' },
-    { id: 2, channel: 'Call', time: 'Yesterday, 16:45', agent: 'Maria S.', text: 'Telnyx call (duration: 8m 22s). Passenger confirmed preference for Aisle seats and vegetarian meal.' },
-    { id: 3, channel: 'Email', time: '14 Jun 2026', agent: 'System / GDS', text: 'E-Ticket PDF and official itinerary dispatched for PNR ABC12D.' },
-    { id: 4, channel: 'SMS', time: '12 Jun 2026', agent: 'System', text: 'Payment confirmation link opened by customer.' },
-  ]);
+        const cEmail = (matchedClient?.email || '').toLowerCase();
+        const cPhone = (matchedClient?.phone || '').replace(/[^0-9]/g, '');
+        const cName = `${matchedClient?.firstName || ''} ${matchedClient?.lastName || ''}`.trim().toLowerCase();
 
-  const [notesTasks, setNotesTasks] = useState([
-    { id: 1, type: 'Task', title: 'Call 48h before flight for Web Check-In', assignee: 'Maria S.', dueDate: '13 Oct 2026', status: 'PENDING' },
-    { id: 2, type: 'Internal Note', title: 'High-value executive traveler — always quote lie-flat direct flights first.', assignee: 'Carlos GDS', dueDate: 'Always Active', status: 'ACTIVE' },
-  ]);
+        return unique.filter(q => {
+          const qEmail = (q.customerEmail || q.email || '').toLowerCase();
+          const qPhone = (q.customerPhone || q.phone || '').replace(/[^0-9]/g, '');
+          const qName = (q.customerName || '').toLowerCase();
+          return (cEmail && qEmail && cEmail === qEmail) ||
+                 (cPhone && qPhone && cPhone === qPhone) ||
+                 (cName && qName && cName === qName) ||
+                 (q.clientId && q.clientId === id);
+        });
+      } catch (e) {
+        return [];
+      }
+    },
+    enabled: !!id
+  });
 
-  const [complaints, setComplaints] = useState([
-    { id: 'CMP-104', date: '18 May 2026', issue: 'Delayed baggage delivery at Heathrow on BA-117', status: 'RESOLVED', resolution: '$150 airline voucher issued to passenger.', agent: 'Ops Desk' },
-  ]);
+  const [commLogs, setCommLogs] = useState([]);
+  const [notesTasks, setNotesTasks] = useState([]);
+  const [complaints, setComplaints] = useState([]);
 
   const handleAddCommLog = () => {
     if (!newLogText.trim()) return;
@@ -186,7 +201,7 @@ export const SuperAdminClientDetails = () => {
       </Button>
 
       {/* ─── 1. CUSTOMER 360 HEADER & LIFETIME VALUE (CLV) STRIP ─── */}
-      <Paper elevation={0} sx={{ p: 2.5, mb: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'background.paper' }}>
+      <Paper elevation={0} sx={{ p: 2.5, mb: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: '#FFFFFF' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar sx={{ width: 64, height: 64, bgcolor: 'primary.main', fontSize: 24, fontWeight: 900 }}>
@@ -197,11 +212,11 @@ export const SuperAdminClientDetails = () => {
                 <Typography variant="h5" sx={{ fontWeight: 900 }}>
                   {client.firstName} {client.lastName}
                 </Typography>
-                <Chip size="small" label="👑 VIP Frequent Flyer" color="primary" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
-                <Chip size="small" label="Single Master Record" color="success" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
+                <Chip size="small" label={`Tier: ${client.tier || 'Standard'}`} color="primary" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
+                <Chip size="small" label="Customer Record" color="success" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.3 }}>
-                Customer ID: <b>#{client.id}</b> &nbsp;|&nbsp; Location: <b>{client.city || 'New York'}, {client.country || 'USA'}</b> ({client.timezone || 'EST'}) &nbsp;|&nbsp; Assigned Agent: <b>{client.assignedConsultant || 'Maria S.'}</b>
+                Customer ID: <b>#{client.id}</b> &nbsp;|&nbsp; Location: <b>{[client.city, client.country || client.nationality].filter(Boolean).join(', ') || '—'}</b> {client.timezone ? `(${client.timezone})` : ''} &nbsp;|&nbsp; Assigned Agent: <b>{client.assignedConsultant || 'Unassigned'}</b>
               </Typography>
             </Box>
           </Box>
@@ -233,8 +248,7 @@ export const SuperAdminClientDetails = () => {
                 color="primary"
                 startIcon={<FlightTakeoffIcon />}
                 onClick={() => {
-                  showAlert(`New flight quote created for ${client.firstName}!`, 'success');
-                  navigate('/quotes');
+                  navigate('/quotes', { state: { client } });
                 }}
               >
                 Create Flight Quote
@@ -259,10 +273,10 @@ export const SuperAdminClientDetails = () => {
         {/* CLV Metric Bar */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
           {[
-            { label: 'Customer Lifetime Value (LTV)', value: client.totalSpent || '$24,225', color: '#16A34A', bg: 'var(--wl-F0FDF4, #F0FDF4)' },
-            { label: 'Total Confirmed Bookings', value: `${mockBookingsList.length} Flights`, color: '#2563EB', bg: 'var(--wl-EFF6FF, #EFF6FF)' },
-            { label: 'Average Order Value (AOV)', value: '$6,056.25', color: '#7C3AED', bg: 'var(--wl-F5F3FF, #F5F3FF)' },
-            { label: 'Loyalty Tier Status', value: 'Emirates Gold / BA Silver', color: '#D97706', bg: 'var(--wl-FFFBEB, #FFFBEB)' },
+            { label: 'Customer Lifetime Value (LTV)', value: client.totalSpent || '$0', color: '#16A34A', bg: '#F0FDF4' },
+            { label: 'Total Confirmed Bookings', value: `${mockBookingsList.length} Flights`, color: '#2563EB', bg: '#EFF6FF' },
+            { label: 'Preferred Cabin Class', value: client.preferredCabinClass || '—', color: '#7C3AED', bg: '#F5F3FF' },
+            { label: 'Loyalty Tier Status', value: client.tier || 'Standard', color: '#D97706', bg: '#FFFBEB' },
           ].map((kpi, idx) => (
             <Paper key={idx} variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: kpi.bg, borderColor: 'divider' }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.2 }}>
@@ -285,7 +299,7 @@ export const SuperAdminClientDetails = () => {
         scrollButtons="auto"
       >
         <Tab icon={<PersonIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="👤 Personal & Passport" sx={{ fontWeight: 700 }} />
-        <Tab icon={<HistoryEduIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`📋 Previous Leads & Quotes (${mockQuotesList.length})`} sx={{ fontWeight: 700 }} />
+        <Tab icon={<HistoryEduIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`📋 Previous Leads & Quotes (${customerQuotes.length})`} sx={{ fontWeight: 700 }} />
         <Tab icon={<ForumIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`💬 Communications & Calls (${commLogs.length})`} sx={{ fontWeight: 700 }} />
         <Tab icon={<AirplaneTicketIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`✈️ Bookings & E-Tickets (${mockBookingsList.length})`} sx={{ fontWeight: 700 }} />
         <Tab icon={<ReceiptIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`💳 Payments & Refunds (${mockInvoices.length})`} sx={{ fontWeight: 700 }} />
@@ -306,43 +320,56 @@ export const SuperAdminClientDetails = () => {
 
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Email Address:</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.email}</Typography>
-                <CheckCircleIcon sx={{ fontSize: 14, color: 'success.main' }} />
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.email || '—'}</Typography>
+                {client.email && <CheckCircleIcon sx={{ fontSize: 14, color: 'success.main' }} />}
               </Box>
 
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Phone Number:</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{client.phone}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{client.phone || '—'}</Typography>
 
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Country / Nationality:</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.country || 'USA'} ({client.nationality || 'American'})</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Country:</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.country || client.nationality || '—'}</Typography>
 
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>City:</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.city || 'New York'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.city || '—'}</Typography>
 
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Time Zone:</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.timezone || 'UTC-05:00 Eastern Time (EST)'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.timezone || '—'}</Typography>
+
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Language Preference:</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.preferredLanguage || '—'}</Typography>
+
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Loyalty / VIP Tier:</Typography>
+              <Chip size="small" label={client.tier || 'Standard'} sx={{ fontWeight: 800, width: 'fit-content', bgcolor: '#FEF9C3', color: '#854D0E', fontSize: '0.72rem' }} />
             </Box>
           </Paper>
 
           <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 2, color: 'info.main' }}>
-              🛂 PASSPORT & TRAVEL DOCUMENTS
+              🛂 PASSPORT & TRAVEL PREFERENCES
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: '160px 1fr', rowGap: 1.5, fontSize: 14 }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Passport Number:</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body2" sx={{ fontWeight: 800, fontFamily: 'monospace' }}>{client.passportNumber || 'US98234109'}</Typography>
-                <Chip size="small" label="Verified Valid" color="success" sx={{ fontSize: '0.65rem', height: 20 }} />
+                <Typography variant="body2" sx={{ fontWeight: 800, fontFamily: 'monospace' }}>{client.passportNumber || 'Not Provided'}</Typography>
+                {client.passportNumber && <Chip size="small" label="Saved" color="success" sx={{ fontSize: '0.65rem', height: 20 }} />}
               </Box>
 
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Passport Expiry Date:</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.main' }}>{client.passportExpiry || '2031-08-15'} (Valid &gt; 6 months)</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>{client.passportExpiry || 'Not Provided'}</Typography>
 
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Primary Nationality:</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.nationality || 'American (US Citizen)'}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Preferred Cabin Class:</Typography>
+              {client.preferredCabinClass ? (
+                <Chip size="small" label={client.preferredCabinClass} color="primary" sx={{ fontWeight: 800, width: 'fit-content' }} />
+              ) : (
+                <Typography variant="body2" color="text.secondary">—</Typography>
+              )}
 
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Other Nationalities Held:</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.otherNationalities || 'Indian (OCI Card Holder)'}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Seat Preference:</Typography>
+              <Typography variant="body2" sx={{ fontWeight: client.seatPreference ? 700 : 400 }}>{client.seatPreference || '—'}</Typography>
+
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Meal Preference:</Typography>
+              <Typography variant="body2" sx={{ fontWeight: client.mealPreference ? 700 : 400 }}>{client.mealPreference || '—'}</Typography>
             </Box>
           </Paper>
         </Box>
@@ -351,41 +378,64 @@ export const SuperAdminClientDetails = () => {
       {/* ─── TAB 1: PREVIOUS LEADS & QUOTES ─── */}
       {activeTab === 1 && (
         <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.5, overflow: 'hidden' }}>
-          <Box sx={{ p: 2, bgcolor: 'background.neutral', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ p: 2, bgcolor: '#F8FAFC', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>PAST FLIGHT INQUIRIES & QUOTATIONS</Typography>
-            <Button size="small" variant="contained" color="primary" onClick={() => navigate('/quotes')}>
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              onClick={() => navigate('/quotes', { state: { client } })}
+            >
               + New Quote
             </Button>
           </Box>
           <Box sx={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 650 }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid var(--wb-F1F5F9, #F1F5F9)' }}>
+                <tr style={{ borderBottom: '2px solid #F1F5F9', background: '#FAFAFA' }}>
                   {['Quote Ref', 'Date Inquired', 'Route & Option', 'Carrier', 'Gross Price ($)', 'Net Fare ($)', 'Agency Profit ($)', 'Status'].map(h => (
                     <th key={h} style={{ textAlign: 'left', padding: '10px 12px', color: '#64748B', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {mockQuotesList.map((q) => (
-                  <tr key={q.id} style={{ borderBottom: '1px solid var(--wb-F8FAFC, #F8FAFC)' }}>
-                    <td style={{ padding: '12px', fontWeight: 800, color: '#2563EB' }}>{q.id}</td>
-                    <td style={{ padding: '12px', color: 'text.secondary' }}>{q.date}</td>
-                    <td style={{ padding: '12px', fontWeight: 700 }}>{q.route}</td>
-                    <td style={{ padding: '12px' }}>{q.airline}</td>
-                    <td style={{ padding: '12px', fontWeight: 800, color: 'var(--wd-16A34A, #16A34A)' }}>${q.grossPrice.toFixed(2)}</td>
-                    <td style={{ padding: '12px', color: '#2563EB', fontWeight: 600 }}>${q.netFare.toFixed(2)}</td>
-                    <td style={{ padding: '12px', fontWeight: 900, color: 'var(--wd-059669, #059669)' }}>+${q.margin.toFixed(2)}</td>
-                    <td style={{ padding: '12px' }}>
-                      <Chip
-                        size="small"
-                        label={q.status}
-                        color={q.status.includes('CONVERTED') ? 'success' : 'default'}
-                        sx={{ fontSize: '0.65rem', fontWeight: 800 }}
-                      />
+                {customerQuotes.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#64748B' }}>
+                      No flight inquiries or quotations recorded for this customer yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  customerQuotes.map((q) => {
+                    const qId = q.quoteId || q.id;
+                    const qDate = q.createdDate || (q.createdAt ? q.createdAt.split('T')[0] : 'Today');
+                    const qRoute = q.route || `${q.origin || ''} → ${q.destination || ''}`;
+                    const qAirline = q.airline || q.options?.[0]?.airline || 'Flight Option';
+                    const grossPrice = Number(q.totalPrice || q.customerPrice || q.options?.[0]?.customerPrice || 0);
+                    const netFare = Number(q.netPrice || q.options?.[0]?.supplierCost || 0);
+                    const profit = Number(q.markup || q.options?.[0]?.profit || (grossPrice - netFare));
+                    const status = q.status || 'Draft';
+                    return (
+                      <tr key={qId} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                        <td style={{ padding: '12px', fontWeight: 800, color: '#2563EB' }}>{qId}</td>
+                        <td style={{ padding: '12px', color: 'text.secondary' }}>{qDate}</td>
+                        <td style={{ padding: '12px', fontWeight: 700 }}>{qRoute}</td>
+                        <td style={{ padding: '12px' }}>{qAirline}</td>
+                        <td style={{ padding: '12px', fontWeight: 800, color: '#16A34A' }}>${grossPrice.toFixed(2)}</td>
+                        <td style={{ padding: '12px', color: '#2563EB', fontWeight: 600 }}>${netFare.toFixed(2)}</td>
+                        <td style={{ padding: '12px', fontWeight: 900, color: '#059669' }}>+${profit.toFixed(2)}</td>
+                        <td style={{ padding: '12px' }}>
+                          <Chip
+                            size="small"
+                            label={status}
+                            color={status.includes('CONVERTED') || status === 'Accepted' ? 'success' : 'default'}
+                            sx={{ fontSize: '0.65rem', fontWeight: 800 }}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </Box>
@@ -400,26 +450,34 @@ export const SuperAdminClientDetails = () => {
               CHRONOLOGICAL OMNICHANNEL CALL & CHAT TIMELINE
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {commLogs.map((log) => (
-                <Box key={log.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip
-                        size="small"
-                        icon={log.channel === 'WhatsApp' ? <WhatsAppIcon /> : log.channel === 'Call' ? <PhoneIcon /> : <EmailIcon />}
-                        label={log.channel}
-                        color={log.channel === 'WhatsApp' || log.channel === 'Call' ? 'success' : 'primary'}
-                        sx={{ fontWeight: 700, fontSize: '0.7rem' }}
-                      />
-                      <Typography variant="caption" sx={{ fontWeight: 800 }}>Agent: {log.agent}</Typography>
-                    </Box>
-                    <Typography variant="caption" color="text.secondary">{log.time}</Typography>
-                  </Box>
-                  <Typography variant="body2" sx={{ color: 'var(--wd-334155, #334155)' }}>
-                    {log.text}
+              {commLogs.length === 0 ? (
+                <Box sx={{ p: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No communication records logged yet. Use the composer on the right to log calls, chats, or notes.
                   </Typography>
                 </Box>
-              ))}
+              ) : (
+                commLogs.map((log) => (
+                  <Box key={log.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: '#F8FAFC' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Chip
+                          size="small"
+                          icon={log.channel === 'WhatsApp' ? <WhatsAppIcon /> : log.channel === 'Call' ? <PhoneIcon /> : <EmailIcon />}
+                          label={log.channel}
+                          color={log.channel === 'WhatsApp' || log.channel === 'Call' ? 'success' : 'primary'}
+                          sx={{ fontWeight: 700, fontSize: '0.7rem' }}
+                        />
+                        <Typography variant="caption" sx={{ fontWeight: 800 }}>Agent: {log.agent}</Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">{log.time}</Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ color: '#334155' }}>
+                      {log.text}
+                    </Typography>
+                  </Box>
+                ))
+              )}
             </Box>
           </Paper>
 
@@ -442,7 +500,7 @@ export const SuperAdminClientDetails = () => {
               fullWidth
               multiline
               rows={4}
-              placeholder="Enter details of conversation with Karan Singh..."
+              placeholder={`Enter details of conversation with ${client.firstName || 'customer'}...`}
               value={newLogText}
               onChange={e => setNewLogText(e.target.value)}
               sx={{ mb: 2 }}
@@ -463,49 +521,57 @@ export const SuperAdminClientDetails = () => {
       {/* ─── TAB 3: BOOKINGS & 13-DIGIT E-TICKETS ─── */}
       {activeTab === 3 && (
         <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.5, overflow: 'hidden' }}>
-          <Box sx={{ p: 2, bgcolor: 'background.neutral', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ p: 2, bgcolor: '#F8FAFC', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>CONFIRMED BOOKINGS & 13-DIGIT E-TICKETS</Typography>
             <Chip size="small" label={`Lifetime Flights: ${mockBookingsList.length}`} color="primary" sx={{ fontWeight: 800 }} />
           </Box>
           <Box sx={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 700 }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid var(--wb-F1F5F9, #F1F5F9)' }}>
+                <tr style={{ borderBottom: '2px solid #F1F5F9', background: '#FAFAFA' }}>
                   {['Booking Ref', 'GDS PNR', '13-Digit E-Ticket #', 'Route', 'Travel Date', 'Class & Baggage', 'Amount ($)', 'Status'].map(h => (
                     <th key={h} style={{ textAlign: 'left', padding: '10px 12px', color: '#64748B', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {mockBookingsList.map((b) => (
-                  <tr key={b.id} style={{ borderBottom: '1px solid var(--wb-F8FAFC, #F8FAFC)' }}>
-                    <td style={{ padding: '12px', fontWeight: 800, color: '#2563EB' }}>{b.id}</td>
-                    <td style={{ padding: '12px', fontFamily: 'monospace', fontWeight: 700 }}>{b.pnr}</td>
-                    <td style={{ padding: '12px', fontFamily: 'monospace', fontWeight: 800, color: 'text.primary' }}>
-                      {b.ticketNumber || '001-9823410291'}
-                    </td>
-                    <td style={{ padding: '12px', fontWeight: 700 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <FlightTakeoffIcon sx={{ fontSize: 14, color: 'primary.main' }} />
-                        {b.route}
-                      </Box>
-                    </td>
-                    <td style={{ padding: '12px' }}>{b.travelDate}</td>
-                    <td style={{ padding: '12px' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{b.cabinClass}</Typography>
-                      <Typography variant="caption" color="text.secondary">{b.baggage || '2x 32kg'}</Typography>
-                    </td>
-                    <td style={{ padding: '12px', fontWeight: 800, color: 'var(--wd-10B981, #10B981)' }}>${b.sellingPrice?.toFixed(2) || b.sellingPrice}</td>
-                    <td style={{ padding: '12px' }}>
-                      <Chip
-                        size="small"
-                        label={b.bookingStatus || 'TICKETED'}
-                        color={b.bookingStatus === 'TICKETED' || b.bookingStatus === 'COMPLETED' ? 'success' : 'primary'}
-                        sx={{ fontSize: '0.68rem', fontWeight: 700 }}
-                      />
+                {mockBookingsList.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#64748B' }}>
+                      No confirmed bookings or e-tickets found for this customer.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  mockBookingsList.map((b) => (
+                    <tr key={b.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                      <td style={{ padding: '12px', fontWeight: 800, color: '#2563EB' }}>{b.id}</td>
+                      <td style={{ padding: '12px', fontFamily: 'monospace', fontWeight: 700 }}>{b.pnr || '—'}</td>
+                      <td style={{ padding: '12px', fontFamily: 'monospace', fontWeight: 800, color: '#0F172A' }}>
+                        {b.ticketNumber || '—'}
+                      </td>
+                      <td style={{ padding: '12px', fontWeight: 700 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <FlightTakeoffIcon sx={{ fontSize: 14, color: 'primary.main' }} />
+                          {b.route || '—'}
+                        </Box>
+                      </td>
+                      <td style={{ padding: '12px' }}>{b.travelDate || '—'}</td>
+                      <td style={{ padding: '12px' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{b.cabinClass || '—'}</Typography>
+                        <Typography variant="caption" color="text.secondary">{b.baggage || '—'}</Typography>
+                      </td>
+                      <td style={{ padding: '12px', fontWeight: 800, color: '#10B981' }}>${b.sellingPrice?.toFixed(2) || b.sellingPrice || 0}</td>
+                      <td style={{ padding: '12px' }}>
+                        <Chip
+                          size="small"
+                          label={b.bookingStatus || 'Confirmed'}
+                          color={b.bookingStatus === 'TICKETED' || b.bookingStatus === 'COMPLETED' ? 'success' : 'primary'}
+                          sx={{ fontSize: '0.68rem', fontWeight: 700 }}
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </Box>
@@ -517,7 +583,7 @@ export const SuperAdminClientDetails = () => {
         <Box sx={{ display: 'grid', gap: 2.5 }}>
           {/* Invoices Table */}
           <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.5, overflow: 'hidden' }}>
-            <Box sx={{ p: 2, bgcolor: 'background.neutral', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box sx={{ p: 2, bgcolor: '#F8FAFC', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>FINANCIAL INVOICES & COLLECTIONS</Typography>
               <Button size="small" variant="contained" color="secondary" onClick={() => setPaymentModalOpen(true)}>
                 + Generate Payment Link
@@ -526,26 +592,34 @@ export const SuperAdminClientDetails = () => {
             <Box sx={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 650 }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid var(--wb-F1F5F9, #F1F5F9)' }}>
+                  <tr style={{ borderBottom: '2px solid #F1F5F9', background: '#FAFAFA' }}>
                     {['Invoice #', 'Booking Ref', 'Amount ($)', 'Payment Method', 'Payment Type', 'Status', 'Date Paid'].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '10px 12px', color: '#64748B', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {mockInvoices.map((inv) => (
-                    <tr key={inv.id} style={{ borderBottom: '1px solid var(--wb-F8FAFC, #F8FAFC)' }}>
-                      <td style={{ padding: '12px', fontWeight: 800, fontFamily: 'monospace' }}>{inv.id}</td>
-                      <td style={{ padding: '12px', fontWeight: 700, color: '#64748B' }}>{inv.bookingRef}</td>
-                      <td style={{ padding: '12px', fontWeight: 900, color: 'var(--wd-10B981, #10B981)' }}>{inv.amount}</td>
-                      <td style={{ padding: '12px' }}>{inv.method}</td>
-                      <td style={{ padding: '12px', color: 'text.secondary' }}>{inv.type}</td>
-                      <td style={{ padding: '12px' }}>
-                        <Chip size="small" label={inv.status} color="success" sx={{ fontSize: '0.65rem', fontWeight: 800 }} />
+                  {mockInvoices.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748B' }}>
+                        No financial invoices or payment transactions recorded.
                       </td>
-                      <td style={{ padding: '12px', color: '#64748B' }}>{inv.date}</td>
                     </tr>
-                  ))}
+                  ) : (
+                    mockInvoices.map((inv) => (
+                      <tr key={inv.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                        <td style={{ padding: '12px', fontWeight: 800, fontFamily: 'monospace' }}>{inv.id}</td>
+                        <td style={{ padding: '12px', fontWeight: 700, color: '#64748B' }}>{inv.bookingRef}</td>
+                        <td style={{ padding: '12px', fontWeight: 900, color: '#10B981' }}>{inv.amount}</td>
+                        <td style={{ padding: '12px' }}>{inv.method}</td>
+                        <td style={{ padding: '12px', color: 'text.secondary' }}>{inv.type}</td>
+                        <td style={{ padding: '12px' }}>
+                          <Chip size="small" label={inv.status} color="success" sx={{ fontSize: '0.65rem', fontWeight: 800 }} />
+                        </td>
+                        <td style={{ padding: '12px', color: '#64748B' }}>{inv.date}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </Box>
@@ -558,26 +632,34 @@ export const SuperAdminClientDetails = () => {
             </Typography>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--wb-E2E8F0, #E2E8F0)' }}>
+                <tr style={{ borderBottom: '1px solid #E2E8F0', background: '#FEF2F2' }}>
                   {['Refund ID', 'Booking', 'Original Fare', 'Airline Penalty', 'Agency Fee', 'Net Refund Paid', 'Status'].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--wd-991B1B, #991B1B)', fontWeight: 700 }}>{h}</th>
+                    <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: '#991B1B', fontWeight: 700 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {mockRefunds.map(r => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid var(--wb-F1F5F9, #F1F5F9)' }}>
-                    <td style={{ padding: '8px 10px', fontWeight: 800 }}>{r.id}</td>
-                    <td style={{ padding: '8px 10px' }}>{r.bookingRef}</td>
-                    <td style={{ padding: '8px 10px' }}>${r.grossAmount}</td>
-                    <td style={{ padding: '8px 10px', color: '#DC2626' }}>-${r.airlinePenalty}</td>
-                    <td style={{ padding: '8px 10px', color: '#D97706' }}>-${r.agencyFee}</td>
-                    <td style={{ padding: '8px 10px', fontWeight: 900, color: 'var(--wd-16A34A, #16A34A)' }}>${r.netRefund}</td>
-                    <td style={{ padding: '8px 10px' }}>
-                      <Chip label={r.status} size="small" color="success" sx={{ fontSize: '0.62rem', height: 18 }} />
+                {mockRefunds.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#64748B' }}>
+                      No refund or cancellation dispute records logged.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  mockRefunds.map(r => (
+                    <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 800 }}>{r.id}</td>
+                      <td style={{ padding: '8px 10px' }}>{r.bookingRef}</td>
+                      <td style={{ padding: '8px 10px' }}>${r.grossAmount}</td>
+                      <td style={{ padding: '8px 10px', color: '#DC2626' }}>-${r.airlinePenalty}</td>
+                      <td style={{ padding: '8px 10px', color: '#D97706' }}>-${r.agencyFee}</td>
+                      <td style={{ padding: '8px 10px', fontWeight: 900, color: '#16A34A' }}>${r.netRefund}</td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <Chip label={r.status} size="small" color="success" sx={{ fontSize: '0.62rem', height: 18 }} />
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </Paper>
@@ -593,13 +675,17 @@ export const SuperAdminClientDetails = () => {
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: '150px 1fr', rowGap: 1.5, fontSize: 14 }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Preferred Cabin Class:</Typography>
-              <Chip size="small" label={client.preferredCabinClass || 'Business Class'} color="primary" sx={{ fontWeight: 800, width: 'fit-content' }} />
+              {client.preferredCabinClass ? (
+                <Chip size="small" label={client.preferredCabinClass} color="primary" sx={{ fontWeight: 800, width: 'fit-content' }} />
+              ) : (
+                <Typography variant="body2" color="text.secondary">—</Typography>
+              )}
 
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Seat Preference:</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>{client.seatPreference || 'Aisle Seat (Exit Row preferred)'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: client.seatPreference ? 700 : 400 }}>{client.seatPreference || '—'}</Typography>
 
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Meal Preference:</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>{client.mealPreference || 'Vegetarian (Asian Style)'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: client.mealPreference ? 700 : 400 }}>{client.mealPreference || '—'}</Typography>
 
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>Special Assistance:</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{client.specialAssistance || 'None'}</Typography>
@@ -611,19 +697,21 @@ export const SuperAdminClientDetails = () => {
               💳 FREQUENT FLYER ACCOUNTS
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {(client.frequentFlyer || [
-                { airline: 'British Airways', program: 'Executive Club', number: 'BA-9832104', status: 'Silver' },
-                { airline: 'Delta Airlines', program: 'SkyMiles', number: 'DL-4482019', status: 'Platinum Medallion' },
-                { airline: 'Emirates', program: 'Skywards', number: 'EK-7729103', status: 'Gold' }
-              ]).map((ff, i) => (
-                <Box key={i} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{ff.airline} — {ff.program}</Typography>
-                    <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'text.secondary' }}>Account: {ff.number}</Typography>
+              {Array.isArray(client.frequentFlyer) && client.frequentFlyer.length > 0 ? (
+                client.frequentFlyer.map((ff, i) => (
+                  <Box key={i} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{ff.airline} — {ff.program}</Typography>
+                      <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'text.secondary' }}>Account: {ff.number}</Typography>
+                    </Box>
+                    <Chip size="small" label={`🌟 ${ff.status}`} color="warning" sx={{ fontWeight: 700, fontSize: '0.68rem' }} />
                   </Box>
-                  <Chip size="small" label={`🌟 ${ff.status}`} color="warning" sx={{ fontWeight: 700, fontSize: '0.68rem' }} />
+                ))
+              ) : (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">No frequent flyer accounts registered.</Typography>
                 </Box>
-              ))}
+              )}
             </Box>
           </Paper>
         </Box>
@@ -638,16 +726,22 @@ export const SuperAdminClientDetails = () => {
               📌 AGENT TASKS & INTERNAL REMARKS
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {notesTasks.map(t => (
-                <Box key={t.id} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Chip label={t.type} size="small" color={t.type === 'Task' ? 'primary' : 'default'} sx={{ height: 18, fontSize: '0.62rem', fontWeight: 800 }} />
-                    <Typography variant="caption" color="text.secondary">Due: {t.dueDate}</Typography>
+              {notesTasks.length > 0 ? (
+                notesTasks.map(t => (
+                  <Box key={t.id} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: '#F8FAFC' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Chip label={t.type} size="small" color={t.type === 'Task' ? 'primary' : 'default'} sx={{ height: 18, fontSize: '0.62rem', fontWeight: 800 }} />
+                      <Typography variant="caption" color="text.secondary">Due: {t.dueDate}</Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>{t.title}</Typography>
+                    <Typography variant="caption" color="text.secondary">Assigned to: <b>{t.assignee}</b></Typography>
                   </Box>
-                  <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>{t.title}</Typography>
-                  <Typography variant="caption" color="text.secondary">Assigned to: <b>{t.assignee}</b></Typography>
+                ))
+              ) : (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">No internal tasks or remarks recorded.</Typography>
                 </Box>
-              ))}
+              )}
             </Box>
           </Paper>
 
@@ -657,16 +751,22 @@ export const SuperAdminClientDetails = () => {
               ⚠️ CUSTOMER COMPLAINTS & SLA LOGS
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {complaints.map(c => (
-                <Box key={c.id} sx={{ p: 1.5, border: '1px solid #FECACA', borderRadius: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: 'var(--wd-991B1B, #991B1B)' }}>{c.id} ({c.date})</Typography>
-                    <Chip label={c.status} size="small" color="success" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 800 }} />
+              {complaints.length > 0 ? (
+                complaints.map(c => (
+                  <Box key={c.id} sx={{ p: 1.5, border: '1px solid #FECACA', borderRadius: 2, bgcolor: '#FEF2F2' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 800, color: '#991B1B' }}>{c.id} ({c.date})</Typography>
+                      <Chip label={c.status} size="small" color="success" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 800 }} />
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#7F1D1D', mb: 0.5 }}>Issue: {c.issue}</Typography>
+                    <Typography variant="caption" sx={{ color: '#166534', fontWeight: 700, display: 'block' }}>Resolution: {c.resolution}</Typography>
                   </Box>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--wd-7F1D1D, #7F1D1D)', mb: 0.5 }}>Issue: {c.issue}</Typography>
-                  <Typography variant="caption" sx={{ color: 'var(--wd-166534, #166534)', fontWeight: 700, display: 'block' }}>Resolution: {c.resolution}</Typography>
+                ))
+              ) : (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">No customer complaints or disputes reported.</Typography>
                 </Box>
-              ))}
+              )}
             </Box>
           </Paper>
         </Box>
