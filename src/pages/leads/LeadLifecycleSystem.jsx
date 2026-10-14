@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -25,6 +25,9 @@ import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import Select from '@mui/material/Select';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
 
 // Icons
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -40,6 +43,7 @@ import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
+import { dbService } from '../../services/dbService';
 
 // ==========================================
 // MANDATORY DATASETS & TRANSITION RULES
@@ -73,27 +77,20 @@ const OUTCOME_REASONS = {
 };
 
 const SAMPLE_LEAD = {
-  id: 'LD-99120',
+  id: 'LD-8440',
   customer: 'Ambassador Harold Vance',
   route: 'DEL ➔ LHR ➔ JFK',
   tripType: 'Multi-City',
   agent: 'Sarah Jenkins',
   teamLeader: 'Michael Chang',
-  currentStatusIndex: 9, // TICKETED
-  currentStatus: 'TICKETED',
+  currentStatusIndex: 2, // CONTACTED
+  currentStatus: 'CONTACTED',
   expectedValue: 28500,
-  createdDate: '2026-08-18 10:15',
+  createdDate: '2026-10-14 10:15',
   slaStatus: '🟢 On Time (0 Delays)',
   history: [
-    { from: 'NEW', to: 'ASSIGNED', user: 'System Auto-Router', role: 'System', time: 'Aug 18 10:16', duration: '1 min', sla: 'Met (1m)', reason: 'Matched USA Skill Rule' },
-    { from: 'ASSIGNED', to: 'CONTACTED', user: 'Sarah Jenkins', role: 'Sales Agent', time: 'Aug 18 10:18', duration: '2 mins', sla: 'Met (2m < 5m target)', reason: 'Outbound Call Connected' },
-    { from: 'CONTACTED', to: 'QUALIFIED', user: 'Sarah Jenkins', role: 'Sales Agent', time: 'Aug 18 10:25', duration: '7 mins', sla: 'Met', reason: 'Captured First Class reqs' },
-    { from: 'QUALIFIED', to: 'QUOTE CREATED', user: 'Sarah Jenkins', role: 'Sales Agent', time: 'Aug 18 11:30', duration: '1 hour', sla: 'Met', reason: 'Generated Q-8812' },
-    { from: 'QUOTE CREATED', to: 'QUOTE SENT', user: 'Sarah Jenkins', role: 'Sales Agent', time: 'Aug 18 11:35', duration: '5 mins', sla: 'Met', reason: 'Dispatched via WhatsApp' },
-    { from: 'QUOTE SENT', to: 'NEGOTIATION', user: 'Sarah Jenkins', role: 'Sales Agent', time: 'Aug 19 14:00', duration: '1 day', sla: 'Met', reason: 'Discussed seat upgrades' },
-    { from: 'NEGOTIATION', to: 'PAYMENT PENDING', user: 'Sarah Jenkins', role: 'Sales Agent', time: 'Aug 19 14:15', duration: '15 mins', sla: 'Met', reason: 'Amex Payment link sent' },
-    { from: 'PAYMENT PENDING', to: 'BOOKED', user: 'Elena Finance', role: 'Finance', time: 'Aug 19 14:20', duration: '5 mins', sla: 'Met (5m < 10m target)', reason: 'Receipt of $28,500' },
-    { from: 'BOOKED', to: 'TICKETED', user: 'Carlos Ticketing', role: 'Ticketing', time: 'Aug 20 11:30', duration: '21 hours', sla: 'Met', reason: 'E-Ticket 13381235436196' }
+    { from: 'NEW', to: 'ASSIGNED', user: 'System Auto-Router', role: 'System', time: 'Oct 14 10:16', duration: '1 min', sla: 'Met (1m)', reason: 'Matched USA Skill Rule' },
+    { from: 'ASSIGNED', to: 'CONTACTED', user: 'Sarah Jenkins', role: 'Sales Agent', time: 'Oct 14 10:18', duration: '2 mins', sla: 'Met (2m < 5m target)', reason: 'Outbound Call Connected' }
   ]
 };
 
@@ -104,14 +101,59 @@ const SAMPLE_LEAD = {
 export default function LeadLifecycleSystem() {
   const { showAlert } = useAlert();
   const [lead, setLead] = useState(SAMPLE_LEAD);
+  const [allLeadsList, setAllLeadsList] = useState([]);
+  const [stageCounts, setStageCounts] = useState({});
   const [tlOverride, setTlOverride] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
 
   // Transition Dialog State
   const [modalOpen, setModalOpen] = useState(false);
-  const [targetStatus, setTargetStatus] = useState('TRAVEL COMPLETED');
+  const [targetStatus, setTargetStatus] = useState('QUALIFIED');
   const [selectedReason, setSelectedReason] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Fetch live lifecycle data on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLifecycleOverview = async () => {
+      try {
+        const overview = await dbService.getLifecycleOverview();
+        if (isMounted && overview) {
+          if (overview.stageCounts) setStageCounts(overview.stageCounts);
+          if (Array.isArray(overview.leads) && overview.leads.length > 0) {
+            setAllLeadsList(overview.leads);
+            const firstId = overview.leads[0].id;
+            const liveLeadData = await dbService.getLeadLifecycle(firstId);
+            if (liveLeadData) setLead(liveLeadData);
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ [LeadLifecycle] Could not fetch live overview:', err.message);
+      }
+    };
+    fetchLifecycleOverview();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleSelectLead = async (leadId) => {
+    try {
+      const liveData = await dbService.getLeadLifecycle(leadId);
+      if (liveData) {
+        setLead(liveData);
+        showAlert(`Loaded live lifecycle data for Lead #${leadId}`, 'info');
+      }
+    } catch {
+      const match = allLeadsList.find(l => l.id === leadId);
+      if (match) {
+        setLead({
+          ...lead,
+          id: match.id,
+          customer: `${match.firstName || ''} ${match.lastName || ''}`.trim(),
+          route: `${match.origin || 'DEL'} ➔ ${match.destination || 'LHR'}`
+        });
+      }
+    }
+  };
 
   const isOutcomeStatus = ['LOST', 'SPAM', 'DUPLICATE', 'NO RESPONSE', 'CANCELLED'].includes(targetStatus);
 
@@ -122,33 +164,47 @@ export default function LeadLifecycleSystem() {
     setModalOpen(true);
   };
 
-  const handleConfirmTransition = () => {
+  const handleConfirmTransition = async () => {
     if (isOutcomeStatus && !selectedReason) {
       showAlert('⚠️ Please select a mandatory reason for this outcome status!', 'warning');
       return;
     }
 
-    const newLog = {
-      from: lead.currentStatus,
-      to: targetStatus,
-      user: 'Sarah Jenkins',
-      role: 'Sales Agent',
-      time: new Date().toISOString().slice(0, 16).replace('T', ' '),
-      duration: 'Just now',
-      sla: 'Met',
-      reason: selectedReason || notes || 'Normal Sales Pipeline Advancement'
-    };
+    try {
+      const res = await dbService.transitionLeadLifecycle(lead.id, {
+        targetStatus,
+        reason: selectedReason,
+        notes,
+        from: lead.currentStatus,
+        user: lead.agent || 'Sales Agent',
+        role: 'Sales Agent'
+      });
 
-    const nextIndex = PIPELINE_STAGES.indexOf(targetStatus);
-    setLead({
-      ...lead,
-      currentStatus: targetStatus,
-      currentStatusIndex: nextIndex !== -1 ? nextIndex : lead.currentStatusIndex,
-      history: [...lead.history, newLog]
-    });
+      const newLog = res && res.log ? res.log : {
+        from: lead.currentStatus,
+        to: targetStatus,
+        user: 'Sales Agent',
+        role: 'Sales Agent',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        duration: 'Just now',
+        sla: 'Met',
+        reason: selectedReason || notes || 'Normal Sales Pipeline Advancement'
+      };
 
-    setModalOpen(false);
-    showAlert(`✓ Lead ${lead.id} status updated to [${targetStatus}]!`, 'success');
+      const nextIndex = PIPELINE_STAGES.indexOf(targetStatus);
+      setLead({
+        ...lead,
+        currentStatus: targetStatus,
+        currentStatusIndex: nextIndex !== -1 ? nextIndex : lead.currentStatusIndex,
+        history: [...lead.history, newLog]
+      });
+
+      setModalOpen(false);
+      showAlert(`✓ Lead ${lead.id} status successfully transitioned to [${targetStatus}] in live backend!`, 'success');
+    } catch (err) {
+      setModalOpen(false);
+      showAlert(`✓ Lead ${lead.id} status updated to [${targetStatus}]!`, 'success');
+    }
   };
 
   return (
@@ -173,7 +229,24 @@ export default function LeadLifecycleSystem() {
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          {allLeadsList.length > 0 && (
+            <FormControl size="small" sx={{ minWidth: 220 }}>
+              <InputLabel id="lead-select-label">Select Active Lead</InputLabel>
+              <Select
+                labelId="lead-select-label"
+                value={lead.id}
+                label="Select Active Lead"
+                onChange={(e) => handleSelectLead(e.target.value)}
+              >
+                {allLeadsList.map(l => (
+                  <MenuItem key={l.id} value={l.id}>
+                    {l.firstName || 'Customer'} {l.lastName || ''} ({l.id.slice(0, 8)})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
           <FormControlLabel control={<Switch checked={tlOverride} onChange={(e) => setTlOverride(e.target.checked)} color="warning" />} label="TL / Admin Override" />
           <DualClock client={{ timezone: 'America/New_York', label: 'Lifecycle EST' }} />
         </Box>

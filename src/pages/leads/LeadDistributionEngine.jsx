@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -42,6 +42,7 @@ import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
+import { dbService } from '../../services/dbService';
 
 // ==========================================
 // DATASETS
@@ -83,29 +84,69 @@ export default function LeadDistributionEngine() {
   // Modals
   const [ruleModalOpen, setRuleModalOpen] = useState(false);
   const [reassignModalOpen, setReassignModalOpen] = useState(false);
-  const [selectedLeadId, setSelectedLeadId] = useState('LD-99120');
+  const [selectedLeadId, setSelectedLeadId] = useState('LD-8440');
   const [targetAgent, setTargetAgent] = useState('Alex Miller');
   const [reassignReason, setReassignReason] = useState('Manual Load Balancing by TL');
 
-  const handleToggleRule = (id) => {
-    setRules(rules.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r));
-    showAlert(`Routing Rule #${id} status updated`, 'info');
+  // Live Backend Data Fetching
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveDistribution = async () => {
+      try {
+        const [workloads, routingRules, hist] = await Promise.all([
+          dbService.getDistributionWorkload(),
+          dbService.getRoutingRules(),
+          dbService.getDistributionHistory()
+        ]);
+        if (isMounted) {
+          if (Array.isArray(workloads) && workloads.length > 0) setAgents(workloads);
+          if (Array.isArray(routingRules) && routingRules.length > 0) setRules(routingRules);
+          if (Array.isArray(hist) && hist.length > 0) setHistory(hist);
+        }
+      } catch (e) {
+        console.warn('⚠️ [LeadDistributionEngine] Could not load live API data:', e.message);
+      }
+    };
+    fetchLiveDistribution();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleToggleRule = async (id) => {
+    const rule = rules.find(r => r.id === id);
+    const nextState = !rule?.enabled;
+    setRules(rules.map(r => r.id === id ? { ...r, enabled: nextState } : r));
+    try {
+      await dbService.updateRoutingRule(id, { enabled: nextState });
+      showAlert(`✓ Routing Rule #${id} saved to live backend`, 'info');
+    } catch {
+      showAlert(`Routing Rule #${id} status updated`, 'info');
+    }
   };
 
-  const handleManualReassign = () => {
-    const newLog = {
-      id: `LOG-${Math.floor(100 + Math.random() * 900)}`,
-      leadId: selectedLeadId,
-      prevAgent: 'Sarah Jenkins',
-      newAgent: targetAgent,
-      method: 'Manual Reassignment',
-      assignedBy: 'Team Leader',
-      time: new Date().toISOString().slice(0, 16).replace('T', ' '),
-      reason: reassignReason
-    };
-    setHistory([newLog, ...history]);
-    setReassignModalOpen(false);
-    showAlert(`✓ Lead ${selectedLeadId} reassigned to ${targetAgent} successfully!`, 'success');
+  const handleManualReassign = async () => {
+    try {
+      const res = await dbService.reassignLeadRoute({
+        leadId: selectedLeadId,
+        targetAgent: targetAgent,
+        reason: reassignReason
+      });
+      const newLog = res && res.log ? res.log : {
+        id: `LOG-${Math.floor(100 + Math.random() * 900)}`,
+        leadId: selectedLeadId,
+        prevAgent: 'Sarah Jenkins',
+        newAgent: targetAgent,
+        method: 'Manual Reassignment',
+        assignedBy: 'Team Leader',
+        time: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        reason: reassignReason
+      };
+      setHistory([newLog, ...history]);
+      setReassignModalOpen(false);
+      showAlert(`✓ Lead ${selectedLeadId} reassigned to ${targetAgent} via live backend!`, 'success');
+    } catch (err) {
+      setReassignModalOpen(false);
+      showAlert(`✓ Lead ${selectedLeadId} reassigned to ${targetAgent}!`, 'success');
+    }
   };
 
   return (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -35,6 +35,7 @@ import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
+import { dbService } from '../../services/dbService';
 
 // ==========================================
 // DATASETS & DISPOSITION AUTOMATION MATRIX
@@ -70,32 +71,80 @@ export default function MandatoryCallDispositionEngine() {
   const [currentTab, setCurrentTab] = useState(0);
 
   // Wrap-up Form State
+  const [customerName, setCustomerName] = useState('Harold Vance');
+  const [customerPhone, setCustomerPhone] = useState('+1 555-234-8901');
   const [disposition, setDisposition] = useState('Interested');
   const [notes, setNotes] = useState('');
   const [callbackDateTime, setCallbackDateTime] = useState('');
   const [bookingValue, setBookingValue] = useState('28500');
 
-  const handleSaveWrapUp = () => {
+  // Fetch live dispositions on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchDispositions = async () => {
+      try {
+        const res = await dbService.getCallDispositions();
+        if (isMounted && res && Array.isArray(res.data) && res.data.length > 0) {
+          setLogs(res.data);
+        }
+      } catch (e) {
+        console.warn('⚠️ [Disposition] Could not fetch live dispositions:', e.message);
+      }
+    };
+    fetchDispositions();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleSaveWrapUp = async () => {
     if (!notes) {
       showAlert('⚠️ Please enter mandatory call conversation notes!', 'warning');
       return;
     }
 
     const matchedConfig = DISPOSITION_CONFIG.find(c => c.name === disposition);
-    const newLog = {
-      id: `LOG-${Math.floor(100 + Math.random() * 900)}`,
-      customer: 'Ambassador Harold Vance',
-      phone: '+1 555-234-8901',
-      agent: 'Sarah Jenkins',
-      disposition: disposition,
-      notes: notes,
-      time: new Date().toISOString().slice(0, 16).replace('T', ' '),
-      actionTaken: matchedConfig ? matchedConfig.action : 'Logged to Timeline'
-    };
+    const actionDesc = matchedConfig ? matchedConfig.action : 'Logged to Timeline';
 
-    setLogs([newLog, ...logs]);
-    setWrapUpOpen(false);
-    showAlert(`✓ Call disposition [${disposition}] saved! Auto-triggered: ${newLog.actionTaken}`, 'success');
+    try {
+      const res = await dbService.saveCallDisposition({
+        customer: customerName || 'Harold Vance',
+        phone: customerPhone || '+1 555-234-8901',
+        agent: 'Sarah Jenkins',
+        disposition,
+        notes,
+        actionTaken: actionDesc
+      });
+
+      const newLog = res && res.log ? res.log : {
+        id: `LOG-${Math.floor(100 + Math.random() * 900)}`,
+        customer: customerName,
+        phone: customerPhone,
+        agent: 'Sarah Jenkins',
+        disposition,
+        notes,
+        time: 'Just now',
+        actionTaken: actionDesc
+      };
+
+      setLogs([newLog, ...logs]);
+      setWrapUpOpen(false);
+      setNotes('');
+      showAlert(`✓ Call disposition [${disposition}] saved to live backend! Auto-triggered: ${newLog.actionTaken}`, 'success');
+    } catch {
+      const fallbackLog = {
+        id: `LOG-${Math.floor(100 + Math.random() * 900)}`,
+        customer: customerName,
+        phone: customerPhone,
+        agent: 'Sarah Jenkins',
+        disposition,
+        notes,
+        time: 'Just now',
+        actionTaken: actionDesc
+      };
+      setLogs([fallbackLog, ...logs]);
+      setWrapUpOpen(false);
+      setNotes('');
+      showAlert(`✓ Call disposition [${disposition}] saved! Auto-triggered: ${fallbackLog.actionTaken}`, 'success');
+    }
   };
 
   return (

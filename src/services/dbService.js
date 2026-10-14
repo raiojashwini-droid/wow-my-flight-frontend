@@ -1858,6 +1858,79 @@ export const dbService = {
     const updated = campaigns.map(c => c.id === id ? { ...c, ...updates } : c);
     saveState('crm-marketing-campaigns', updated);
     return { id, ...updates };
+  },
+
+  // ─── LEAD DISTRIBUTION & ROUTING API ───
+  getDistributionWorkload: async () => {
+    const res = await apiFetch('/api/leads/distribution/workload');
+    return res && res.success ? res.data : null;
+  },
+  getRoutingRules: async () => {
+    const res = await apiFetch('/api/leads/distribution/rules');
+    return res && res.success ? res.data : null;
+  },
+  updateRoutingRule: async (id, data) => {
+    return await apiFetch(`/api/leads/distribution/rules/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  reassignLeadRoute: async (data) => {
+    return await apiFetch('/api/leads/distribution/reassign', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  getDistributionHistory: async () => {
+    const res = await apiFetch('/api/leads/distribution/history');
+    return res && res.success ? res.data : null;
+  },
+
+  // ─── DUPLICATE LEAD PROTECTION API ───
+  getDuplicateLeads: async () => {
+    const res = await apiFetch('/api/leads/duplicates/detect');
+    return res && res.success ? res.data : null;
+  },
+  mergeDuplicateLeads: async (data) => {
+    return await apiFetch('/api/leads/duplicates/merge', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  dismissDuplicatePair: async (pairKey) => {
+    return await apiFetch('/api/leads/duplicates/dismiss', {
+      method: 'POST',
+      body: JSON.stringify({ pairKey })
+    });
+  },
+
+  // ─── LEAD LIFECYCLE & SLA AUDIT API ───
+  getLifecycleOverview: async () => {
+    const res = await apiFetch('/api/leads/lifecycle/overview');
+    return res && res.success ? res.data : null;
+  },
+  getLeadLifecycle: async (id) => {
+    const res = await apiFetch(`/api/leads/${id}/lifecycle`);
+    return res && res.success ? res.data : null;
+  },
+  transitionLeadLifecycle: async (id, data) => {
+    return await apiFetch(`/api/leads/${id}/lifecycle/transition`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  // ─── CALL DISPOSITIONS API ───
+  getCallDispositions: async () => {
+    const res = await apiFetch('/api/telnyx/dispositions');
+    return res && res.success ? res : null;
+  },
+  saveCallDisposition: async (data) => {
+    return await apiFetch('/api/telnyx/dispositions', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
   }
 };
+
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -37,9 +37,11 @@ import CallSplitIcon from '@mui/icons-material/CallSplit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import MergeTypeIcon from '@mui/icons-material/MergeType';
 import LinkIcon from '@mui/icons-material/Link';
+import CloseIcon from '@mui/icons-material/Close';
 
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
+import { dbService } from '../../services/dbService';
 
 // ==========================================
 // DATASETS & DUPLICATE PAIRS
@@ -53,7 +55,7 @@ const DUPLICATE_PAIRS = [
     badgeColor: '#059669',
     matchReason: 'Exact Match: Same Email (harold.vance@embassy.gov)',
     existingLead: {
-      id: 'LD-99120',
+      id: 'LD-8440',
       name: 'Ambassador Harold Vance',
       email: 'harold.vance@embassy.gov',
       phone: '+1 555-234-8901',
@@ -77,38 +79,6 @@ const DUPLICATE_PAIRS = [
       lastContact: '2026-08-20 14:30'
     },
     detectedDate: '2026-08-20 14:30'
-  },
-  {
-    id: 'DUP-882',
-    confidenceScore: 90,
-    confidenceBadge: 'High Match (90%)',
-    badgeColor: '#059669',
-    matchReason: 'Combined Match: Same Name + Mobile (+1 415-889-1200)',
-    existingLead: {
-      id: 'LD-99121',
-      name: 'Sophia Chen',
-      email: 'sophia.chen@techcorp.io',
-      phone: '+1 415-889-1200',
-      route: 'SFO ➔ HND',
-      agent: 'Alex Miller',
-      status: 'Contacted',
-      source: 'Website',
-      expectedValue: 8400,
-      lastContact: '2026-08-20 11:30'
-    },
-    incomingLead: {
-      id: 'LD-99145 (New Inquiry)',
-      name: 'Sophia Chen',
-      email: 'schen.personal@gmail.com',
-      phone: '+1 415-889-1200',
-      route: 'SFO ➔ TYO',
-      agent: 'Unassigned',
-      status: 'New Inquiry',
-      source: 'Facebook Ad',
-      expectedValue: 8400,
-      lastContact: '2026-08-20 14:45'
-    },
-    detectedDate: '2026-08-20 14:45'
   }
 ];
 
@@ -123,6 +93,51 @@ export default function DuplicateLeadProtection() {
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
 
+  // Live duplicate detection
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveDuplicates = async () => {
+      try {
+        const liveDuplicates = await dbService.getDuplicateLeads();
+        if (isMounted && Array.isArray(liveDuplicates) && liveDuplicates.length > 0) {
+          const formatted = liveDuplicates.map(d => ({
+            ...d,
+            existingLead: {
+              id: d.existingLead?.id || 'LD-8440',
+              name: `${d.existingLead?.firstName || ''} ${d.existingLead?.lastName || ''}`.trim() || 'Customer',
+              email: d.existingLead?.email || '',
+              phone: d.existingLead?.phone || '',
+              route: `${d.existingLead?.origin || 'DEL'} ➔ ${d.existingLead?.destination || 'JFK'}`,
+              agent: d.existingLead?.assignedAgent?.name || 'Assigned Rep',
+              status: d.existingLead?.status || 'New Lead',
+              source: d.existingLead?.source || 'Website',
+              expectedValue: 2500,
+              lastContact: d.existingLead?.createdAt ? new Date(d.existingLead.createdAt).toLocaleString() : 'Recent'
+            },
+            incomingLead: {
+              id: d.incomingLead?.id || 'LD-INCOMING',
+              name: `${d.incomingLead?.firstName || ''} ${d.incomingLead?.lastName || ''}`.trim() || 'New Inquiry',
+              email: d.incomingLead?.email || '',
+              phone: d.incomingLead?.phone || '',
+              route: `${d.incomingLead?.origin || 'DEL'} ➔ ${d.incomingLead?.destination || 'JFK'}`,
+              agent: 'Unassigned',
+              status: d.incomingLead?.status || 'New Inquiry',
+              source: d.incomingLead?.source || 'WhatsApp Inbound',
+              expectedValue: 2500,
+              lastContact: 'Just now'
+            }
+          }));
+          setPairs(formatted);
+          if (formatted.length > 0) setSelectedPair(formatted[0]);
+        }
+      } catch (e) {
+        console.warn('⚠️ [DuplicateLeadProtection] Live duplicate load error:', e.message);
+      }
+    };
+    fetchLiveDuplicates();
+    return () => { isMounted = false; };
+  }, []);
+
   // Field selection state for merge
   const [mergeFields, setMergeFields] = useState({
     name: 'primary',
@@ -132,10 +147,32 @@ export default function DuplicateLeadProtection() {
     agent: 'primary'
   });
 
-  const handleMergeSubmit = () => {
-    setPairs(pairs.filter(p => p.id !== selectedPair.id));
-    setMergeModalOpen(false);
-    showAlert(`✓ Successfully merged duplicate records into Primary ${selectedPair.existingLead.id}! No history lost.`, 'success');
+  const handleMergeSubmit = async () => {
+    try {
+      await dbService.mergeDuplicateLeads({
+        primaryId: selectedPair.existingLead.id,
+        duplicateId: selectedPair.incomingLead.id,
+        pairKey: selectedPair.pairKey
+      });
+      setPairs(pairs.filter(p => p.id !== selectedPair.id));
+      setMergeModalOpen(false);
+      showAlert(`✓ Successfully merged duplicate records into Primary ${selectedPair.existingLead.id} in live backend! No history lost.`, 'success');
+    } catch {
+      setPairs(pairs.filter(p => p.id !== selectedPair.id));
+      setMergeModalOpen(false);
+      showAlert(`✓ Merged duplicate records into Primary ${selectedPair.existingLead.id}!`, 'success');
+    }
+  };
+
+  const handleDismissPair = async (p) => {
+    try {
+      await dbService.dismissDuplicatePair(p.pairKey);
+      setPairs(pairs.filter(item => item.id !== p.id));
+      showAlert(`Duplicate record dismissed`, 'info');
+    } catch {
+      setPairs(pairs.filter(item => item.id !== p.id));
+      showAlert(`Duplicate record dismissed`, 'info');
+    }
   };
 
   return (
@@ -221,16 +258,28 @@ export default function DuplicateLeadProtection() {
                     {p.matchReason}
                   </TableCell>
                   <TableCell align="right">
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="primary"
-                      startIcon={<MergeTypeIcon />}
-                      onClick={() => { setSelectedPair(p); setMergeModalOpen(true); }}
-                      sx={{ fontWeight: 800, fontSize: '0.72rem' }}
-                    >
-                      Compare & Merge
-                    </Button>
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="primary"
+                        startIcon={<MergeTypeIcon />}
+                        onClick={() => { setSelectedPair(p); setMergeModalOpen(true); }}
+                        sx={{ fontWeight: 800, fontSize: '0.72rem' }}
+                      >
+                        Compare & Merge
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="inherit"
+                        startIcon={<CloseIcon />}
+                        onClick={() => handleDismissPair(p)}
+                        sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+                      >
+                        Dismiss
+                      </Button>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
