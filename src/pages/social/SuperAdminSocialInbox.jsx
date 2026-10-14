@@ -83,7 +83,7 @@ const QUICK_TEMPLATES = [
   { id: 't5', label: 'Web Check-in & Baggage', text: 'Web check-in opens 24 hours prior to departure. Standard allowance is 2 check-in bags (23kg each) and 1 carry-on piece.' }
 ];
 
-export const SuperAdminSocialInbox = () => {
+export const SuperAdminSocialInbox = ({ hideHeader = false }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -419,13 +419,15 @@ export const SuperAdminSocialInbox = () => {
   };
 
   return (
-    <Box sx={{ height: 'calc(100vh - 125px)', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ mb: 1.5 }}>
-        <PageHeader
-          title={getPageTitle()}
-          subtitle={getPageSubtitle()}
-        />
-      </Box>
+    <Box sx={{ height: hideHeader ? 'calc(100vh - 225px)' : 'calc(100vh - 125px)', minHeight: 620, display: 'flex', flexDirection: 'column' }}>
+      {!hideHeader && (
+        <Box sx={{ mb: 1.5 }}>
+          <PageHeader
+            title={getPageTitle()}
+            subtitle={getPageSubtitle()}
+          />
+        </Box>
+      )}
 
       <Box sx={{ flexGrow: 1, minHeight: 0, px: 0, pb: 0, display: 'flex', flexDirection: 'column' }}>
         <Box className="flex flex-col md:flex-row gap-3" sx={{ height: '100%', minHeight: 0, width: '100%' }}>

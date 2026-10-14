@@ -10,15 +10,10 @@ import PhoneInTalkIcon from '@mui/icons-material/PhoneInTalk';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PauseCircleFilledIcon from '@mui/icons-material/PauseCircleFilled';
 
-const agents = [
-  { name: 'Maria S.', status: 'On Call', tone: '#22c55e', timer: '00:02:44', recent: 'Active' }, 
-  { name: 'John D.', status: 'Idle', tone: '#f59e0b', timer: '12m 00s', recent: 'No activity' }, 
-  { name: 'Ken T.', status: 'Away (Break)', tone: '#ef4444', timer: '00:02:40', recent: 'Activity' }, 
-  { name: 'Sara K.', status: 'On Call', tone: '#22c55e', timer: '00:14:00', recent: 'Long call' }
-];
-
-export default function AgentActivityFeed() { 
+export default function AgentActivityFeed({ agents: propAgents = [] }) { 
   const [actions, setActions] = useState({}); 
+  const agents = propAgents || [];
+
   const select = (id, label, choices) => (
     <Select 
       displayEmpty 
@@ -43,50 +38,64 @@ export default function AgentActivityFeed() {
       <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2, color: 'text.primary', letterSpacing: '.05em' }}>
         REAL-TIME AGENT ACTIVITY FEED
       </Typography>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
-        {agents.map((agent, id) => (
-          <Paper key={agent.name} elevation={0} sx={{ 
-            p: 2, 
-            border: '1px solid', 
-            borderColor: agent.status === 'On Call' ? '#86efac' : 'divider',
-            borderRadius: 3,
-            bgcolor: 'background.paper',
-            boxShadow: agent.status === 'On Call' ? '0 4px 15px rgba(34, 197, 94, 0.05)' : 'none',
-            transition: 'all 0.2s',
-            '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 25px rgba(0,0,0,0.04)' }
-          }}>
-            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-              <Badge 
-                overlap="circular" 
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                variant="dot"
-                sx={{ '& .MuiBadge-badge': { backgroundColor: agent.tone, width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--wb-FFFFFF, #FFFFFF)' } }}
-              >
-                <Avatar sx={{ width: 42, height: 42, bgcolor: agent.tone + '20', color: agent.tone, fontWeight: 700 }}>
-                  {agent.name[0]}
-                </Avatar>
-              </Badge>
-              <Box>
-                <Typography variant="body1" sx={{ fontWeight: 800 }}>{agent.name}</Typography>
-                <Typography variant="caption" sx={{ color: agent.tone, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {agent.status === 'On Call' ? <PhoneInTalkIcon sx={{ fontSize: 12 }} /> : agent.status === 'Idle' ? <AccessTimeIcon sx={{ fontSize: 12 }} /> : <PauseCircleFilledIcon sx={{ fontSize: 12 }} />}
-                  {agent.status}
-                </Typography>
-              </Box>
-            </Box>
-            
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', my: 1.5, p: 1, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 2 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>⏱ {agent.timer}</Typography>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>{agent.recent}</Typography>
-            </Box>
-            
-            <Box sx={{ display: 'grid', gap: 1 }}>
-              {select(id, 'Barge / Whisper', ['Barge Into Call', 'Whisper to Agent', 'Listen Only'])}
-              {select(id, 'Lead Options', ['Recycle All Leads', "Recycle Today's", 'Select Leads'])}
-            </Box>
-          </Paper>
-        ))}
-      </Box>
+      {agents.length === 0 ? (
+        <Box sx={{ p: 3, textAlign: 'center', bgcolor: 'background.paper', borderRadius: 3, border: '1px dashed', borderColor: 'divider' }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+            No live agent call sessions currently active on floor
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+            Active agent audio feeds and status controls will appear here as soon as reps make or receive calls.
+          </Typography>
+        </Box>
+      ) : (
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
+          {agents.map((agent, id) => {
+            const tone = agent.tone || (agent.status === 'On Call' || agent.status === 'ON CALL' ? '#22c55e' : '#3b82f6');
+            return (
+              <Paper key={agent.name || id} elevation={0} sx={{ 
+                p: 2, 
+                border: '1px solid', 
+                borderColor: agent.status === 'On Call' || agent.status === 'ON CALL' ? '#86efac' : 'divider',
+                borderRadius: 3,
+                bgcolor: 'background.paper',
+                boxShadow: agent.status === 'On Call' || agent.status === 'ON CALL' ? '0 4px 15px rgba(34, 197, 94, 0.05)' : 'none',
+                transition: 'all 0.2s',
+                '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 25px rgba(0,0,0,0.04)' }
+              }}>
+                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                  <Badge 
+                    overlap="circular" 
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    variant="dot"
+                    sx={{ '& .MuiBadge-badge': { backgroundColor: tone, width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--wb-FFFFFF, #FFFFFF)' } }}
+                  >
+                    <Avatar sx={{ width: 42, height: 42, bgcolor: tone + '20', color: tone, fontWeight: 700 }}>
+                      {(agent.name || 'A')[0]}
+                    </Avatar>
+                  </Badge>
+                  <Box>
+                    <Typography variant="body1" sx={{ fontWeight: 800 }}>{agent.name}</Typography>
+                    <Typography variant="caption" sx={{ color: tone, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {agent.status === 'On Call' || agent.status === 'ON CALL' ? <PhoneInTalkIcon sx={{ fontSize: 12 }} /> : <AccessTimeIcon sx={{ fontSize: 12 }} />}
+                      {agent.status || 'Active'}
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', my: 1.5, p: 1, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderRadius: 2 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>⏱ {agent.timer || agent.timeOnStatus || 'Active'}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>{agent.recent || 'Floor Rep'}</Typography>
+                </Box>
+                
+                <Box sx={{ display: 'grid', gap: 1 }}>
+                  {select(id, 'Barge / Whisper', ['Barge Into Call', 'Whisper to Agent', 'Listen Only'])}
+                  {select(id, 'Lead Options', ['Recycle All Leads', "Recycle Today's", 'Select Leads'])}
+                </Box>
+              </Paper>
+            );
+          })}
+        </Box>
+      )}
     </Paper>
   ); 
 }

@@ -52,101 +52,15 @@ import { auditTrailService } from '../../services/phase3Service';
 // ==========================================
 
 const INITIAL_AUDIT_KPIS = [
-  { id: 'total', title: 'Total Audit Records', value: '14,280 Logs', change: 'Immutable audit trail', isUp: true, color: '#3F51B5', border: '#3F51B5', icon: <HistoryIcon /> },
-  { id: 'today', title: 'Today\'s Activities', value: '340 Events', change: 'Live system logs', isUp: true, color: '#0284C7', border: '#0284C7', icon: <SecurityIcon /> },
-  { id: 'sensitive', title: 'Sensitive Changes', value: '18 Records', change: '🔴 Price & Refunds', isUp: false, color: '#DC2626', border: '#DC2626', icon: <ReportProblemIcon /> },
-  { id: 'refund', title: 'Refund Audit Logs', value: '12 Actions', change: 'Finance verified', isUp: true, color: '#D97706', border: '#D97706', icon: <CurrencyExchangeIcon /> },
-  { id: 'price', title: 'Price Modifications', value: '24 Changes', change: 'Approval logged', isUp: true, color: '#059669', border: '#059669', icon: <MonetizationOnIcon /> },
-  { id: 'failedLogin', title: 'Failed Login Attempts', value: '2 Attempts', change: 'IP Flagged 192.168.1.9', isUp: false, color: '#DC2626', border: '#DC2626', icon: <LockIcon /> }
+  { id: 'total', title: 'Total Audit Records', value: '0 Logs', change: 'Live immutable log', isUp: true, color: '#3F51B5', border: '#3F51B5', icon: <HistoryIcon /> },
+  { id: 'today', title: 'Today\'s Activities', value: '0 Events', change: 'Live system logs', isUp: true, color: '#0284C7', border: '#0284C7', icon: <SecurityIcon /> },
+  { id: 'sensitive', title: 'Sensitive Changes', value: '0 Records', change: 'Zero flagged actions', isUp: false, color: '#DC2626', border: '#DC2626', icon: <ReportProblemIcon /> },
+  { id: 'refund', title: 'Refund Audit Logs', value: '0 Actions', change: 'Zero refund alterations', isUp: true, color: '#D97706', border: '#D97706', icon: <CurrencyExchangeIcon /> },
+  { id: 'price', title: 'Price Modifications', value: '0 Changes', change: 'Zero fare overrides', isUp: true, color: '#059669', border: '#059669', icon: <MonetizationOnIcon /> },
+  { id: 'failedLogin', title: 'Failed Login Attempts', value: '0 Attempts', change: 'Security status clean', isUp: false, color: '#DC2626', border: '#DC2626', icon: <LockIcon /> }
 ];
 
-const INITIAL_AUDIT_LOGS = [
-  {
-    auditId: 'AUD-99120',
-    user: 'Michael Chang',
-    role: 'Team Leader',
-    action: 'Customer Price Changed',
-    module: 'Pricing & Quotes',
-    refId: 'BK-10892',
-    customer: 'Ambassador Harold Vance',
-    timestamp: '2026-08-20 14:15:22',
-    oldValue: '$1,820.00',
-    newValue: '$1,620.00',
-    reason: 'Manager approved promotional discount for embassy corporate tier',
-    ipAddress: '192.168.1.104',
-    device: 'Chrome 127.0.0.0 / Windows 11',
-    sessionId: 'SESS-881920',
-    sensitive: true
-  },
-  {
-    auditId: 'AUD-99121',
-    user: 'Elena Finance',
-    role: 'Finance Manager',
-    action: 'Refund Processed',
-    module: 'Payments & Refunds',
-    refId: 'BK-10920',
-    customer: 'Marcus Sterling',
-    timestamp: '2026-08-20 13:50:10',
-    oldValue: 'Refund Pending ($450.00)',
-    newValue: 'Refund Completed ($450.00)',
-    reason: 'Flight cancellation approved by British Airways waiver',
-    ipAddress: '192.168.1.110',
-    device: 'Edge 126.0.0.0 / Windows 11',
-    sessionId: 'SESS-771204',
-    sensitive: true
-  },
-  {
-    auditId: 'AUD-99122',
-    user: 'Carlos Ticketing',
-    role: 'Ticketing Agent',
-    action: 'Ticket Issued',
-    module: 'Ticketing GDS',
-    refId: 'BK-10231',
-    customer: 'Arthur Pendelton',
-    timestamp: '2026-08-20 12:30:00',
-    oldValue: 'Ticket Status: Pending PNR',
-    newValue: 'Ticket Status: Issued (E-Ticket 13381235436196)',
-    reason: 'Sabre GDS PNR SAB78K ticketed successfully',
-    ipAddress: '192.168.1.115',
-    device: 'Firefox 128.0.0.0 / macOS Sonoma',
-    sessionId: 'SESS-551920',
-    sensitive: false
-  },
-  {
-    auditId: 'AUD-99123',
-    user: 'Sarah Jenkins',
-    role: 'Sales Consultant',
-    action: 'Lead Reassigned',
-    module: 'Lead Management',
-    refId: 'LD-99120',
-    customer: 'Dr. Harrison Wells',
-    timestamp: '2026-08-20 11:10:45',
-    oldValue: 'Assigned: Unassigned Pool',
-    newValue: 'Assigned: Sarah Jenkins',
-    reason: 'Auto-distribution round-robin SLA assignment',
-    ipAddress: '192.168.1.102',
-    device: 'Chrome 127.0.0.0 / Windows 11',
-    sessionId: 'SESS-331029',
-    sensitive: false
-  },
-  {
-    auditId: 'AUD-99124',
-    user: 'Super Admin',
-    role: 'Super Admin',
-    action: 'User Role Changed',
-    module: 'User Permissions',
-    refId: 'USR-8812',
-    customer: 'Alex Miller',
-    timestamp: '2026-08-20 10:00:00',
-    oldValue: 'Role: Flight Expert',
-    newValue: 'Role: Expert Team Leader',
-    reason: 'Promoted to Senior Escalation Desk Supervisor',
-    ipAddress: '192.168.1.100',
-    device: 'Safari 17.5 / macOS Sonoma',
-    sessionId: 'SESS-110099',
-    sensitive: true
-  }
-];
+const INITIAL_AUDIT_LOGS = [];
 
 // ==========================================
 // MAIN COMPONENT
@@ -157,6 +71,7 @@ export default function AuditTrail() {
   const [currentTab, setCurrentTab] = useState(0);
 
   // States
+  const [kpis, setKpis] = useState(INITIAL_AUDIT_KPIS);
   const [logs, setLogs] = useState(INITIAL_AUDIT_LOGS);
   const [selectedAudit, setSelectedAudit] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -166,8 +81,13 @@ export default function AuditTrail() {
     let isMounted = true;
     auditTrailService.getAuditTrail().then(res => {
       if (!isMounted || !res) return;
-      if (res.data && Array.isArray(res.data.logs) && res.data.logs.length > 0) {
+      if (res.data && Array.isArray(res.data)) {
+        setLogs(res.data);
+      } else if (res.data && Array.isArray(res.data.logs)) {
         setLogs(res.data.logs);
+      }
+      if (res.kpis && Array.isArray(res.kpis)) {
+        setKpis(res.kpis);
       }
     }).catch(err => console.warn('Audit Trail API load warning:', err.message));
     return () => { isMounted = false; };
@@ -226,7 +146,7 @@ export default function AuditTrail() {
       {/* 6 REAL-TIME AUDIT KPI CARDS */}
       <Box sx={{ mb: 3.5 }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' }, gap: 1.5 }}>
-          {INITIAL_AUDIT_KPIS.map((kpi) => (
+          {kpis.map((kpi) => (
             <Paper
               key={kpi.id}
               elevation={0}
