@@ -46,6 +46,7 @@ import { useAlert } from '../../contexts/AlertContext';
 
 import { themeText } from '../../theme/themeColor';
 import { dbService } from '../../services/dbService';
+import { qaService } from '../../services/phase3Service';
 // ─── SPECIFICATION CONSTANTS ───
 export const DOC_TYPES = [
   { type: 'Passport', purpose: 'Identity + travel eligibility', icon: <BadgeIcon sx={{ color: '#2563EB' }} />, color: '#2563EB', bg: 'var(--wl-EFF6FF, #EFF6FF)' },
@@ -158,18 +159,18 @@ export const SuperAdminDocumentVerificationDashboard = () => {
   // Fetch real documents from PostgreSQL database on load
   React.useEffect(() => {
     let isMounted = true;
-    dbService.getDocuments().then(data => {
+    qaService.getDocuments().then(data => {
       if (isMounted && Array.isArray(data) && data.length > 0) {
         const normalized = data.map(d => ({
           id: d.id,
-          type: d.category || 'Passport',
+          type: d.type || d.category || 'Passport',
           customerName: d.customerName || 'Marcus Vance',
           customerEmail: d.customerEmail || 'client@wowmyflight.com',
           bookingRef: d.bookingRef || 'BK-101',
           pnr: d.pnr || 'WMF-99',
           fileName: d.fileName || 'document.pdf',
           fileSize: d.fileSize || '1.8 MB',
-          uploadDate: d.createdAt ? String(d.createdAt).substring(0, 10) : '2026-10-09',
+          uploadDate: d.uploadDate || (d.createdAt ? String(d.createdAt).substring(0, 10) : '2026-10-09'),
           expiryDate: d.expiryDate || '2031-10-15',
           verifiedBy: d.reviewedBy || 'QA Officer',
           status: d.status === 'Verified' ? 'Verified' : (d.status === 'Under Review' ? 'Under Review' : 'Uploaded'),
@@ -207,15 +208,16 @@ export const SuperAdminDocumentVerificationDashboard = () => {
     }
   };
 
-  const handleUpdateStatus = (docId, newStatus) => {
+  const handleUpdateStatus = async (docId, newStatus) => {
     setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status: newStatus, verifiedBy: 'Super Admin (CEO)' } : d));
     if (selectedDoc && selectedDoc.id === docId) {
       setSelectedDoc(prev => ({ ...prev, status: newStatus, verifiedBy: 'Super Admin (CEO)' }));
     }
+    await qaService.updateDocumentStatus(docId, newStatus);
     showAlert(`Document ${docId} marked as ${newStatus}!`, 'success');
   };
 
-  const handleUploadNewDoc = () => {
+  const handleUploadNewDoc = async () => {
     const newId = 'DOC-' + (documents.length + 101);
     const sizeStr = selectedFile ? (selectedFile.size / (1024 * 1024)).toFixed(1) + ' MB' : '1.9 MB';
     const newDoc = {
@@ -235,6 +237,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
     };
 
     setDocuments([newDoc, ...documents]);
+    await qaService.uploadDocument(newDoc);
     showAlert(`📄 Document ${newId} (${newDocForm.type}) uploaded successfully!`, 'success');
     setSelectedFile(null);
     setUploadModalOpen(false);

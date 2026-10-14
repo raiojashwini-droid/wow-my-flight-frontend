@@ -66,6 +66,7 @@ import {
 
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
+import { slaManagementService } from '../../services/phase3Service';
 
 // ==========================================
 // MOCK DATASETS
@@ -121,6 +122,18 @@ export default function SlaManagement() {
   const [activeTracker, setActiveTracker] = useState(INITIAL_ACTIVE_SLA_TRACKER);
   const [alerts, setAlerts] = useState(INITIAL_SLA_ALERTS);
 
+  // Live SLA Data from backend (/api/sla-management)
+  React.useEffect(() => {
+    let isMounted = true;
+    slaManagementService.getData().then(data => {
+      if (!isMounted || !data) return;
+      if (Array.isArray(data.rules) && data.rules.length > 0) setRules(data.rules);
+      if (Array.isArray(data.activeTracker) && data.activeTracker.length > 0) setActiveTracker(data.activeTracker);
+      if (Array.isArray(data.alerts)) setAlerts(data.alerts);
+    }).catch(err => console.warn('SLA Management API load warning:', err.message));
+    return () => { isMounted = false; };
+  }, []);
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -141,15 +154,17 @@ export default function SlaManagement() {
     setEditRuleModalOpen(true);
   };
 
-  const handleSaveRule = () => {
+  const handleSaveRule = async () => {
     if (!selectedRule) return;
     setRules(prev => prev.map(r => r.id === selectedRule.id ? { ...r, targetMinutes: editTargetMinutes, targetText: `First Contact within ${editTargetMinutes} Minutes` } : r));
     setEditRuleModalOpen(false);
+    await slaManagementService.updateRule(selectedRule.id, { targetMinutes: editTargetMinutes });
     showAlert(`✓ SLA Rule "${selectedRule.event}" updated to ${editTargetMinutes} minutes target!`, 'success');
   };
 
-  const handleResolveBreach = (alertId) => {
+  const handleResolveBreach = async (alertId) => {
     setAlerts(prev => prev.filter(a => a.id !== alertId));
+    await slaManagementService.resolveAlert(alertId);
     showAlert(`✓ Breach alert ${alertId} acknowledged and resolved!`, 'success');
   };
 

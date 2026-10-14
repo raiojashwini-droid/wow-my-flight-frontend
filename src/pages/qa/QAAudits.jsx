@@ -44,6 +44,7 @@ import AppTable from '../../components/AppTable';
 import AppModal from '../../components/AppModal';
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
+import { qaService } from '../../services/phase3Service';
 
 import { themeText } from '../../theme/themeColor';
 export const QA_AGENTS = [
@@ -286,7 +287,7 @@ export default function QAAudits() {
   };
 
   // Save QA Scorecard Audit
-  const handleSaveAudit = () => {
+  const handleSaveAudit = async () => {
     const scoreMeta = calculateQAScore(currentScores);
 
     setCallAudits(prev => prev.map(c => {
@@ -301,6 +302,7 @@ export default function QAAudits() {
       return c;
     }));
 
+    await qaService.saveAudit({ ...selectedCall, scores: currentScores, auditorNotes: currentNotes, overallScore: scoreMeta.total });
     showAlert(`🎉 QA Scorecard Saved! Total Score: ${scoreMeta.total}/100 — Classification: ${scoreMeta.classification} ${scoreMeta.icon}`, 'success');
   };
 

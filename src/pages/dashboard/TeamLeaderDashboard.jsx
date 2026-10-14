@@ -84,6 +84,7 @@ import {
 import DualClock from '../../components/DualClock';
 import AgentActivityFeed from '../../components/AgentActivityFeed';
 import { useAlert } from '../../contexts/AlertContext';
+import { teamLeaderDashboardService } from '../../services/phase3Service';
 
 // ==========================================
 // MOCK DATASETS
@@ -240,6 +241,22 @@ export default function TeamLeaderDashboard() {
   const [selectedEscalation, setSelectedEscalation] = useState(null);
   const [escalationResolutionNote, setEscalationResolutionNote] = useState('');
 
+  // Fetch live Team Leader Dashboard data from backend API (/api/team-leader-dashboard)
+  React.useEffect(() => {
+    let isMounted = true;
+    teamLeaderDashboardService.getData().then(data => {
+      if (!isMounted || !data) return;
+      if (Array.isArray(data.agents) && data.agents.length > 0) setAgents(data.agents);
+      if (Array.isArray(data.floorAgents) && data.floorAgents.length > 0) setFloorAgents(data.floorAgents);
+      if (Array.isArray(data.leads) && data.leads.length > 0) setLeads(data.leads);
+      if (Array.isArray(data.approvals) && data.approvals.length > 0) setApprovals(data.approvals);
+      if (Array.isArray(data.escalations) && data.escalations.length > 0) setEscalations(data.escalations);
+      if (Array.isArray(data.coachingList) && data.coachingList.length > 0) setCoachingList(data.coachingList);
+      if (Array.isArray(data.pendingPayments) && data.pendingPayments.length > 0) setPendingPayments(data.pendingPayments);
+    }).catch(err => console.warn('Team Leader Dashboard API load warning:', err.message));
+    return () => { isMounted = false; };
+  }, []);
+
   // ==========================================
   // HANDLERS
   // ==========================================
@@ -249,25 +266,29 @@ export default function TeamLeaderDashboard() {
   };
 
   // Discount Handlers
-  const handleApproveDiscount = (id, discount, leadName) => {
+  const handleApproveDiscount = async (id, discount, leadName) => {
     setApprovals(prev => prev.map(a => a.id === id ? { ...a, status: 'Approved' } : a));
+    await teamLeaderDashboardService.approveDiscount(id);
     showAlert(`✓ Approved $${discount} discount for ${leadName}. Sales Agent notified.`, 'success');
   };
 
-  const handleRejectDiscount = (id, leadName) => {
+  const handleRejectDiscount = async (id, leadName) => {
     setApprovals(prev => prev.map(a => a.id === id ? { ...a, status: 'Rejected' } : a));
+    await teamLeaderDashboardService.rejectDiscount(id);
     showAlert(`✕ Discount rejected for ${leadName}. Retaining full booking margin.`, 'error');
   };
 
-  const handleCounterOffer = (id, counterAmount, leadName) => {
+  const handleCounterOffer = async (id, counterAmount, leadName) => {
     setApprovals(prev => prev.map(a => a.id === id ? { ...a, status: `Counter $${counterAmount}` } : a));
+    await teamLeaderDashboardService.counterDiscount(id, counterAmount);
     showAlert(`Counter-offer of -$${counterAmount} sent to agent for ${leadName}.`, 'warning');
   };
 
   // Lead Handlers
-  const handleDistributeLeads = () => {
+  const handleDistributeLeads = async () => {
     setDistributeOpen(false);
     setLeads(prev => prev.map(l => l.status === 'Unassigned' ? { ...l, status: 'In Progress', assignedAgent: 'Sarah Jenkins' } : l));
+    await teamLeaderDashboardService.distributeLeads(distSource, distStrategy);
     showAlert(`🚀 Unassigned leads distributed via ${distStrategy} from "${distSource}"`, 'success');
   };
 
@@ -277,9 +298,10 @@ export default function TeamLeaderDashboard() {
     setAssignModalOpen(true);
   };
 
-  const handleConfirmAssign = () => {
+  const handleConfirmAssign = async () => {
     if (!selectedLead || !selectedAgentToAssign) return;
     setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, assignedAgent: selectedAgentToAssign, status: 'In Progress' } : l));
+    await teamLeaderDashboardService.assignLead(selectedLead.id, selectedAgentToAssign);
     setAssignModalOpen(false);
     showAlert(`Lead ${selectedLead.id} (${selectedLead.customerName}) assigned to ${selectedAgentToAssign}`, 'success');
   };
@@ -292,7 +314,7 @@ export default function TeamLeaderDashboard() {
     setCoachModalOpen(true);
   };
 
-  const handleSaveCoaching = () => {
+  const handleSaveCoaching = async () => {
     if (!coachingAgent || !coachingTopic) return;
     const newSession = {
       id: `COACH-0${coachingList.length + 1}`,
@@ -305,6 +327,7 @@ export default function TeamLeaderDashboard() {
       notes: coachingNotes || 'General performance & QA guidelines aligned.'
     };
     setCoachingList([newSession, ...coachingList]);
+    await teamLeaderDashboardService.scheduleCoaching(newSession);
     setCoachModalOpen(false);
     showAlert(`Coaching session recorded and marked completed for ${coachingAgent}`, 'success');
   };
@@ -316,9 +339,10 @@ export default function TeamLeaderDashboard() {
     setEscalationModalOpen(true);
   };
 
-  const handleConfirmResolveEscalation = () => {
+  const handleConfirmResolveEscalation = async () => {
     if (!selectedEscalation) return;
     setEscalations(prev => prev.map(e => e.id === selectedEscalation.id ? { ...e, status: 'Resolved', notes: `${e.notes} [RESOLVED: ${escalationResolutionNote || 'Resolved by Team Leader'}]` } : e));
+    await teamLeaderDashboardService.resolveEscalation(selectedEscalation.id, escalationResolutionNote);
     setEscalationModalOpen(false);
     showAlert(`Escalation ${selectedEscalation.id} for ${selectedEscalation.leadName} marked as Resolved!`, 'success');
   };
@@ -330,7 +354,11 @@ export default function TeamLeaderDashboard() {
   };
 
   // Payment Handlers
-  const handleSendReminder = (customer, channel) => {
+  const handleSendReminder = async (customer, channel) => {
+    const payItem = pendingPayments.find(p => p.customer === customer);
+    if (payItem) {
+      await teamLeaderDashboardService.sendPaymentReminder(payItem.id, channel);
+    }
     showAlert(`Payment reminder sent to ${customer} via ${channel}!`, 'success');
   };
 

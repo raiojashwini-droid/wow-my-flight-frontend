@@ -60,6 +60,7 @@ import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
 import { dbService } from '../../services/dbService';
+import { automationService } from '../../services/phase3Service';
 
 // Default Flight CRM Workflows Template
 const DEFAULT_PREBUILT_WORKFLOWS = [
@@ -178,7 +179,7 @@ export default function AutomationEngine() {
   const [loading, setLoading] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(new Date().toLocaleTimeString());
 
-  // Workflows (Persisted in localStorage)
+  // Workflows (Persisted in localStorage & synced with backend)
   const [workflows, setWorkflows] = useState(() => {
     try {
       const saved = localStorage.getItem('crm-automation-workflows');
@@ -186,6 +187,16 @@ export default function AutomationEngine() {
     } catch (e) {}
     return DEFAULT_PREBUILT_WORKFLOWS;
   });
+
+  // Live Automation Data from backend API (/api/automation)
+  useEffect(() => {
+    let isMounted = true;
+    automationService.getData().then(data => {
+      if (!isMounted || !data) return;
+      if (Array.isArray(data.workflows) && data.workflows.length > 0) setWorkflows(data.workflows);
+    }).catch(err => console.warn('Automation API load warning:', err.message));
+    return () => { isMounted = false; };
+  }, []);
 
   // Search & Filters
   const [searchHistory, setSearchHistory] = useState('');
@@ -249,20 +260,30 @@ export default function AutomationEngine() {
     return () => clearInterval(interval);
   }, [fetchLiveData]);
 
-  // Persist workflows
-  const handleToggleWorkflow = (id) => {
+  // Persist workflows & API toggle
+  const handleToggleWorkflow = async (id) => {
     setWorkflows(prev => {
       const updated = prev.map(w => w.id === id ? { ...w, status: !w.status } : w);
       try {
         localStorage.setItem('crm-automation-workflows', JSON.stringify(updated));
       } catch (e) {}
       const target = prev.find(w => w.id === id);
-      showAlert(`Workflow "${target.name}" is now ${!target.status ? 'ACTIVE (Listening)' : 'PAUSED'}`, 'info');
+      showAlert(`Workflow "${target?.name || id}" is now ${!target?.status ? 'ACTIVE (Listening)' : 'PAUSED'}`, 'info');
       return updated;
     });
+    try {
+      await automationService.toggleWorkflow(id);
+    } catch (e) {}
   };
 
-  const handleCreateNewWorkflow = () => {
+  const handleRetryHistory = async (id) => {
+    try {
+      await automationService.retryHistory(id);
+      showAlert(`✓ Automated execution ${id} retried and completed!`, 'success');
+    } catch (e) {}
+  };
+
+  const handleCreateNewWorkflow = async () => {
     if (!newWfName) {
       showAlert('Please enter a workflow sequence name', 'warning');
       return;
@@ -288,6 +309,9 @@ export default function AutomationEngine() {
     setBuilderModalOpen(false);
     setNewWfName('');
     showAlert(`✓ Workflow sequence "${newWfName}" created and activated!`, 'success');
+    try {
+      await automationService.createWorkflow(newFlow);
+    } catch (e) {}
   };
 
   // Test Trigger Manual Execution

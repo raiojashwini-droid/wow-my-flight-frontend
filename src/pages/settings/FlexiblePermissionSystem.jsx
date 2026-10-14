@@ -66,12 +66,22 @@ export default function FlexiblePermissionSystem() {
     roles,
     userOverrides,
     auditLogs,
+    refreshPermissions,
     saveRole,
     cloneRole,
     deleteRole,
     saveUserOverride,
     checkUserPermission
   } = usePermissions();
+
+  // Sync roles from backend API (/api/permission-control) on load
+  React.useEffect(() => {
+    let isMounted = true;
+    permissionService.syncWithBackend().then(() => {
+      if (isMounted) refreshPermissions();
+    }).catch(err => console.warn('Permission sync warning:', err.message));
+    return () => { isMounted = false; };
+  }, [refreshPermissions]);
 
   const [currentTab, setCurrentTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
