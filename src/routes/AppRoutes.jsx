@@ -624,8 +624,8 @@ export const AppRoutes = () => {
           }
         />
         
-        <Route path="/social-inbox" element={<ProtectedRoute><SuperAdminSocialInbox /></ProtectedRoute>} />
-        <Route path="/:role/social-inbox" element={<ProtectedRoute><SuperAdminSocialInbox /></ProtectedRoute>} />
+        <Route path="/social-inbox" element={<Navigate to="/communication-center?tab=chat" replace />} />
+        <Route path="/:role/social-inbox" element={<Navigate to="/communication-center?tab=chat" replace />} />
         <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
         <Route path="/:role/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute><SuperAdminClientList /></ProtectedRoute>} />
@@ -808,11 +808,7 @@ export const AppRoutes = () => {
         />
         <Route
           path="/super_admin/social-inbox"
-          element={
-            <ProtectedRoute allowedRoles={['super_admin']}>
-              <SuperAdminSocialInbox />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/communication-center?tab=chat" replace />}
         />
         <Route path="/:role/marketing-manager/dashboard" element={<Navigate to="/marketing-manager/dashboard" replace />} />
         <Route
@@ -1448,47 +1444,12 @@ export const AppRoutes = () => {
           }
         />
 
-        {/* Social Inbox (Admins, Consultants, Operations) */}
-        <Route
-          path="/admin/social-inbox"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'marketing']}>
-              <AdminSocialInbox />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/operations/social-inbox"
-          element={
-            <ProtectedRoute allowedRoles={['operations', 'super_admin']}>
-              <OperationsSocialInbox />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/agent/social-inbox"
-          element={
-            <ProtectedRoute allowedRoles={['consultant']}>
-              <AgentSocialInbox />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/finance/social-inbox"
-          element={
-            <ProtectedRoute allowedRoles={['finance', 'super_admin']}>
-              <AdminSocialInbox />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/marketing-manager/social-inbox"
-          element={
-            <ProtectedRoute allowedRoles={['marketing', 'super_admin']}>
-              <AdminSocialInbox />
-            </ProtectedRoute>
-          }
-        />
+        {/* Social Inbox Redirects to Communication Center Unified Hub */}
+        <Route path="/admin/social-inbox" element={<Navigate to="/communication-center?tab=chat" replace />} />
+        <Route path="/operations/social-inbox" element={<Navigate to="/communication-center?tab=chat" replace />} />
+        <Route path="/agent/social-inbox" element={<Navigate to="/communication-center?tab=chat" replace />} />
+        <Route path="/finance/social-inbox" element={<Navigate to="/communication-center?tab=chat" replace />} />
+        <Route path="/marketing-manager/social-inbox" element={<Navigate to="/communication-center?tab=chat" replace />} />
 
         {/* Integrations (Admin, Super Admin) */}
         <Route

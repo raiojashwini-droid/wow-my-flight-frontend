@@ -383,7 +383,6 @@ export const DashboardLayout = () => {
 
     // PHASE 4 – SCALE
     { section: 'PHASE 4 – SCALE', label: 'Marketing Dashboard', icon: <TrendingUpIcon />, path: '/marketing-manager/dashboard', roles: ['admin', 'super_admin', 'marketing'] },
-    { section: 'PHASE 4 – SCALE', label: 'Communication Channels', icon: <ForumIcon />, path: '/social-inbox', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
   ];
 
 
@@ -988,9 +987,9 @@ export const DashboardLayout = () => {
               </IconButton>
             </Tooltip>
 
-            {/* Social Inbox Shortcut */}
-            <Tooltip title="Social Inbox">
-              <IconButton color="inherit" onClick={() => navigateTo(getDynamicPath({ path: '/social-inbox' }))}>
+            {/* Communication Hub Shortcut */}
+            <Tooltip title="Communication Hub (Live Chats & Softphone)">
+              <IconButton color="inherit" onClick={() => navigateTo(getDynamicPath({ path: '/communication-center?tab=chat' }))}>
                 <Badge badgeContent={totalSocialUnread} color="error">
                   <ForumIcon />
                 </Badge>

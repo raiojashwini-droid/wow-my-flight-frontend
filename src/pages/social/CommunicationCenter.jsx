@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -44,6 +45,7 @@ import useAuth from '../../hooks/useAuth';
 import { useTelnyx } from '../../contexts/TelnyxContext';
 import { dbService } from '../../services/dbService';
 import { sendSMS, fetchCallHistory, toE164, formatCallDuration } from '../../services/telnyxService';
+import SuperAdminSocialInbox from './SuperAdminSocialInbox';
 
 const TIMELINE_STORAGE_KEY = 'crm_communication_timeline';
 const DELETED_CALL_IDS_KEY = 'crm_deleted_call_ids';
@@ -75,6 +77,39 @@ export default function CommunicationCenter() {
   } = useTelnyx();
 
   // State
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+
+  const getInitialMasterTab = () => {
+    if (tabParam === 'chat' || tabParam === 'whatsapp' || tabParam === 'social') return 1;
+    if (tabParam === 'logs' || tabParam === 'history' || tabParam === 'activity') return 2;
+    return 0; // default: 0 (Softphone & Calling)
+  };
+
+  const [masterTab, setMasterTab] = useState(getInitialMasterTab);
+
+  useEffect(() => {
+    if (tabParam === 'chat' || tabParam === 'whatsapp' || tabParam === 'social') {
+      setMasterTab(1);
+    } else if (tabParam === 'logs' || tabParam === 'history' || tabParam === 'activity') {
+      setMasterTab(2);
+    } else if (tabParam === 'calls' || tabParam === 'phone' || tabParam === 'softphone') {
+      setMasterTab(0);
+    }
+  }, [tabParam]);
+
+  const handleMasterTabChange = (event, newValue) => {
+    setMasterTab(newValue);
+    const tabKeys = ['calls', 'chat', 'logs'];
+    const current = Object.fromEntries(searchParams.entries());
+    current.tab = tabKeys[newValue];
+    setSearchParams(current);
+  };
+
+  // Direct softphone dialer state (for Tab 0)
+  const [dialerNumber, setDialerNumber] = useState('');
+  const [dialerSelectedContact, setDialerSelectedContact] = useState(null);
+
   const [filter, setFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [timelineEvents, setTimelineEvents] = useState([]);
@@ -352,6 +387,11 @@ export default function CommunicationCenter() {
     });
   }, [timelineEvents, filter, searchQuery]);
 
+  // Dedicated call & callback events for Tab 1 (Softphone & Calling)
+  const callEvents = useMemo(() => {
+    return timelineEvents.filter((e) => e.channel === 'Call' || e.channel === 'Callbacks');
+  }, [timelineEvents]);
+
   // Open modal with preselected channel action
   const openActionModal = (type) => {
     setActionType(type);
@@ -552,6 +592,36 @@ export default function CommunicationCenter() {
     }
   };
 
+  const handleDialerCall = async () => {
+    const rawTo = dialerNumber || dialerSelectedContact?.phone;
+    if (!rawTo) {
+      showAlert('Please enter or select a customer phone number to dial.', 'warning');
+      return;
+    }
+    const cleanTo = toE164(rawTo) || rawTo;
+    try {
+      showAlert(`📞 Placing WebRTC call to ${cleanTo}...`, 'info');
+      await makeCall({ toNumber: cleanTo });
+      addTimelineEvent({
+        id: `call_${Date.now()}`,
+        type: 'Call',
+        channel: 'Call',
+        title: `Outbound Call Initiated to ${cleanTo}`,
+        customer: dialerSelectedContact ? `${dialerSelectedContact.name} (${cleanTo})` : cleanTo,
+        agent: currentUser?.name || 'Agent',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: 'Connected',
+        details: 'WebRTC outbound voice session started via Softphone',
+        timestamp: new Date().toISOString(),
+      });
+      setDialerNumber('');
+      setDialerSelectedContact(null);
+    } catch (err) {
+      console.error('Dialer call error:', err);
+      showAlert(`Call failed: ${err.message}`, 'error');
+    }
+  };
+
   const isCallActive = callState !== 'IDLE' && callState !== 'ENDED';
 
   return (
@@ -625,77 +695,619 @@ export default function CommunicationCenter() {
         <DualClock client={{ timezone: 'America/New_York', label: 'Telecom EST' }} />
       </Paper>
 
-      {/* ── Active WebRTC Call Banner (When in Call) ─────────────────────────── */}
-      {isCallActive && (
-        <Paper
-          elevation={0}
+      {/* ── Master Unified Tabs ──────────────────────────────────────────────── */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 0.8,
+          px: 1.5,
+          mb: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 3,
+          bgcolor: 'background.paper',
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 1.5,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+        }}
+      >
+        <Tabs
+          value={masterTab}
+          onChange={handleMasterTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
           sx={{
-            p: 2.5,
-            mb: 3,
-            borderRadius: 3,
-            bgcolor: '#0F172A',
-            color: '#FFFFFF',
-            border: '1px solid #1E293B',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 2,
-            width: '100%',
-            boxShadow: '0 10px 25px rgba(15, 23, 42, 0.25)',
+            minHeight: 44,
+            '& .MuiTab-root': {
+              fontWeight: 800,
+              fontSize: '0.86rem',
+              textTransform: 'none',
+              py: 1,
+              px: 2.2,
+              borderRadius: 2,
+              minHeight: 42,
+              display: 'flex',
+              flexDirection: 'row',
+              gap: 1,
+              alignItems: 'center',
+            },
+            '& .Mui-selected': {
+              bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.12)' : '#F0F9FF',
+              color: '#0284C7 !important',
+            }
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ bgcolor: '#EF4444', width: 44, height: 44 }}>
-              <PhoneInTalkIcon />
-            </Avatar>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#38BDF8' }}>
-                Active WebRTC Call in Progress
+          <Tab
+            icon={<PhoneInTalkIcon sx={{ fontSize: '1.15rem' }} />}
+            label="Tab 1: Softphone & Calling"
+            value={0}
+          />
+          <Tab
+            icon={<WhatsAppIcon sx={{ fontSize: '1.15rem', color: '#16A34A' }} />}
+            label="Tab 2: WhatsApp & Live Chats"
+            value={1}
+          />
+          <Tab
+            icon={<ForumIcon sx={{ fontSize: '1.15rem', color: '#7C3AED' }} />}
+            label="Tab 3: SMS/Email Activity Logs"
+            value={2}
+          />
+        </Tabs>
+
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Button
+            size="small"
+            variant="outlined"
+            color="primary"
+            startIcon={<PhoneInTalkIcon fontSize="small" />}
+            onClick={() => openActionModal('Call')}
+            sx={{ fontWeight: 800, borderRadius: 2, textTransform: 'none', fontSize: '0.78rem' }}
+          >
+            Quick Call
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            sx={{ fontWeight: 800, borderRadius: 2, textTransform: 'none', fontSize: '0.78rem', bgcolor: '#7C3AED', '&:hover': { bgcolor: '#6D28D9' } }}
+            startIcon={<SmsIcon fontSize="small" />}
+            onClick={() => openActionModal('SMS')}
+          >
+            Quick SMS
+          </Button>
+        </Box>
+      </Paper>
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          TAB 1: SOFTPHONE & VOICE CALLING (masterTab === 0)
+      ════════════════════════════════════════════════════════════════════════ */}
+      {masterTab === 0 && (
+        <Box sx={{ width: '100%' }}>
+          {/* Active WebRTC Call Banner (When in Call) */}
+          {isCallActive && (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2.5,
+                mb: 3,
+                borderRadius: 3,
+                bgcolor: '#0F172A',
+                color: '#FFFFFF',
+                border: '1px solid #1E293B',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 2,
+                width: '100%',
+                boxShadow: '0 10px 25px rgba(15, 23, 42, 0.25)',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: '#EF4444', width: 44, height: 44 }}>
+                  <PhoneInTalkIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#38BDF8' }}>
+                    Active WebRTC Call in Progress
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700 }}>
+                    Live Duration: <b style={{ color: '#22C55E' }}>{formatCallDuration(callSeconds)}</b> • State:{' '}
+                    <b>{callState}</b> • HD Audio Live
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1.5 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color={isMuted ? 'error' : 'inherit'}
+                  onClick={toggleMute}
+                  startIcon={isMuted ? <MicOffIcon /> : <MicIcon />}
+                  sx={{ fontWeight: 800, borderColor: '#334155' }}
+                >
+                  {isMuted ? 'Unmute' : 'Mute Mic'}
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color={isOnHold ? 'warning' : 'inherit'}
+                  onClick={toggleHold}
+                  startIcon={<PauseIcon />}
+                  sx={{ fontWeight: 800, borderColor: '#334155' }}
+                >
+                  {isOnHold ? 'Resume' : 'Hold'}
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="error"
+                  onClick={() => webrtcHangup()}
+                  startIcon={<CallEndIcon />}
+                  sx={{ fontWeight: 900 }}
+                >
+                  End Call
+                </Button>
+              </Box>
+            </Paper>
+          )}
+
+          {/* 4 Voice KPI Cards */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+              gap: 2,
+              mb: 3,
+              width: '100%',
+            }}
+          >
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2.5,
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                '&::before': { content: '""', position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', bgcolor: '#3F51B5' },
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', color: '#64748B', letterSpacing: '0.5px' }}>
+                  Calls Connected
+                </Typography>
+                <Avatar sx={{ width: 28, height: 28, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(99, 102, 241, 0.12)' : '#EEF2FF', color: '#3F51B5' }}>
+                  <PhoneInTalkIcon sx={{ fontSize: '0.95rem' }} />
+                </Avatar>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: 'text.primary', my: 0.5 }}>
+                {kpiStats.totalCalls}
               </Typography>
-              <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700 }}>
-                Live Duration: <b style={{ color: '#22C55E' }}>{formatCallDuration(callSeconds)}</b> • State:{' '}
-                <b>{callState}</b> • HD Audio Live
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                Answered: <b>{kpiStats.answeredCalls}</b> • Avg: <b>{kpiStats.avgTalkTime}</b>
+              </Typography>
+            </Paper>
+
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2.5,
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                '&::before': { content: '""', position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', bgcolor: '#0284C7' },
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', color: '#64748B', letterSpacing: '0.5px' }}>
+                  WebRTC Line Status
+                </Typography>
+                <Avatar sx={{ width: 28, height: 28, bgcolor: 'rgba(2, 132, 199, 0.12)', color: '#0284C7' }}>
+                  <CheckCircleIcon sx={{ fontSize: '0.95rem' }} />
+                </Avatar>
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 900, color: sdkStatus === 'registered' ? '#059669' : '#D97706', my: 0.8 }}>
+                {sdkStatus === 'registered' ? 'ONLINE & READY' : 'CONNECTING...'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                Codec: <b>Opus HD Audio</b> • Telnyx SIP
+              </Typography>
+            </Paper>
+
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2.5,
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                '&::before': { content: '""', position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', bgcolor: '#D97706' },
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', color: '#64748B', letterSpacing: '0.5px' }}>
+                  Scheduled Callbacks
+                </Typography>
+                <Avatar sx={{ width: 28, height: 28, bgcolor: 'rgba(217, 119, 6, 0.12)', color: '#D97706' }}>
+                  <CalendarMonthIcon sx={{ fontSize: '0.95rem' }} />
+                </Avatar>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: 'text.primary', my: 0.5 }}>
+                {kpiStats.callbacksCount}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                Pending Courtesy Follow-ups
+              </Typography>
+            </Paper>
+
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2.5,
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                '&::before': { content: '""', position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', bgcolor: '#059669' },
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', color: '#64748B', letterSpacing: '0.5px' }}>
+                  Outbound Direct Lines
+                </Typography>
+                <Avatar sx={{ width: 28, height: 28, bgcolor: 'rgba(16, 185, 129, 0.12)', color: '#059669' }}>
+                  <PhoneInTalkIcon sx={{ fontSize: '0.95rem' }} />
+                </Avatar>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: 'text.primary', my: 0.5 }}>
+                {telnyxPhoneNumbers?.length || 1}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                Active DIDs: <b>{defaultFromNumber || '+18503329681'}</b>
+              </Typography>
+            </Paper>
+          </Box>
+
+          {/* Direct Softphone Dialer & Call Launcher Card */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              mb: 3,
+              borderRadius: 3.5,
+              border: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'background.paper',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.02)',
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Avatar sx={{ bgcolor: '#0284C7', width: 40, height: 40 }}>
+                  <PhoneInTalkIcon sx={{ fontSize: '1.25rem', color: '#FFF' }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                    Telnyx WebRTC Softphone Dialer
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    Direct browser-to-phone outbound dialing with crystal-clear Opus HD audio
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Chip
+                label={sdkStatus === 'registered' ? 'WebRTC SIP Registered' : 'Connecting SIP Trunk...'}
+                size="small"
+                color={sdkStatus === 'registered' ? 'success' : 'default'}
+                sx={{ fontWeight: 800, fontSize: '0.72rem' }}
+              />
+            </Box>
+
+            <Divider sx={{ mb: 2.5 }} />
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.2fr 1fr' }, gap: 2.5, alignItems: 'flex-start' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Caller ID selector */}
+                <TextField
+                  select
+                  size="small"
+                  label="Caller ID (Telnyx Outbound Number)"
+                  value={selectedFromNumber || defaultFromNumber || (telnyxPhoneNumbers[0]?.number || '+18503329681')}
+                  onChange={(e) => setSelectedFromNumber(e.target.value)}
+                  fullWidth
+                >
+                  {(telnyxPhoneNumbers || []).map((num) => (
+                    <MenuItem key={num.number} value={num.number}>
+                      {num.friendlyName || num.number} ({num.number})
+                    </MenuItem>
+                  ))}
+                  {(!telnyxPhoneNumbers || telnyxPhoneNumbers.length === 0) && (
+                    <MenuItem value="+18503329681">+1 (850) 332-9681 (Primary US DID)</MenuItem>
+                  )}
+                </TextField>
+
+                {/* Recipient Contact or Number */}
+                <Autocomplete
+                  freeSolo
+                  options={contactOptions}
+                  getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt.label || '')}
+                  value={dialerSelectedContact}
+                  onChange={(e, val) => {
+                    setDialerSelectedContact(val);
+                    if (val && typeof val !== 'string') {
+                      setDialerNumber(val.phone || '');
+                    }
+                  }}
+                  onInputChange={(e, val) => {
+                    setDialerNumber(val);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Customer Phone Number (E.164) or Search CRM Contact"
+                      size="small"
+                      placeholder="+12025550199 or Search Lead/Client..."
+                      fullWidth
+                    />
+                  )}
+                />
+
+                <Box sx={{ display: 'flex', gap: 1.5, mt: 0.5, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="large"
+                    startIcon={<PhoneInTalkIcon />}
+                    onClick={handleDialerCall}
+                    disabled={isCallActive}
+                    sx={{ fontWeight: 800, px: 3, py: 1.1, borderRadius: 2, flexGrow: 1 }}
+                  >
+                    {isCallActive ? 'Call in Progress...' : 'Start Voice Call'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    size="large"
+                    startIcon={<CalendarMonthIcon />}
+                    onClick={() => {
+                      setRecipient(dialerNumber || dialerSelectedContact?.phone || '');
+                      openActionModal('Callback');
+                    }}
+                    sx={{ fontWeight: 800, px: 2.5, borderRadius: 2 }}
+                  >
+                    Schedule Callback
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    size="large"
+                    startIcon={<NoteAltIcon />}
+                    onClick={() => {
+                      setRecipient(dialerNumber || dialerSelectedContact?.name || '');
+                      openActionModal('Note');
+                    }}
+                    sx={{ fontWeight: 800, px: 2, borderRadius: 2 }}
+                  >
+                    Note
+                  </Button>
+                </Box>
+              </Box>
+
+              {/* Quick instructions / features box */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 2.5,
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#F8FAFC',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, color: 'text.primary' }}>
+                  🎙️ Softphone Features & Telephony Controls
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mb: 1 }}>
+                  • <b>WebRTC Audio:</b> High-fidelity voice connection directly inside your browser. No external hardware or PBX setup required.
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mb: 1 }}>
+                  • <b>Live Controls:</b> Hold, Mute, Audio Duration, and Disconnect controls appear automatically in the Active Call Banner above.
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                  • <b>CRM Auto-Logging:</b> Every voice call and callback is instantly recorded with timestamp and agent attribution into the timeline feed.
+                </Typography>
+              </Paper>
+            </Box>
+          </Paper>
+
+          {/* Voice Call Activity Header */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                📞 Call Log & Scheduled Follow-ups ({callEvents.length})
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                Historical phone interactions, inbound inquiries, callbacks, and voice recordings
               </Typography>
             </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              color="primary"
+              startIcon={<PhoneInTalkIcon fontSize="small" />}
+              onClick={() => openActionModal('Call')}
+              sx={{ fontWeight: 800, borderRadius: 2, textTransform: 'none', fontSize: '0.75rem' }}
+            >
+              Dial New Number
+            </Button>
           </Box>
 
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <Button
-              size="small"
-              variant="outlined"
-              color={isMuted ? 'error' : 'inherit'}
-              onClick={toggleMute}
-              startIcon={isMuted ? <MicOffIcon /> : <MicIcon />}
-              sx={{ fontWeight: 800, borderColor: '#334155' }}
+          {callEvents.length === 0 ? (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 5,
+                textAlign: 'center',
+                borderRadius: 3,
+                border: '2px dashed',
+                borderColor: 'divider',
+                bgcolor: 'background.neutral',
+              }}
             >
-              {isMuted ? 'Unmute' : 'Mute Mic'}
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color={isOnHold ? 'warning' : 'inherit'}
-              onClick={toggleHold}
-              startIcon={<PauseIcon />}
-              sx={{ fontWeight: 800, borderColor: '#334155' }}
-            >
-              {isOnHold ? 'Resume' : 'Hold'}
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              color="error"
-              onClick={() => webrtcHangup()}
-              startIcon={<CallEndIcon />}
-              sx={{ fontWeight: 900 }}
-            >
-              End Call
-            </Button>
-          </Box>
-        </Paper>
+              <Avatar sx={{ bgcolor: 'rgba(56, 189, 248, 0.1)', color: '#0284C7', width: 56, height: 56, mx: 'auto', mb: 1.5 }}>
+                <PhoneInTalkIcon sx={{ fontSize: '1.8rem' }} />
+              </Avatar>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.5 }}>
+                No Voice Calls Logged Yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 460, mx: 'auto', mb: 2 }}>
+                Place a call using the Softphone Dialer above or schedule a customer callback. All voice calls will be automatically archived here.
+              </Typography>
+            </Paper>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.8 }}>
+              {callEvents.map((ev) => {
+                const isCall = ev.channel === 'Call';
+                return (
+                  <Paper
+                    key={ev.id}
+                    elevation={0}
+                    sx={{
+                      p: 2.2,
+                      borderRadius: 3,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      bgcolor: 'background.paper',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar
+                          sx={{
+                            bgcolor: isCall ? '#EEF2FF' : '#FFFBEB',
+                            color: isCall ? '#3F51B5' : '#D97706',
+                            fontWeight: 900,
+                            width: 38,
+                            height: 38,
+                          }}
+                        >
+                          {isCall ? <PhoneInTalkIcon fontSize="small" /> : <CalendarMonthIcon fontSize="small" />}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'text.primary', fontSize: '0.95rem' }}>
+                            {ev.title}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                            Customer: <b style={{ color: 'text.primary' }}>{ev.customer}</b> • Rep:{' '}
+                            <b style={{ color: 'text.primary' }}>{ev.agent}</b>
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ textAlign: 'right' }}>
+                          <Chip
+                            label={ev.status}
+                            size="small"
+                            sx={{
+                              fontWeight: 800,
+                              height: 22,
+                              fontSize: '0.66rem',
+                              bgcolor: isCall ? '#EEF2FF' : '#FFFBEB',
+                              color: isCall ? '#3F51B5' : '#D97706',
+                              mb: 0.3,
+                            }}
+                          />
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700, fontFamily: 'monospace' }}>
+                            {ev.time}
+                          </Typography>
+                        </Box>
+
+                        <Tooltip title="Delete call record">
+                          <IconButton size="small" onClick={() => confirmDeleteEvent(ev)} sx={{ color: '#94A3B8' }}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </Box>
+
+                    <Divider sx={{ my: 1 }} />
+
+                    <Box
+                      sx={{
+                        bgcolor: 'background.neutral',
+                        p: 1.5,
+                        borderRadius: 2,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: 1.2,
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary', flexGrow: 1 }}>
+                        {ev.details}
+                      </Typography>
+
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        startIcon={<PhoneInTalkIcon fontSize="small" />}
+                        onClick={() => {
+                          const num = ev.customer.match(/\+?\d[\d -]{7,}/)?.[0] || ev.customer;
+                          setDialerNumber(num);
+                          setRecipient(num);
+                          openActionModal('Call');
+                        }}
+                        sx={{ fontWeight: 800, fontSize: '0.72rem', textTransform: 'none' }}
+                      >
+                        Call Back
+                      </Button>
+                    </Box>
+                  </Paper>
+                );
+              })}
+            </Box>
+          )}
+        </Box>
       )}
 
-      {/* ── 4 Spacious, Responsive 100% Width KPI Cards (Real Data Only) ─────── */}
+      {/* ════════════════════════════════════════════════════════════════════════
+          TAB 2: WHATSAPP & SOCIAL LIVE CHATS (masterTab === 1)
+      ════════════════════════════════════════════════════════════════════════ */}
+      {masterTab === 1 && (
+        <Box sx={{ width: '100%', mb: 3 }}>
+          <SuperAdminSocialInbox hideHeader={true} />
+        </Box>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          TAB 3: SMS/EMAIL ACTIVITY LOGS & OMNICHANNEL TIMELINE (masterTab === 2)
+      ════════════════════════════════════════════════════════════════════════ */}
+      {masterTab === 2 && (
+        <Box sx={{ width: '100%' }}>
+          {/* 4 Spacious, Responsive 100% Width KPI Cards (Real Data Only) */}
       <Box
         sx={{
           display: 'grid',
@@ -1234,6 +1846,8 @@ export default function CommunicationCenter() {
               </Paper>
             );
           })}
+        </Box>
+      )}
         </Box>
       )}
 

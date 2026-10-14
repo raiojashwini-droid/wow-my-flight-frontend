@@ -98,6 +98,13 @@ class FlightContentService {
     this.adapters = this.loadAdapters();
   }
 
+  getBackendUrl() {
+    return (
+      import.meta.env?.VITE_BACKEND_URL ||
+      'https://wow-my-flight-backend-production.up.railway.app'
+    );
+  }
+
   loadAdapters() {
     try {
       const saved = localStorage.getItem('crm_supplier_adapters');
@@ -360,17 +367,27 @@ class FlightContentService {
   async getBookings() {
     const backendUrl = this.getBackendUrl();
     try {
-      const res = await fetch(`${backendUrl}/api/bookings`);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(`${backendUrl}/api/bookings`, { signal: controller.signal });
+      clearTimeout(timer);
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
+          if (json.data.length > 0) {
+            localStorage.setItem('crm-bookings', JSON.stringify(json.data));
+          }
           return json.data;
         }
       }
     } catch (err) {
       console.warn('[FlightContentService] Fetch DB bookings warning:', err.message);
     }
-    return null;
+    const cached = localStorage.getItem('crm-bookings');
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+    return [];
   }
 
   /**
