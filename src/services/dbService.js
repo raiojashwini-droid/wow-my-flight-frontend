@@ -1145,29 +1145,14 @@ export const dbService = {
   getRefundRequests: async () => {
     try {
       const res = await apiFetch('/api/finance/refunds');
-      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+      if (res && res.success && Array.isArray(res.data)) {
         return res.data;
       }
     } catch (e) {
       console.warn('Finance Refunds API load warning:', e.message);
     }
     await delay();
-    return loadState('crm-refund-requests', [
-      {
-        id: 'REF-001',
-        clientId: 'CL2008',
-        clientName: 'Olga Kuznetsova',
-        category: 'Visa Rejection',
-        amount: 900,
-        reason: 'Spanish Consulate rejected visa application due to lack of local ties.',
-        status: 'Approved',
-        date: '2026-06-25',
-        auditLogs: [
-          { date: '2026-06-25T10:00:00Z', action: 'Refund requested automatically on visa rejection.', user: 'System' },
-          { date: '2026-06-25T14:30:00Z', action: 'Refund reviewed and approved.', user: 'Wael Madi (CEO)' }
-        ]
-      }
-    ]);
+    return loadState('crm-refund-requests', []);
   },
   createRefundRequest: async (refund) => {
     try {

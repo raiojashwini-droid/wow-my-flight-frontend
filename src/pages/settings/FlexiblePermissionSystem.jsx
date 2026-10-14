@@ -57,11 +57,13 @@ import { usePermissions } from '../../contexts/PermissionContext';
 import { PERMISSION_MODULES, ACCESS_SCOPES, INITIAL_HIERARCHY, permissionService } from '../../services/permissionService';
 import { useAlert } from '../../contexts/AlertContext';
 import { AGENTS } from '../../constants/mockData';
+import { dbService } from '../../services/dbService';
 import DualClock from '../../components/DualClock';
 
 export default function FlexiblePermissionSystem() {
   const { showAlert } = useAlert();
   const navigate = useNavigate();
+  const [usersList, setUsersList] = useState([]);
   const {
     roles,
     userOverrides,
@@ -74,12 +76,17 @@ export default function FlexiblePermissionSystem() {
     checkUserPermission
   } = usePermissions();
 
-  // Sync roles from backend API (/api/permission-control) on load
+  // Sync roles and users from backend API
   React.useEffect(() => {
     let isMounted = true;
     permissionService.syncWithBackend().then(() => {
       if (isMounted) refreshPermissions();
     }).catch(err => console.warn('Permission sync warning:', err.message));
+    dbService.getAgents().then(data => {
+      if (isMounted && Array.isArray(data) && data.length > 0) {
+        setUsersList(data);
+      }
+    }).catch(() => {});
     return () => { isMounted = false; };
   }, [refreshPermissions]);
 
@@ -214,7 +221,8 @@ export default function FlexiblePermissionSystem() {
   };
 
   const handleSaveUserOverrideSubmit = () => {
-    const targetUser = AGENTS.find(a => a.id === selectedUserId) || { id: selectedUserId, name: 'Selected User' };
+    const currentAgents = usersList.length > 0 ? usersList : AGENTS;
+    const targetUser = currentAgents.find(a => a.id === selectedUserId) || { id: selectedUserId, name: 'Selected User' };
     const overridesArray = Object.keys(userOverridePerms)
       .filter(k => userOverridePerms[k].isSet)
       .map(k => ({
@@ -603,7 +611,7 @@ export default function FlexiblePermissionSystem() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {AGENTS.map(agent => {
+                {(usersList.length > 0 ? usersList : AGENTS).map(agent => {
                   const overrides = userOverrides[agent.id] || [];
                   const hasOverrides = overrides.length > 0;
 
