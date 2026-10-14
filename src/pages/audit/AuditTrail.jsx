@@ -45,6 +45,7 @@ import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
+import { auditTrailService } from '../../services/phase3Service';
 
 // ==========================================
 // MOCK AUDIT DATASETS
@@ -159,6 +160,18 @@ export default function AuditTrail() {
   const [logs, setLogs] = useState(INITIAL_AUDIT_LOGS);
   const [selectedAudit, setSelectedAudit] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Live Audit Trail Data from backend API (/api/audit-trail)
+  React.useEffect(() => {
+    let isMounted = true;
+    auditTrailService.getAuditTrail().then(res => {
+      if (!isMounted || !res) return;
+      if (res.data && Array.isArray(res.data.logs) && res.data.logs.length > 0) {
+        setLogs(res.data.logs);
+      }
+    }).catch(err => console.warn('Audit Trail API load warning:', err.message));
+    return () => { isMounted = false; };
+  }, []);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');

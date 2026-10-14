@@ -59,6 +59,7 @@ import {
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
 import { dbService, getBackendUrl } from '../../services/dbService';
+import { managementReportsService } from '../../services/phase3Service';
 
 export default function ManagementReportingDashboard() {
   const theme = useTheme();
@@ -70,6 +71,11 @@ export default function ManagementReportingDashboard() {
   const [dateRange, setDateRange] = useState('ALL_TIME');
   const [loading, setLoading] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(new Date().toLocaleTimeString());
+
+  // Ping Phase 3 Management Reports API
+  useEffect(() => {
+    managementReportsService.getReports(dateRange).catch(() => {});
+  }, [dateRange]);
 
   // Live Database States
   const [dbStatus, setDbStatus] = useState({ connected: true, provider: 'PostgreSQL (Prisma)', service: 'WowMyFlight Backend' });
@@ -362,7 +368,7 @@ export default function ManagementReportingDashboard() {
   }, [users, bookings, leads, callLogs]);
 
   // Export Report to CSV / Excel
-  const handleExport = (format) => {
+  const handleExport = async (format) => {
     try {
       const csvContent = [
         ['WOW MY FLIGHT - EXECUTIVE MANAGEMENT REPORT'],
@@ -394,6 +400,9 @@ export default function ManagementReportingDashboard() {
       document.body.removeChild(link);
 
       showAlert(`✓ Executive Report downloaded successfully as ${format.toUpperCase()}!`, 'success');
+      try {
+        await managementReportsService.exportReport(format, dateRange);
+      } catch (e) {}
     } catch (e) {
       showAlert(`Report exported in ${format.toUpperCase()} format!`, 'success');
     }
@@ -751,7 +760,7 @@ export default function ManagementReportingDashboard() {
               </TableHead>
               <TableBody>
                 {agentLeaderboard.map((row) => (
-                  <TableRow key={row.id} hover>
+                  <TableRow key={row.id || row.rank} hover>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Chip label={`#${row.rank}`} size="small" color={row.rank === 1 ? 'warning' : 'primary'} sx={{ fontWeight: 900 }} />
