@@ -1,0 +1,130 @@
+/*
+ * AUTO-GENERATED dark-mode colour tokens.
+ * Components reference these as var(--token, <original light colour>), so light mode always uses
+ * the original value and only dark mode overrides it here.
+ *   --wl-*  light/pastel backgrounds  -> translucent tinted surfaces
+ *   --ww-*  white glass rgba()        -> slate glass
+ *   --wb-*  light borders             -> subtle tinted borders
+ *   --wd-*  deep text colours         -> readable light variants
+ */
+:root.dark-mode,
+:root.dark,
+[data-theme="dark"],
+html.dark-mode,
+html.dark,
+body.dark-mode,
+body.dark {
+  --wb-7DD3FC: hsla(199, 85%, 60%, 0.35);
+  --wb-86EFAC: hsla(142, 77%, 60%, 0.35);
+  --wb-93C5FD: hsla(212, 85%, 60%, 0.35);
+  --wb-A5B4FC: hsla(230, 85%, 60%, 0.35);
+  --wb-BAE6FD: hsla(201, 85%, 60%, 0.35);
+  --wb-BBF7D0: hsla(141, 79%, 60%, 0.35);
+  --wb-BFDBFE: hsla(213, 85%, 60%, 0.35);
+  --wb-C7D2FE: hsla(228, 85%, 60%, 0.35);
+  --wb-CBD5E1: hsla(213, 45%, 60%, 0.35);
+  --wb-D8B4FE: hsla(269, 85%, 60%, 0.35);
+  --wb-DBEAFE: hsla(214, 85%, 60%, 0.35);
+  --wb-DDD6FE: hsla(251, 85%, 60%, 0.35);
+  --wb-E2E8F0: rgba(255, 255, 255, 0.10);
+  --wb-E5E7EB: rgba(255, 255, 255, 0.10);
+  --wb-F1F5F9: rgba(255, 255, 255, 0.10);
+  --wb-F87171: hsla(0, 85%, 60%, 0.35);
+  --wb-F8FAFC: rgba(255, 255, 255, 0.10);
+  --wb-FBCFE8: hsla(326, 85%, 60%, 0.35);
+  --wb-FCA5A5: hsla(0, 85%, 60%, 0.35);
+  --wb-FDA4AF: hsla(353, 85%, 60%, 0.35);
+  --wb-FDBA74: hsla(31, 85%, 60%, 0.35);
+  --wb-FDE68A: hsla(48, 85%, 60%, 0.35);
+  --wb-FECACA: hsla(0, 85%, 60%, 0.35);
+  --wb-FFFFFF: rgba(255, 255, 255, 0.10);
+  --wd-000000: #F1F5F9;
+  --wd-0088CC: hsl(200, 90%, 74%);
+  --wd-010101: #F1F5F9;
+  --wd-0284C7: hsl(200, 90%, 74%);
+  --wd-03543F: hsl(164, 90%, 74%);
+  --wd-0369A1: hsl(201, 90%, 74%);
+  --wd-047857: hsl(163, 90%, 74%);
+  --wd-059669: hsl(161, 90%, 74%);
+  --wd-065F46: hsl(163, 88%, 74%);
+  --wd-06C755: hsl(145, 90%, 74%);
+  --wd-07C160: hsl(149, 90%, 74%);
+  --wd-0A2540: hsl(210, 73%, 74%);
+  --wd-0A66C2: hsl(210, 90%, 74%);
+  --wd-10B981: hsl(160, 84%, 74%);
+  --wd-111827: hsl(221, 45%, 74%);
+  --wd-14532D: hsl(144, 61%, 74%);
+  --wd-15803D: hsl(142, 72%, 74%);
+  --wd-166534: hsl(143, 64%, 74%);
+  --wd-16A34A: hsl(142, 76%, 74%);
+  --wd-1E40AF: hsl(226, 71%, 74%);
+  --wd-1E429F: hsl(223, 68%, 74%);
+  --wd-303030: #F1F5F9;
+  --wd-334155: hsl(215, 45%, 74%);
+  --wd-3730A3: hsl(244, 55%, 74%);
+  --wd-374151: hsl(217, 45%, 74%);
+  --wd-475569: hsl(215, 45%, 74%);
+  --wd-4B5563: hsl(215, 45%, 74%);
+  --wd-6B21A8: hsl(273, 67%, 74%);
+  --wd-78350F: hsl(22, 78%, 74%);
+  --wd-7F1D1D: hsl(0, 63%, 74%);
+  --wd-854D0E: hsl(32, 81%, 74%);
+  --wd-92400E: hsl(23, 83%, 74%);
+  --wd-991B1B: hsl(0, 70%, 74%);
+  --wd-9A3412: hsl(15, 79%, 74%);
+  --wd-9D174D: hsl(336, 74%, 74%);
+  --wd-B45309: hsl(26, 90%, 74%);
+  --wd-B91C1C: hsl(0, 74%, 74%);
+  --wd-BD081C: hsl(353, 90%, 74%);
+  --wl-CCFBF1: hsla(167, 85%, 58%, 0.14);
+  --wl-D1FAE5: hsla(149, 80%, 58%, 0.14);
+  --wl-DBEAFE: hsla(214, 85%, 58%, 0.14);
+  --wl-DCF8C6: hsla(94, 78%, 58%, 0.14);
+  --wl-DCFCE7: hsla(141, 84%, 58%, 0.14);
+  --wl-DEF7EC: hsla(154, 61%, 58%, 0.14);
+  --wl-E0E7FF: hsla(226, 85%, 58%, 0.14);
+  --wl-E0F2FE: hsla(204, 85%, 58%, 0.14);
+  --wl-E1EFFE: hsla(211, 85%, 58%, 0.14);
+  --wl-E2E8F0: rgba(148, 163, 184, 0.08);
+  --wl-E5DDD5: hsla(30, 45%, 58%, 0.14);
+  --wl-E8F3FB: hsla(205, 70%, 58%, 0.14);
+  --wl-E8F4FB: hsla(202, 70%, 58%, 0.14);
+  --wl-E8F5FE: hsla(205, 85%, 58%, 0.14);
+  --wl-E9D5FF: hsla(269, 85%, 58%, 0.14);
+  --wl-EBF3FB: hsla(210, 67%, 58%, 0.14);
+  --wl-EBF3FE: hsla(215, 85%, 58%, 0.14);
+  --wl-ECFDF5: hsla(152, 81%, 58%, 0.14);
+  --wl-ECFEFF: hsla(183, 85%, 58%, 0.14);
+  --wl-EDE9FE: hsla(251, 85%, 58%, 0.14);
+  --wl-EDFBF4: rgba(148, 163, 184, 0.08);
+  --wl-EEF2F6: rgba(148, 163, 184, 0.08);
+  --wl-EEF2FF: hsla(226, 85%, 58%, 0.14);
+  --wl-EFF6FF: hsla(214, 85%, 58%, 0.14);
+  --wl-F0F9FF: hsla(204, 85%, 58%, 0.14);
+  --wl-F0FDF4: rgba(148, 163, 184, 0.08);
+  --wl-F1F5F9: rgba(148, 163, 184, 0.08);
+  --wl-F3E8FF: hsla(269, 85%, 58%, 0.14);
+  --wl-F3F4F6: rgba(148, 163, 184, 0.08);
+  --wl-F5F3FF: rgba(148, 163, 184, 0.08);
+  --wl-F5F5F5: rgba(148, 163, 184, 0.08);
+  --wl-F8FAFC: rgba(148, 163, 184, 0.08);
+  --wl-FAFAFA: rgba(148, 163, 184, 0.08);
+  --wl-FDF0F5: rgba(148, 163, 184, 0.08);
+  --wl-FDF2F8: rgba(148, 163, 184, 0.08);
+  --wl-FEE2E2: hsla(0, 85%, 58%, 0.14);
+  --wl-FEF1F0: rgba(148, 163, 184, 0.08);
+  --wl-FEF2F2: rgba(148, 163, 184, 0.08);
+  --wl-FEF3C7: hsla(48, 85%, 58%, 0.14);
+  --wl-FEF9C3: hsla(55, 85%, 58%, 0.14);
+  --wl-FEFCE8: hsla(55, 85%, 58%, 0.14);
+  --wl-FFE4E6: hsla(356, 85%, 58%, 0.14);
+  --wl-FFEDD5: hsla(34, 85%, 58%, 0.14);
+  --wl-FFF0F0: hsla(0, 85%, 58%, 0.14);
+  --wl-FFF1F2: rgba(148, 163, 184, 0.08);
+  --wl-FFF7ED: hsla(33, 85%, 58%, 0.14);
+  --wl-FFFBEB: hsla(48, 85%, 58%, 0.14);
+  --wl-FFFDF0: hsla(52, 85%, 58%, 0.14);
+  --wl-FFFDF9: rgba(148, 163, 184, 0.08);
+  --wl-FFFFFF: #0F172A;
+  --ww-w85: rgba(15, 23, 42, 0.85);
+}
