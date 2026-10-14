@@ -17,37 +17,40 @@ import { getMeetingUrl, generateMeetingRoom } from './jitsiService';
 const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const getBackendUrl = () => {
-  const isLocalhost = typeof window !== 'undefined' && 
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  if (isLocalhost) {
-    return 'http://localhost:3001';
+  if (import.meta.env.VITE_BACKEND_URL) {
+    return import.meta.env.VITE_BACKEND_URL;
   }
-  return import.meta.env.VITE_BACKEND_URL || 'https://wow-my-flight-backend-production.up.railway.app';
+  return 'https://wow-my-flight-backend-production.up.railway.app';
 };
 
 async function apiFetch(path, options = {}) {
   const primaryUrl = getBackendUrl();
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
     const res = await fetch(`${primaryUrl}${path}`, {
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       ...options
     });
+    clearTimeout(timeoutId);
     if (res.ok) {
       return await res.json();
     }
   } catch (err) { }
 
-  // Fallback if primary URL failed or was unreachable
-  const fallbackUrl = primaryUrl.includes('localhost')
-    ? (import.meta.env.VITE_BACKEND_URL || '')
-    : 'http://localhost:3001';
-
-  if (fallbackUrl && fallbackUrl !== primaryUrl) {
+  // Fallback if primary URL failed
+  const fallbackUrl = 'https://wow-my-flight-backend-production.up.railway.app';
+  if (primaryUrl !== fallbackUrl) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
       const res = await fetch(`${fallbackUrl}${path}`, {
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         ...options
       });
+      clearTimeout(timeoutId);
       if (res.ok) {
         return await res.json();
       }
@@ -59,10 +62,25 @@ async function apiFetch(path, options = {}) {
 // Auto-sanitize legacy Spanish visa mock data from localStorage
 if (typeof window !== 'undefined') {
   try {
-    const keysToCheck = ['crm-leads', 'crm-clients', 'crm-consultations', 'crm-payments', 'crm-documents', 'crm-agents-list'];
+    const keysToCheck = [
+      'crm-leads',
+      'crm-clients',
+      'crm-consultations',
+      'crm-payments',
+      'crm-documents',
+      'crm-agents-list',
+      'crm-conversations'
+    ];
     keysToCheck.forEach(k => {
       const val = localStorage.getItem(k);
-      if (val && (val.includes('AAA Business') || val.includes('Golden Visa') || val.includes('Malaga') || val.includes('Autonomo'))) {
+      if (val && (
+        val.includes('AAA Business') ||
+        val.includes('Golden Visa') ||
+        val.includes('Malaga') ||
+        val.includes('Autonomo') ||
+        val.includes('Digital Nomad Visa') ||
+        val.includes('Spanish Consulate')
+      )) {
         localStorage.removeItem(k);
       }
     });
@@ -82,10 +100,11 @@ const loadState = (key, defaults) => {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
         // Discard if containing legacy Spanish visa data
-        const isLegacy = parsed.some(item =>
-          item?.profileSummary?.includes('Golden Visa') ||
-          item?.serviceId === 'property' ||
-          item?.name?.includes('AAA Business')
+        const isLegacy = parsed.some(item => 
+          item?.profileSummary?.includes('Golden Visa') || 
+          item?.serviceId === 'property' || 
+          item?.name?.includes('AAA Business') ||
+          item?.messages?.some(m => m.text?.includes('AAA Business') || m.text?.includes('Digital Nomad Visa'))
         );
         if (!isLegacy) {
           return parsed;
@@ -107,60 +126,79 @@ const saveState = (key, state) => {
 const INITIAL_CONVERSATIONS = [
   {
     id: 'conv1',
-    leadId: 'LD1001',
-    name: 'Amelia Watson',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+    leadId: 'LD-8440',
+    name: 'Rajesh Sharma',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
     platform: 'whatsapp',
     unreadCount: 1,
-    status: 'New Lead',
-    email: 'amelia.w@example.com',
-    phone: '+44 7911 123456',
-    country: 'United Kingdom',
+    status: 'Ticketed',
+    email: 'rajesh.sharma@example.com',
+    phone: '+91 98112 34567',
+    country: 'India',
     preferredLanguage: 'English',
-    serviceId: 'dnv',
+    serviceId: 'flight_booking',
     messages: [
-      { sender: 'customer', text: 'Hello, I am interested in the Digital Nomad Visa for Spain. Can you guide me?', timestamp: '10:15 AM' },
-      { sender: 'system', text: 'Hello Amelia! Thanks for reaching out to AAA Business Consultancy. One of our visa experts will be with you shortly. In the meantime, what is your current monthly remote income?', timestamp: '10:16 AM' },
-      { sender: 'customer', text: 'It is about €3,800 per month, and I work for a UK tech company.', timestamp: '10:18 AM' },
-      { sender: 'agent', text: "That is great! That exceeds the minimum requirement of €3,160. Let's schedule an expert consultation.", timestamp: '10:20 AM' },
-      { sender: 'customer', text: 'Excellent, is there a booking link for the zoom call?', timestamp: '10:22 AM' }
+      { sender: 'customer', text: 'Hello, I have a confirmed booking BK-9169 for DEL → LHR on Air India (PNR: TP-ZOEFV1). Can you please confirm my baggage allowance?', timestamp: '10:15 AM' },
+      { sender: 'system', text: 'Hello Rajesh! Welcome to Wow My Flight Air Concierge. An executive travel specialist is reviewing your booking reference.', timestamp: '10:16 AM' },
+      { sender: 'agent', text: 'Hi Rajesh! Your ticketed booking allows 2 check-in pieces (23kg each) plus 7kg cabin baggage. Web check-in opens 24 hours prior to departure.', timestamp: '10:18 AM' },
+      { sender: 'customer', text: 'Excellent! Could you please assign an aisle seat in row 18 for me?', timestamp: '10:20 AM' },
+      { sender: 'agent', text: 'Done! Aisle seat 18C has been confirmed in Sabre GDS. E-ticket updated.', timestamp: '10:22 AM' }
     ]
   },
   {
     id: 'conv2',
-    leadId: 'LD1003',
-    name: 'Elena Petrova',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
-    platform: 'telegram',
+    leadId: 'LD-9001',
+    name: 'Marcus Vance',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+    platform: 'whatsapp',
     unreadCount: 0,
-    status: 'Active',
-    email: 'elena.p@example.com',
-    phone: '+7 903 123-45-67',
-    country: 'Russia',
+    status: 'Quote Sent',
+    email: 'marcus.vance@example.com',
+    phone: '+1 415 555 2671',
+    country: 'United States',
     preferredLanguage: 'English',
-    serviceId: 'study',
+    serviceId: 'business_class',
     messages: [
-      { sender: 'customer', text: 'Spasibo, details sent via email.', timestamp: 'Yesterday' },
-      { sender: 'agent', text: 'Thank you Elena, I will verify the translation.', timestamp: 'Yesterday' }
+      { sender: 'customer', text: 'Hi team, I received Quote QT-9001 for JFK ⇄ LHR Club World ($7,700). Does this include fast-track security and lounge access at Terminal 5?', timestamp: 'Yesterday' },
+      { sender: 'agent', text: 'Hello Marcus! Yes, British Airways Club World includes dedicated fast-track security, Galleries Club lounge access, and 180° lie-flat beds.', timestamp: 'Yesterday' },
+      { sender: 'customer', text: 'Great, I will complete the payment via Stripe link today.', timestamp: 'Yesterday' }
     ]
   },
   {
     id: 'conv3',
-    leadId: 'LD1004',
-    name: 'Markus Schmidt',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-    platform: 'whatsapp',
+    leadId: 'LD-9002',
+    name: 'Amina Al-Mansoor',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    platform: 'instagram',
     unreadCount: 0,
-    status: 'New Lead',
-    email: 'markus.s@example.com',
-    phone: '+49 170 1234567',
-    country: 'Germany',
-    preferredLanguage: 'English',
-    serviceId: 'self_employed',
+    status: 'Payment Received',
+    email: 'amina.m@example.ae',
+    phone: '+971 50 123 4567',
+    country: 'United Arab Emirates',
+    preferredLanguage: 'Arabic / English',
+    serviceId: 'first_class',
     messages: [
-      { sender: 'customer', text: 'Hey, can I set up an Autonomo business in Spain remotely?', timestamp: '3 days ago' },
-      { sender: 'agent', text: 'Hi Markus! Yes, we can handle the registration of your self-employed residency remotely using a power of attorney.', timestamp: '3 days ago' },
-      { sender: 'customer', text: 'Excellent, that sounds solid.', timestamp: '3 days ago' }
+      { sender: 'customer', text: 'Salam! Can you verify if Emirates First Suite DXB ⇄ CDG has the shower spa available on EK-073?', timestamp: '2 days ago' },
+      { sender: 'agent', text: 'Salam Amina! Yes, the A380 flight has the private enclosed First Suite with Onboard Shower Spa. Invoice INV-4402 has been marked as Paid.', timestamp: '2 days ago' },
+      { sender: 'customer', text: 'Wonderful, thank you for the prompt assistance!', timestamp: '2 days ago' }
+    ]
+  },
+  {
+    id: 'conv4',
+    leadId: 'LD-9003',
+    name: "Liam O'Connor",
+    avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150',
+    platform: 'telegram',
+    unreadCount: 0,
+    status: 'Inquiry',
+    email: 'liam.oc@example.ie',
+    phone: '+353 87 987 6543',
+    country: 'Ireland',
+    preferredLanguage: 'English',
+    serviceId: 'economy_flex',
+    messages: [
+      { sender: 'customer', text: 'Looking for 2 return tickets from Dublin (DUB) to Mumbai (BOM) in mid November. Flexible on dates.', timestamp: '3 days ago' },
+      { sender: 'agent', text: 'Hi Liam! We have Qatar Airways via Doha and Etihad via Abu Dhabi with 2h layovers from $1,445 per person.', timestamp: '3 days ago' }
     ]
   }
 ];
@@ -1730,5 +1768,48 @@ export const dbService = {
     await delay();
     saveState('crm-lead-stages', stages);
     return stages;
+  },
+
+  // MARKETING CAMPAIGNS
+  getCampaigns: async () => {
+    await delay(30);
+    const DEFAULT_CAMPAIGNS = [
+      { id: 'CMP-001', name: 'Summer Europe Business Class Flight Sale', platform: 'Google Ads', status: 'Active', budget: 15000, spend: 12400, leads: 840, qualLeads: 580, bookings: 195, revenue: 268000, grossProfit: 48500, roi: 391.1, cpl: 14.76, cpb: 63.59, profitPerBkg: 248.71, utmSource: 'google', utmMedium: 'cpc', utmCampaign: 'summer_europe_sale_2026', landingPage: '/flights/europe-summer-sale' },
+      { id: 'CMP-002', name: 'Dubai Luxury First Class Concierge Promo', platform: 'Meta (FB/IG)', status: 'Active', budget: 12000, spend: 9800, leads: 620, qualLeads: 410, bookings: 140, revenue: 215000, grossProfit: 38200, roi: 389.7, cpl: 15.80, cpb: 70.00, profitPerBkg: 272.85, utmSource: 'facebook', utmMedium: 'paid_social', utmCampaign: 'dubai_luxury_first_class', landingPage: '/luxury-first-class' },
+      { id: 'CMP-003', name: 'Manila & Asia Balikbayan Family Specials', platform: 'WhatsApp Ads', status: 'Active', budget: 8000, spend: 6400, leads: 590, qualLeads: 420, bookings: 160, revenue: 148000, grossProfit: 24600, roi: 384.3, cpl: 10.84, cpb: 40.00, profitPerBkg: 153.75, utmSource: 'whatsapp_api', utmMedium: 'direct_msg', utmCampaign: 'balikbayan_special_2026', landingPage: '/flights/asia-balikbayan' },
+      { id: 'CMP-004', name: 'London Heathrow Flash Discount Code', platform: 'Instagram', status: 'Active', budget: 6000, spend: 5200, leads: 480, qualLeads: 290, bookings: 85, revenue: 94000, grossProfit: 15800, roi: 303.8, cpl: 10.83, cpb: 61.17, profitPerBkg: 185.88, utmSource: 'instagram', utmMedium: 'paid_social', utmCampaign: 'lhr_flash_discount', landingPage: '/flights/london-heathrow' },
+      { id: 'CMP-005', name: 'TikTok Travel Influencer Deal Blast', platform: 'TikTok Ads', status: 'Paused', budget: 5000, spend: 4100, leads: 390, qualLeads: 180, bookings: 40, revenue: 42000, grossProfit: 6800, roi: 165.8, cpl: 10.51, cpb: 102.50, profitPerBkg: 170.00, utmSource: 'tiktok', utmMedium: 'influencer_video', utmCampaign: 'tiktok_travel_hacks', landingPage: '/flights/tiktok-deals' }
+    ];
+    return loadState('crm-marketing-campaigns', DEFAULT_CAMPAIGNS);
+  },
+  createCampaign: async (campaign) => {
+    await delay(30);
+    const campaigns = await dbService.getCampaigns();
+    const newCamp = {
+      id: campaign.id || `CMP-00${campaigns.length + 1}`,
+      createdAt: new Date().toISOString(),
+      status: 'Active',
+      leads: 0,
+      qualLeads: 0,
+      bookings: 0,
+      revenue: 0,
+      grossProfit: 0,
+      roi: 0,
+      cpl: 0,
+      cpb: 0,
+      profitPerBkg: 0,
+      ...campaign
+    };
+    campaigns.unshift(newCamp);
+    saveState('crm-marketing-campaigns', campaigns);
+    return newCamp;
+  },
+  updateCampaign: async (id, updates) => {
+    await delay(30);
+    const campaigns = await dbService.getCampaigns();
+    const updated = campaigns.map(c => c.id === id ? { ...c, ...updates } : c);
+    saveState('crm-marketing-campaigns', updated);
+    return { id, ...updates };
   }
 };
+

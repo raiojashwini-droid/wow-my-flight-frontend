@@ -383,10 +383,6 @@ export const DashboardLayout = () => {
 
     // PHASE 4 – SCALE
     { section: 'PHASE 4 – SCALE', label: 'Marketing Dashboard', icon: <TrendingUpIcon />, path: '/marketing-manager/dashboard', roles: ['admin', 'super_admin', 'marketing'] },
-    { section: 'PHASE 4 – SCALE', label: 'Marketing Automation', icon: <AutoFixHighIcon />, path: '/automation', roles: ['admin', 'super_admin', 'marketing'] },
-    { section: 'PHASE 4 – SCALE', label: 'AI Automation', icon: <SecurityIcon />, path: '/automation', roles: ['admin', 'super_admin', 'marketing'] },
-    { section: 'PHASE 4 – SCALE', label: 'Advanced Analytics', icon: <AssessmentIcon />, path: '/management-reports', roles: ['admin', 'super_admin', 'marketing'] },
-    { section: 'PHASE 4 – SCALE', label: 'Supplier Integrations', icon: <StorefrontIcon />, path: '/suppliers', roles: ['super_admin', 'admin'] },
     { section: 'PHASE 4 – SCALE', label: 'Communication Channels', icon: <ForumIcon />, path: '/social-inbox', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
   ];
 
