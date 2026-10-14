@@ -1143,25 +1143,29 @@ export const dbService = {
 
   // REFUNDS
   getRefundRequests: async () => {
-    await delay();
-    return loadState('crm-refund-requests', [
-      {
-        id: 'REF-001',
-        clientId: 'CL2008',
-        clientName: 'Olga Kuznetsova',
-        category: 'Visa Rejection',
-        amount: 900,
-        reason: 'Spanish Consulate rejected visa application due to lack of local ties.',
-        status: 'Approved',
-        date: '2026-06-25',
-        auditLogs: [
-          { date: '2026-06-25T10:00:00Z', action: 'Refund requested automatically on visa rejection.', user: 'System' },
-          { date: '2026-06-25T14:30:00Z', action: 'Refund reviewed and approved.', user: 'Wael Madi (CEO)' }
-        ]
+    try {
+      const res = await apiFetch('/api/finance/refunds');
+      if (res && res.success && Array.isArray(res.data)) {
+        return res.data;
       }
-    ]);
+    } catch (e) {
+      console.warn('Finance Refunds API load warning:', e.message);
+    }
+    await delay();
+    return loadState('crm-refund-requests', []);
   },
   createRefundRequest: async (refund) => {
+    try {
+      const res = await apiFetch('/api/finance/refunds', {
+        method: 'POST',
+        body: JSON.stringify(refund)
+      });
+      if (res && res.success && res.data) {
+        return res.data;
+      }
+    } catch (e) {
+      console.warn('Finance createRefundRequest API warning:', e.message);
+    }
     await delay();
     const refunds = loadState('crm-refund-requests', []);
     const payments = loadState('crm-payments', MOCK_PAYMENTS);
@@ -1196,6 +1200,17 @@ export const dbService = {
     return newRefund;
   },
   updateRefundStatus: async (refundId, status, user = 'Wael Madi (CEO)') => {
+    try {
+      const res = await apiFetch(`/api/finance/refunds/${refundId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status, user })
+      });
+      if (res && res.success && res.data) {
+        return res.data;
+      }
+    } catch (e) {
+      console.warn('Finance updateRefundStatus API warning:', e.message);
+    }
     await delay();
     const refunds = loadState('crm-refund-requests', []);
     const payments = loadState('crm-payments', MOCK_PAYMENTS);
@@ -1236,6 +1251,12 @@ export const dbService = {
 
   // COMMISSIONS
   getCommissionRates: async () => {
+    try {
+      const res = await apiFetch('/api/finance/commissions/rates');
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+        return res.data;
+      }
+    } catch (e) {}
     await delay();
     return loadState('crm-commission-rates', [
       { agentId: 'c1', type: '10%', value: 10 },
@@ -1246,6 +1267,12 @@ export const dbService = {
     ]);
   },
   updateCommissionRate: async (agentId, type, value) => {
+    try {
+      await apiFetch('/api/finance/commissions/rates', {
+        method: 'PUT',
+        body: JSON.stringify({ agentId, type, value })
+      });
+    } catch (e) {}
     await delay();
     const rates = loadState('crm-commission-rates', [
       { agentId: 'c1', type: '10%', value: 10 },
@@ -1265,6 +1292,12 @@ export const dbService = {
     return updated.find(r => r.agentId === agentId);
   },
   getCommissionsReport: async () => {
+    try {
+      const res = await apiFetch('/api/finance/commissions/report');
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+        return res.data;
+      }
+    } catch (e) {}
     const payments = await dbService.getPayments();
     const clients = await dbService.getClients();
     const agents = await dbService.getAgents();

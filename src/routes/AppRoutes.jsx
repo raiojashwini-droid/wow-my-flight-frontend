@@ -122,11 +122,14 @@ import Integrations from '../pages/integrations/Integrations';
 const getMenuLabelForPath = (path) => {
   const p = path.toLowerCase();
 
-  if (p.includes('/permission-management') || p.includes('/customization')) return 'Permission Control';
+  if (p.includes('/permission-management') || p.includes('/customization') || p.includes('/permission-control')) return 'Permission Control';
   if (p.includes('/management-reports')) return 'Management Reports';
   if (p.includes('/sla-management')) return 'SLA Management';
   if (p.includes('/automation')) return 'Automation';
   if (p.includes('/audit-trail')) return 'Audit Trail';
+  if (p.includes('/team-leader-dashboard') || p.includes('/team_leader/dashboard')) return 'Team Leader Dashboard';
+  if (p.includes('/finance') || p.includes('/payments/refund-commission') || p.includes('/payments/refunds')) return 'Finance';
+  if (p.includes('/qa') || p.includes('/documents/verify') || p.includes('/documents')) return 'QA';
   if (p.includes('/roadmap')) return 'Priority Roadmap';
   if (p.includes('/lead-distribution')) return 'Lead Distribution';
   if (p.includes('/lead-lifecycle')) return 'Lead Lifecycle';
@@ -139,10 +142,8 @@ const getMenuLabelForPath = (path) => {
   if (p.includes('/agents/performance')) return 'Sales Dashboard';
   if (p.includes('/agents') || p.includes('/team')) return 'Calling System';
   if (p.includes('/active-cases') || p.includes('/users')) return 'Users';
-  if (p.includes('/documents/verify') || p.includes('/documents')) return 'QA';
   if (p.includes('/qa-audits')) return 'QA Audits';
   if (p.includes('/after-sales')) return 'After-Sales';
-  if (p.includes('/payments/refund-commission') || p.includes('/payments/refunds')) return 'Finance';
   if (p.includes('/payments/invoices') || p.includes('/invoices')) return 'Invoices';
   if (p.includes('/payments')) return 'Payments';
   if (p.includes('/quotes')) return 'Quotes';
@@ -159,6 +160,7 @@ const getMenuLabelForPath = (path) => {
 const getDynamicRedirectPath = (label, role) => {
   let prefix = '';
   if (role === 'admin') prefix = 'admin';
+  else if (role === 'super_admin') prefix = 'super_admin';
   else if (role === 'operations') prefix = 'operations';
   else if (role === 'consultant' || role === 'sales_agent') prefix = 'agent';
   else if (role === 'marketing') prefix = 'marketing-manager';
@@ -189,17 +191,17 @@ const getDynamicRedirectPath = (label, role) => {
   if (label === 'Ticketing') path = '/ticketing';
   if (label === 'Payments') path = '/payments';
   if (label === 'Invoices') path = '/payments/invoices';
-  if (label === 'Refunds') path = '/payments/refund-commission';
-  if (label === 'Finance') path = '/payments/refund-commission';
+  if (label === 'Refunds') path = role === 'super_admin' ? '/super_admin/finance' : '/payments/refund-commission';
+  if (label === 'Finance') path = role === 'super_admin' ? '/super_admin/finance' : '/payments/refund-commission';
   if (label === 'After-Sales') path = '/after-sales';
-  if (label === 'Team Leader Dashboard') path = '/team_leader/dashboard';
-  if (label === 'QA') path = '/documents/verify';
+  if (label === 'Team Leader Dashboard') path = role === 'super_admin' ? '/super_admin/team-leader-dashboard' : '/team_leader/dashboard';
+  if (label === 'QA') path = role === 'super_admin' ? '/super_admin/qa' : '/documents/verify';
   if (label === 'QA Audits') path = '/qa-audits';
-  if (label === 'SLA Management') path = '/sla-management';
-  if (label === 'Automation') path = '/automation';
-  if (label === 'Management Reports') path = '/management-reports';
-  if (label === 'Permission Control') path = '/permission-management';
-  if (label === 'Audit Trail') path = '/audit-trail';
+  if (label === 'SLA Management') path = role === 'super_admin' ? '/super_admin/sla-management' : '/sla-management';
+  if (label === 'Automation') path = role === 'super_admin' ? '/super_admin/automation' : '/automation';
+  if (label === 'Management Reports') path = role === 'super_admin' ? '/super_admin/management-reports' : '/management-reports';
+  if (label === 'Permission Control') path = role === 'super_admin' ? '/super_admin/permission-control' : '/permission-management';
+  if (label === 'Audit Trail') path = role === 'super_admin' ? '/super_admin/audit-trail' : '/audit-trail';
   if (label === 'Marketing Dashboard') path = '/marketing-manager/dashboard';
   if (label === 'Social Inbox') path = '/social-inbox';
   if (label === 'Integrations') path = '/integrations';
@@ -218,6 +220,14 @@ const getDynamicRedirectPath = (label, role) => {
     return path;
   }
   return `/${prefix}${path}`;
+};
+
+const Phase3RoleRedirect = ({ superAdminPath, children }) => {
+  const { currentUser } = useAuth();
+  if (currentUser?.role === 'super_admin') {
+    return <Navigate to={superAdminPath} replace />;
+  }
+  return children;
 };
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -464,10 +474,42 @@ export const AppRoutes = () => {
           }
         />
         <Route
+          path="/team-leader-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'operations']}>
+              <Phase3RoleRedirect superAdminPath="/super_admin/team-leader-dashboard">
+                <TeamLeaderDashboard />
+              </Phase3RoleRedirect>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/qa"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'operations']}>
+              <Phase3RoleRedirect superAdminPath="/super_admin/qa">
+                <SuperAdminDocumentVerificationDashboard />
+              </Phase3RoleRedirect>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'finance']}>
+              <Phase3RoleRedirect superAdminPath="/super_admin/finance">
+                <SuperAdminRefundCommissionHub />
+              </Phase3RoleRedirect>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/automation"
           element={
             <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
-              <AutomationEngine />
+              <Phase3RoleRedirect superAdminPath="/super_admin/automation">
+                <AutomationEngine />
+              </Phase3RoleRedirect>
             </ProtectedRoute>
           }
         />
@@ -475,7 +517,9 @@ export const AppRoutes = () => {
           path="/sla-management"
           element={
             <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
-              <SlaManagement />
+              <Phase3RoleRedirect superAdminPath="/super_admin/sla-management">
+                <SlaManagement />
+              </Phase3RoleRedirect>
             </ProtectedRoute>
           }
         />
@@ -491,7 +535,9 @@ export const AppRoutes = () => {
           path="/audit-trail"
           element={
             <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
-              <AuditTrail />
+              <Phase3RoleRedirect superAdminPath="/super_admin/audit-trail">
+                <AuditTrail />
+              </Phase3RoleRedirect>
             </ProtectedRoute>
           }
         />
@@ -499,7 +545,9 @@ export const AppRoutes = () => {
           path="/management-reports"
           element={
             <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
-              <ManagementReportingDashboard />
+              <Phase3RoleRedirect superAdminPath="/super_admin/management-reports">
+                <ManagementReportingDashboard />
+              </Phase3RoleRedirect>
             </ProtectedRoute>
           }
         />
@@ -579,7 +627,19 @@ export const AppRoutes = () => {
           path="/permission-management"
           element={
             <ProtectedRoute>
-              <FlexiblePermissionSystem />
+              <Phase3RoleRedirect superAdminPath="/super_admin/permission-control">
+                <FlexiblePermissionSystem />
+              </Phase3RoleRedirect>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/permission-control"
+          element={
+            <ProtectedRoute>
+              <Phase3RoleRedirect superAdminPath="/super_admin/permission-control">
+                <FlexiblePermissionSystem />
+              </Phase3RoleRedirect>
             </ProtectedRoute>
           }
         />
@@ -758,14 +818,89 @@ export const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        {/* PHASE 3 – MANAGEMENT SUPER ADMIN ROUTES */}
         <Route
-          path="/super_admin/documents/verify"
+          path="/super_admin/team-leader-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <TeamLeaderDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/super_admin/team_leader/dashboard" element={<Navigate to="/super_admin/team-leader-dashboard" replace />} />
+
+        <Route
+          path="/super_admin/qa"
           element={
             <ProtectedRoute allowedRoles={['super_admin']}>
               <SuperAdminDocumentVerificationDashboard />
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/super_admin/documents/verify"
+          element={<Navigate to="/super_admin/qa" replace />}
+        />
+
+        <Route
+          path="/super_admin/sla-management"
+          element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <SlaManagement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/super_admin/automation"
+          element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <AutomationEngine />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/super_admin/finance"
+          element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <SuperAdminRefundCommissionHub />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/super_admin/payments/refund-commission"
+          element={<Navigate to="/super_admin/finance" replace />}
+        />
+
+        <Route
+          path="/super_admin/management-reports"
+          element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <ManagementReportingDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/super_admin/permission-control"
+          element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <FlexiblePermissionSystem />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/super_admin/permission-management" element={<Navigate to="/super_admin/permission-control" replace />} />
+
+        <Route
+          path="/super_admin/audit-trail"
+          element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <AuditTrail />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/super_admin/marketing"
           element={
@@ -779,14 +914,6 @@ export const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['super_admin']}>
               <SuperAdminPaymentDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/super_admin/payments/refund-commission"
-          element={
-            <ProtectedRoute allowedRoles={['super_admin']}>
-              <SuperAdminRefundCommissionHub />
             </ProtectedRoute>
           }
         />

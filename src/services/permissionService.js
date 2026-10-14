@@ -3,6 +3,8 @@
 // Role-Based Access Control (RBAC) + Scope-Based Access (Own, Team, Dept, Branch, All)
 // ============================================================================
 
+import { permissionControlService } from './phase3Service';
+
 export const ACCESS_SCOPES = [
   { key: 'own', label: 'Own Records', description: 'Only records created or assigned to logged-in user' },
   { key: 'team', label: 'Own Team', description: 'Records belonging to user\'s assigned team' },
@@ -384,6 +386,22 @@ export const permissionService = {
     return INITIAL_ROLES;
   },
 
+  // Sync roles & overrides with backend API (/api/permission-control)
+  syncWithBackend: async () => {
+    try {
+      const backendRoles = await permissionControlService.getRoles();
+      if (Array.isArray(backendRoles) && backendRoles.length > 0) {
+        localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(backendRoles));
+      }
+      const backendOverrides = await permissionControlService.getOverrides();
+      if (backendOverrides && typeof backendOverrides === 'object') {
+        localStorage.setItem(USER_OVERRIDES_KEY, JSON.stringify(backendOverrides));
+      }
+    } catch (e) {
+      console.warn('Permission Control backend sync warning:', e.message);
+    }
+  },
+
   // Save single role (create or edit)
   saveRole: (roleData, modifierName = 'Super Admin') => {
     const roles = permissionService.getRoles();
@@ -425,6 +443,11 @@ export const permissionService = {
     }
 
     localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(updatedRoles));
+    if (existingIndex !== -1) {
+      permissionControlService.updateRole(roleData.id, roleData).catch(() => {});
+    } else {
+      permissionControlService.createRole(updatedRoles[updatedRoles.length - 1]).catch(() => {});
+    }
     return updatedRoles;
   },
 
@@ -445,6 +468,7 @@ export const permissionService = {
 
     const updatedRoles = [...roles, clonedRole];
     localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(updatedRoles));
+    permissionControlService.cloneRole(sourceRoleId, newRoleName).catch(() => {});
 
     permissionService.logAudit({
       targetType: 'Role',
@@ -468,6 +492,7 @@ export const permissionService = {
 
     const updatedRoles = roles.filter(r => r.id !== roleId);
     localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(updatedRoles));
+    permissionControlService.deleteRole(roleId).catch(() => {});
 
     permissionService.logAudit({
       targetType: 'Role',
@@ -499,6 +524,7 @@ export const permissionService = {
     
     allOverrides[userId] = overrides;
     localStorage.setItem(USER_OVERRIDES_KEY, JSON.stringify(allOverrides));
+    permissionControlService.saveOverride({ userId, userName, overrides, modifiedBy: modifierName }).catch(() => {});
 
     permissionService.logAudit({
       targetType: 'UserOverride',

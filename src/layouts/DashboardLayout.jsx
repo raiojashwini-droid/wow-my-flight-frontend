@@ -285,6 +285,24 @@ export const DashboardLayout = () => {
     if (currentUser.role === 'flight_expert' && ['/quotes', '/flights', '/bookings'].includes(item.path)) return item.path;
     if (currentUser.role === 'ticketing_agent' && ['/bookings', '/flight-alerts', '/ticketing'].includes(item.path)) return item.path;
     if (currentUser.role === 'finance' && item.path === '/agents/performance') return item.path;
+
+    // PHASE 3 – MANAGEMENT Super Admin proper paths (/super_admin/<menu-name>)
+    if (currentUser.role === 'super_admin') {
+      if (item.label === 'Team Leader Dashboard' || item.path === '/team-leader-dashboard' || item.path === '/team_leader/dashboard') return '/super_admin/team-leader-dashboard';
+      if (item.label === 'QA' || item.path === '/qa' || item.path === '/documents/verify') return '/super_admin/qa';
+      if (item.label === 'SLA Management' || item.path === '/sla-management') return '/super_admin/sla-management';
+      if (item.label === 'Automation' || item.path === '/automation') return '/super_admin/automation';
+      if (item.label === 'Finance' || item.path === '/finance' || item.path === '/payments/refund-commission') return '/super_admin/finance';
+      if (item.label === 'Management Reports' || item.path === '/management-reports') return '/super_admin/management-reports';
+      if (item.label === 'Permission Control' || item.path === '/permission-control' || item.path === '/permission-management') return '/super_admin/permission-control';
+      if (item.label === 'Audit Trail' || item.path === '/audit-trail') return '/super_admin/audit-trail';
+    }
+
+    // Role-specific Phase 3 overrides for team leader:
+    if (['team_leader', 'expert_team_leader'].includes(currentUser.role) && (item.path === '/team-leader-dashboard' || item.path === '/team_leader/dashboard')) {
+      return `/${currentUser.role}/dashboard`;
+    }
+
     // Do not prefix paths that are already explicit role dashboards or shared pages
     if (
       item.path.startsWith('/team_leader/') ||
@@ -308,6 +326,10 @@ export const DashboardLayout = () => {
       '/management-reports',
       '/audit-trail',
       '/permission-management',
+      '/permission-control',
+      '/team-leader-dashboard',
+      '/qa',
+      '/finance',
       '/lead-distribution',
       '/lead-lifecycle',
       '/duplicate-leads',
@@ -333,6 +355,32 @@ export const DashboardLayout = () => {
   const isActive = (item) => {
     const currentPath = location.pathname;
     const itemPath = getDynamicPath(item);
+
+    // Phase 3 active matching
+    if (item.label === 'Audit Trail') {
+      return currentPath.includes('/audit-trail');
+    }
+    if (item.label === 'Team Leader Dashboard') {
+      return currentPath.includes('/team-leader-dashboard') || currentPath.includes('/team_leader/dashboard');
+    }
+    if (item.label === 'QA') {
+      return currentPath.includes('/qa') || currentPath.includes('/documents/verify');
+    }
+    if (item.label === 'SLA Management') {
+      return currentPath.includes('/sla-management');
+    }
+    if (item.label === 'Automation') {
+      return currentPath.includes('/automation');
+    }
+    if (item.label === 'Finance') {
+      return currentPath.includes('/finance') || currentPath.includes('/payments/refund-commission');
+    }
+    if (item.label === 'Management Reports') {
+      return currentPath.includes('/management-reports');
+    }
+    if (item.label === 'Permission Control') {
+      return currentPath.includes('/permission-control') || currentPath.includes('/permission-management');
+    }
 
     // Social inbox matching
     if (itemPath.includes('/social-inbox')) {
@@ -372,13 +420,13 @@ export const DashboardLayout = () => {
     { section: 'PHASE 2 – BOOKING OPERATIONS', label: 'Suppliers / GDS', icon: <StorefrontIcon />, path: '/suppliers', roles: ['super_admin', 'admin'] },
 
     // PHASE 3 – MANAGEMENT
-    { section: 'PHASE 3 – MANAGEMENT', label: 'Team Leader Dashboard', icon: <GroupsIcon />, path: '/team_leader/dashboard', roles: ['admin', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 3 – MANAGEMENT', label: 'QA', icon: <AssignmentTurnedInIcon />, path: '/documents/verify', roles: ['admin', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 3 – MANAGEMENT', label: 'Team Leader Dashboard', icon: <GroupsIcon />, path: '/team-leader-dashboard', roles: ['admin', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 3 – MANAGEMENT', label: 'QA', icon: <AssignmentTurnedInIcon />, path: '/qa', roles: ['admin', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 3 – MANAGEMENT', label: 'SLA Management', icon: <AssessmentIcon />, path: '/sla-management', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 3 – MANAGEMENT', label: 'Automation', icon: <AutoFixHighIcon />, path: '/automation', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 3 – MANAGEMENT', label: 'Finance', icon: <CurrencyExchangeIcon />, path: '/payments/refund-commission', roles: ['admin', 'super_admin', 'finance'] },
+    { section: 'PHASE 3 – MANAGEMENT', label: 'Finance', icon: <CurrencyExchangeIcon />, path: '/finance', roles: ['admin', 'super_admin', 'finance'] },
     { section: 'PHASE 3 – MANAGEMENT', label: 'Management Reports', icon: <AssessmentIcon />, path: '/management-reports', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 3 – MANAGEMENT', label: 'Permission Control', icon: <SecurityIcon />, path: '/permission-management', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 3 – MANAGEMENT', label: 'Permission Control', icon: <SecurityIcon />, path: '/permission-control', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 3 – MANAGEMENT', label: 'Audit Trail', icon: <HistoryIcon />, path: '/audit-trail', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
 
     // PHASE 4 – SCALE
