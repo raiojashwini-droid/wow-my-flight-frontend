@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -196,6 +197,8 @@ const QA_RADAR_DATA = [
 // ==========================================
 
 export default function TeamLeaderDashboard() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const { showAlert } = useAlert();
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -504,7 +507,34 @@ export default function TeamLeaderDashboard() {
                       alignItems: 'center',
                       flexWrap: 'wrap',
                       gap: 1,
-                      bgcolor: agent.status === 'ON CALL' ? '#F0FDF4' : agent.status === 'WRAP UP' ? '#FFFBEB' : '#F8FAFC'
+                      bgcolor: isDark
+                        ? agent.status === 'ON CALL'
+                          ? 'rgba(16, 185, 129, 0.12)'
+                          : agent.status === 'WRAP UP'
+                          ? 'rgba(245, 158, 11, 0.12)'
+                          : agent.status === 'IDLE'
+                          ? 'rgba(239, 68, 68, 0.12)'
+                          : agent.status === 'ON BREAK'
+                          ? 'rgba(148, 163, 184, 0.1)'
+                          : 'background.paper'
+                        : agent.status === 'ON CALL'
+                        ? '#F0FDF4'
+                        : agent.status === 'WRAP UP'
+                        ? '#FFFBEB'
+                        : '#F8FAFC',
+                      borderColor: isDark
+                        ? agent.status === 'ON CALL'
+                          ? 'rgba(16, 185, 129, 0.35)'
+                          : agent.status === 'WRAP UP'
+                          ? 'rgba(245, 158, 11, 0.35)'
+                          : agent.status === 'IDLE'
+                          ? 'rgba(239, 68, 68, 0.35)'
+                          : 'divider'
+                        : agent.status === 'ON CALL'
+                        ? '#BBF7D0'
+                        : agent.status === 'WRAP UP'
+                        ? '#FDE68A'
+                        : '#E2E8F0'
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -516,7 +546,7 @@ export default function TeamLeaderDashboard() {
                           {agent.name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                          {agent.currentLead} • <span style={{ color: '#DC2626', fontWeight: 700 }}>({agent.timeOnStatus})</span>
+                          {agent.currentLead} • <span style={{ color: isDark ? '#F87171' : '#DC2626', fontWeight: 700 }}>({agent.timeOnStatus})</span>
                         </Typography>
                       </Box>
                     </Box>
@@ -555,13 +585,13 @@ export default function TeamLeaderDashboard() {
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>Unassigned Leads</Typography>
                   <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary' }}>{leads.filter(l => l.status === 'Unassigned').length}</Typography>
                 </Paper>
-                <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(14, 165, 233, 0.12)' : '#F0F9FF', borderColor: '#BAE6FD' }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--wd-0284C7, #0284C7)' }}>Inbound VIPs</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 900, color: 'var(--wd-0369A1, #0369A1)' }}>3</Typography>
+                <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: isDark ? 'rgba(14, 165, 233, 0.12)' : '#F0F9FF', borderColor: isDark ? 'rgba(14, 165, 233, 0.35)' : '#BAE6FD' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: isDark ? '#38BDF8' : '#0284C7' }}>Inbound VIPs</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 900, color: isDark ? '#38BDF8' : '#0369A1' }}>3</Typography>
                 </Paper>
-                <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2', borderColor: '#FECACA' }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#DC2626' }}>Max Wait Time</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 900, color: 'var(--wd-B91C1C, #B91C1C)' }}>23 min</Typography>
+                <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2', borderColor: isDark ? 'rgba(239, 68, 68, 0.35)' : '#FECACA' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: isDark ? '#F87171' : '#DC2626' }}>Max Wait Time</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 900, color: isDark ? '#F87171' : '#B91C1C' }}>23 min</Typography>
                 </Paper>
               </Box>
               <Button variant="contained" fullWidth color="primary" onClick={() => setDistributeOpen(true)} sx={{ fontWeight: 800, py: 1 }}>
@@ -573,9 +603,9 @@ export default function TeamLeaderDashboard() {
           {/* Right Side: Quick Approvals & Daily Mini Charts */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             {/* Quick Discount Desk Preview */}
-            <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB' }}>
+            <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: isDark ? 'rgba(245, 158, 11, 0.25)' : 'divider', borderRadius: 3, bgcolor: isDark ? 'rgba(245, 158, 11, 0.08)' : '#FFFBEB' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'var(--wd-B45309, #B45309)' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 900, color: isDark ? '#FBBF24' : '#B45309' }}>
                   💰 DISCOUNT APPROVALS WAITING ({pendingApprovals.length})
                 </Typography>
                 <Button size="small" variant="text" onClick={() => setCurrentTab(3)} sx={{ fontSize: '0.72rem', fontWeight: 800 }}>
@@ -586,23 +616,23 @@ export default function TeamLeaderDashboard() {
               {pendingApprovals.length === 0 ? (
                 <Box sx={{ py: 3, textAlign: 'center' }}>
                   <CheckCircleIcon color="success" sx={{ fontSize: 32, mb: 1 }} />
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--wd-065F46, #065F46)' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? '#34D399' : '#065F46' }}>
                     All discounts resolved!
                   </Typography>
                 </Box>
               ) : (
                 pendingApprovals.slice(0, 2).map((app) => (
-                  <Paper key={app.id} variant="outlined" sx={{ p: 2, mb: 1.5, borderRadius: 2, bgcolor: 'background.paper' }}>
+                  <Paper key={app.id} variant="outlined" sx={{ p: 2, mb: 1.5, borderRadius: 2, bgcolor: 'background.paper', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'divider' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.primary' }}>
                         {app.agent} ➔ {app.customer}
                       </Typography>
                       <Chip label={`-$${app.requestedDiscount}`} size="small" color="error" sx={{ fontWeight: 900, height: 20, fontSize: '0.68rem' }} />
                     </Box>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                      Route: <b>{app.sector}</b> | Margin Remaining: <b style={{ color: 'var(--wd-059669, #059669)' }}>${app.marginAfterDiscount}</b>
+                      Route: <b>{app.sector}</b> | Margin Remaining: <b style={{ color: '#10B981' }}>${app.marginAfterDiscount}</b>
                     </Typography>
-                    <Typography variant="caption" sx={{ fontStyle: 'italic', display: 'block', mb: 1.5, p: 0.8, bgcolor: 'background.neutral', borderRadius: 1.5 }}>
+                    <Typography variant="caption" sx={{ fontStyle: 'italic', display: 'block', mb: 1.5, p: 0.8, bgcolor: 'background.neutral', borderRadius: 1.5, color: 'text.secondary' }}>
                       "{app.reason}"
                     </Typography>
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1 }}>
@@ -632,9 +662,9 @@ export default function TeamLeaderDashboard() {
                         <stop offset="95%" stopColor="#3F51B5" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0'} />
+                    <XAxis dataKey="day" tick={{ fontSize: 12, fill: isDark ? '#94A3B8' : '#64748B' }} stroke={isDark ? '#475569' : '#CBD5E1'} />
+                    <YAxis tick={{ fontSize: 12, fill: isDark ? '#94A3B8' : '#64748B' }} stroke={isDark ? '#475569' : '#CBD5E1'} />
                     <RechartsTooltip />
                     <Area type="monotone" dataKey="revenue" stroke="#3F51B5" fillOpacity={1} fill="url(#revGrad)" />
                   </AreaChart>
@@ -890,7 +920,7 @@ export default function TeamLeaderDashboard() {
         <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'background.paper' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 900, color: 'var(--wd-B45309, #B45309)' }}>
+              <Typography variant="h6" sx={{ fontWeight: 900, color: isDark ? '#FBBF24' : '#B45309' }}>
                 Discount & Special Pricing Approvals Desk
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -908,8 +938,28 @@ export default function TeamLeaderDashboard() {
                 sx={{
                   p: 2.5,
                   borderRadius: 2.5,
-                  bgcolor: app.status === 'Approved' ? '#F0FDF4' : app.status === 'Rejected' ? '#FEF2F2' : '#FFFDF9',
-                  borderColor: app.status === 'Approved' ? '#86EFAC' : app.status === 'Rejected' ? '#FCA5A5' : '#F59E0B'
+                  bgcolor: isDark
+                    ? app.status === 'Approved'
+                      ? 'rgba(16, 185, 129, 0.12)'
+                      : app.status === 'Rejected'
+                      ? 'rgba(239, 68, 68, 0.12)'
+                      : 'rgba(245, 158, 11, 0.08)'
+                    : app.status === 'Approved'
+                    ? '#F0FDF4'
+                    : app.status === 'Rejected'
+                    ? '#FEF2F2'
+                    : '#FFFDF9',
+                  borderColor: isDark
+                    ? app.status === 'Approved'
+                      ? 'rgba(16, 185, 129, 0.35)'
+                      : app.status === 'Rejected'
+                      ? 'rgba(239, 68, 68, 0.35)'
+                      : 'rgba(245, 158, 11, 0.35)'
+                    : app.status === 'Approved'
+                    ? '#86EFAC'
+                    : app.status === 'Rejected'
+                    ? '#FCA5A5'
+                    : '#F59E0B'
                 }}
               >
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
@@ -979,7 +1029,7 @@ export default function TeamLeaderDashboard() {
         <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'background.paper' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 900, color: '#DC2626', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="h6" sx={{ fontWeight: 900, color: isDark ? '#F87171' : '#DC2626', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <WarningAmberIcon color="error" />
                 Floor Escalation Center
               </Typography>
@@ -998,8 +1048,28 @@ export default function TeamLeaderDashboard() {
                 sx={{
                   p: 2.5,
                   borderRadius: 2.5,
-                  borderColor: esc.status === 'Resolved' ? '#86EFAC' : esc.priority === 'Critical' ? '#EF4444' : 'divider',
-                  bgcolor: esc.status === 'Resolved' ? '#F0FDF4' : esc.priority === 'Critical' ? '#FFF5F5' : '#FFFFFF'
+                  borderColor: isDark
+                    ? esc.status === 'Resolved'
+                      ? 'rgba(16, 185, 129, 0.35)'
+                      : esc.priority === 'Critical'
+                      ? 'rgba(239, 68, 68, 0.4)'
+                      : 'divider'
+                    : esc.status === 'Resolved'
+                    ? '#86EFAC'
+                    : esc.priority === 'Critical'
+                    ? '#EF4444'
+                    : 'divider',
+                  bgcolor: isDark
+                    ? esc.status === 'Resolved'
+                      ? 'rgba(16, 185, 129, 0.12)'
+                      : esc.priority === 'Critical'
+                      ? 'rgba(239, 68, 68, 0.12)'
+                      : 'background.paper'
+                    : esc.status === 'Resolved'
+                    ? '#F0FDF4'
+                    : esc.priority === 'Critical'
+                    ? '#FFF5F5'
+                    : '#FFFFFF'
                 }}
               >
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
@@ -1087,7 +1157,7 @@ export default function TeamLeaderDashboard() {
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.8 }}>
                     Date: {c.date} • Root Cause: <b style={{ color: '#DC2626' }}>{c.mistakeType}</b> ({c.scoreImpact})
                   </Typography>
-                  <Typography variant="caption" sx={{ display: 'block', bgcolor: 'background.paper', p: 1, borderRadius: 1, border: '1px solid var(--wb-E2E8F0, #E2E8F0)' }}>
+                  <Typography variant="caption" sx={{ display: 'block', bgcolor: 'background.paper', p: 1, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
                     "{c.notes}"
                   </Typography>
                 </Paper>
@@ -1251,9 +1321,9 @@ export default function TeamLeaderDashboard() {
               <Box sx={{ height: 260, width: '100%', minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <BarChart data={REVENUE_TREND_DATA}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0'} />
+                    <XAxis dataKey="day" tick={{ fill: isDark ? '#94A3B8' : '#64748B' }} stroke={isDark ? '#475569' : '#CBD5E1'} />
+                    <YAxis tick={{ fill: isDark ? '#94A3B8' : '#64748B' }} stroke={isDark ? '#475569' : '#CBD5E1'} />
                     <RechartsTooltip />
                     <Legend />
                     <Bar dataKey="revenue" name="Actual Revenue ($)" fill="#3F51B5" radius={[4, 4, 0, 0]} />
@@ -1271,10 +1341,10 @@ export default function TeamLeaderDashboard() {
               <Box sx={{ height: 260, width: '100%', minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <ComposedChart data={CALLS_VS_BOOKINGS_DATA}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="agent" tick={{ fontSize: 11 }} />
-                    <YAxis yAxisId="left" orientation="left" stroke="#3F51B5" />
-                    <YAxis yAxisId="right" orientation="right" stroke="#10B981" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0'} />
+                    <XAxis dataKey="agent" tick={{ fontSize: 11, fill: isDark ? '#94A3B8' : '#64748B' }} stroke={isDark ? '#475569' : '#CBD5E1'} />
+                    <YAxis yAxisId="left" orientation="left" stroke="#3F51B5" tick={{ fill: isDark ? '#94A3B8' : '#64748B' }} />
+                    <YAxis yAxisId="right" orientation="right" stroke="#10B981" tick={{ fill: isDark ? '#94A3B8' : '#64748B' }} />
                     <RechartsTooltip />
                     <Legend />
                     <Bar yAxisId="left" dataKey="calls" name="Calls Done" fill="#3F51B5" radius={[4, 4, 0, 0]} />
@@ -1293,9 +1363,9 @@ export default function TeamLeaderDashboard() {
             <Box sx={{ height: 280, width: '100%', minWidth: 0 }}>
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <BarChart data={agents} layout="vertical" margin={{ left: 40, right: 30, top: 10, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
-                  <XAxis type="number" />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fontWeight: 700 }} />
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0'} />
+                  <XAxis type="number" tick={{ fill: isDark ? '#94A3B8' : '#64748B' }} stroke={isDark ? '#475569' : '#CBD5E1'} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fontWeight: 700, fill: isDark ? '#94A3B8' : '#64748B' }} stroke={isDark ? '#475569' : '#CBD5E1'} />
                   <RechartsTooltip />
                   <Bar dataKey="revenue" name="Total Revenue ($)" fill="#059669" radius={[0, 6, 6, 0]} />
                 </BarChart>

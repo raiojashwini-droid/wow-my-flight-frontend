@@ -74,13 +74,13 @@ const SOCIAL_PLATFORMS = [
 ];
 import { SERVICES } from '../../constants/mockData';
 
-// Initial Mock Conversations
+// Flight Concierge Quick Templates
 const QUICK_TEMPLATES = [
-  { id: 't1', label: 'Greeting', text: 'Hello! Thank you for contacting AAA Business Consultancy. How can we assist you with your Spain visa journey today?' },
-  { id: 't2', label: 'Income Criteria', text: 'To assess your eligibility, could you please share your monthly remote income and employment status?' },
-  { id: 't3', label: 'Documents Request', text: 'Please upload copies of your Passport (first page) and Bank Statements (last 3 months) to our secure portal so we can review them.' },
-  { id: 't4', label: 'Schedule Consultation', text: "Let's schedule a 30-minute Zoom consultation to discuss your relocation strategy. Here is my booking link: https://zoom.us/j/calendar" },
-  { id: 't5', label: 'Follow Up', text: 'Hi, just checking in to see if you have any questions about the documents checklist we discussed.' }
+  { id: 't1', label: 'Flight Greeting', text: 'Hello! Thank you for contacting Wow My Flight Concierge. How can we assist you with your flight reservation or itinerary today?' },
+  { id: 't2', label: 'Flight Criteria', text: 'To search live GDS airfares and exclusive corporate fares, please share your origin, destination, travel dates, and cabin class preference.' },
+  { id: 't3', label: 'E-Ticket & PNR', text: 'Your 13-digit E-Ticket and airline PNR reference have been confirmed in Sabre / Amadeus. Your official itinerary has been dispatched to your email.' },
+  { id: 't4', label: 'Payment Link', text: 'Here is your secure 256-bit encrypted online payment link to lock in your discounted flight quote: https://pay.wowmyflight.com' },
+  { id: 't5', label: 'Web Check-in & Baggage', text: 'Web check-in opens 24 hours prior to departure. Standard allowance is 2 check-in bags (23kg each) and 1 carry-on piece.' }
 ];
 
 export const SuperAdminSocialInbox = () => {
