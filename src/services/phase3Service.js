@@ -200,6 +200,22 @@ export const automationService = {
     return phase3Fetch(`/api/automation/history/${id}/retry`, {
       method: 'POST'
     });
+  },
+  getTelnyxStatus: async () => {
+    const res = await phase3Fetch('/api/automation/telnyx-status');
+    return res && res.success ? res.data : null;
+  },
+  updateSettings: async (settings) => {
+    return phase3Fetch('/api/automation/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings)
+    });
+  },
+  dispatch: async (payload) => {
+    return phase3Fetch('/api/automation/dispatch', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
   }
 };
 
