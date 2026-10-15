@@ -292,31 +292,125 @@ export default function SlaManagement() {
         </Box>
       </Box>
 
-      {/* ─── 3. TABS ─── */}
-      <Paper elevation={0} sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'background.paper' }}>
-        <Tabs
-          value={currentTab}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          textColor="secondary"
-          indicatorColor="secondary"
-          sx={{
-            px: 2,
-            '& .MuiTab-root': {
-              fontWeight: 800,
-              fontSize: '0.82rem',
-              py: 2,
-              minHeight: 52,
-              textTransform: 'none'
-            }
+      {/* ─── 3. TABS (NO-SCROLL RESPONSIVE MATRIX) ─── */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 1.2, 
+          mb: 3.5, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          borderRadius: 3, 
+          bgcolor: 'background.paper',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.02)'
+        }}
+      >
+        <Box 
+          sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { 
+              xs: 'repeat(1, 1fr)', 
+              sm: 'repeat(2, 1fr)', 
+              md: 'repeat(4, 1fr)' 
+            }, 
+            gap: 1.2 
           }}
         >
-          <Tab label="1. Live SLA Countdown Tracker" icon={<TimerIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="2. Mandatory SLA Rules Config" icon={<GavelIcon fontSize="small" />} iconPosition="start" />
-          <Tab label={`3. Escalation & Breach Alerts (${alerts.length})`} icon={<NotificationsActiveIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="4. Agent SLA Compliance Leaderboard" icon={<AssessmentIcon fontSize="small" />} iconPosition="start" />
-        </Tabs>
+          {[
+            { id: 0, label: '1. Live SLA Countdown', icon: <TimerIcon sx={{ fontSize: '1.1rem' }} /> },
+            { id: 1, label: '2. Mandatory Rules Config', icon: <GavelIcon sx={{ fontSize: '1.1rem' }} /> },
+            { 
+              id: 2, 
+              label: '3. Escalation & Breach Alerts', 
+              badge: alerts.length, 
+              badgeColor: alerts.length > 0 ? '#EF4444' : undefined,
+              icon: <NotificationsActiveIcon sx={{ fontSize: '1.1rem' }} /> 
+            },
+            { id: 3, label: '4. Agent Leaderboard', icon: <AssessmentIcon sx={{ fontSize: '1.1rem' }} /> },
+          ].map((tab) => {
+            const isActive = currentTab === tab.id;
+            return (
+              <Box
+                key={tab.id}
+                component="button"
+                onClick={() => setCurrentTab(tab.id)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1,
+                  py: 1.2,
+                  px: 1.6,
+                  minHeight: 48,
+                  border: '1px solid',
+                  borderColor: isActive ? 'warning.main' : 'divider',
+                  borderRadius: 2.2,
+                  bgcolor: isActive 
+                    ? (theme) => theme.palette.mode === 'dark' ? 'warning.main' : '#D97706' 
+                    : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                  color: isActive ? '#FFFFFF' : 'text.primary',
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease-in-out',
+                  outline: 'none',
+                  textAlign: 'left',
+                  boxShadow: isActive ? '0 4px 14px rgba(217,119,6,0.25)' : 'none',
+                  '&:hover': {
+                    borderColor: 'warning.main',
+                    bgcolor: isActive 
+                      ? '#B45309' 
+                      : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#FFFBEB',
+                    color: isActive ? '#FFFFFF' : 'warning.dark'
+                  }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <Box 
+                    sx={{ 
+                      color: isActive ? '#FFFFFF' : '#D97706', 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      flexShrink: 0
+                    }}
+                  >
+                    {tab.icon}
+                  </Box>
+                  <Typography 
+                    variant="body2" 
+                    noWrap
+                    sx={{ 
+                      fontWeight: isActive ? 800 : 700, 
+                      fontSize: { xs: '0.74rem', sm: '0.78rem', md: '0.82rem' },
+                      color: 'inherit',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {tab.label}
+                  </Typography>
+                </Box>
+                {tab.badge !== undefined && (
+                  <Chip 
+                    label={tab.badge} 
+                    size="small" 
+                    sx={{ 
+                      height: 20, 
+                      minWidth: 20, 
+                      px: 0.6, 
+                      fontWeight: 900, 
+                      fontSize: '0.65rem',
+                      bgcolor: isActive 
+                        ? 'rgba(255,255,255,0.25)' 
+                        : (tab.badgeColor || (theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#E2E8F0')),
+                      color: isActive ? '#FFFFFF' : (tab.badgeColor ? '#FFFFFF' : 'text.secondary'),
+                      borderRadius: '10px',
+                      flexShrink: 0
+                    }} 
+                  />
+                )}
+              </Box>
+            );
+          })}
+        </Box>
       </Paper>
 
       {/* ========================================================= */}
