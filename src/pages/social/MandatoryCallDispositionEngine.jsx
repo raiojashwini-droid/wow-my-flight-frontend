@@ -317,7 +317,7 @@ export default function MandatoryCallDispositionEngine() {
   };
 
   return (
-    <Box sx={{ pt: { xs: 2, sm: 3 }, pb: 6, minHeight: '100vh', px: { xs: 1.5, sm: 2.5, md: 3 } }}>
+    <Box sx={{ pb: 6 }}>
       
       {/* ── Top Executive Header ────────────────────────────────────────── */}
       <Paper

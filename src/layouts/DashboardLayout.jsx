@@ -1211,17 +1211,20 @@ export const DashboardLayout = () => {
       {/* Main Content Area */}
       <Box
         component="main"
-        className="flex-grow h-full overflow-y-auto overflow-x-hidden flex flex-col box-border min-w-0 w-full pt-[72px] sm:pt-[82px] md:pt-[88px] px-3 sm:px-4 md:px-6 pb-6"
+        className="flex-grow h-full overflow-y-auto overflow-x-hidden flex flex-col box-border min-w-0 w-full"
         sx={{
           backgroundColor: 'background.default',
           // Critical: prevent any child from blowing out the container
           minWidth: 0,
           maxWidth: '100%',
+          pt: { xs: '76px', sm: '86px', md: '88px' },
+          px: { xs: 2, sm: 3, md: 3.5 },
+          pb: { xs: 3, sm: 5 },
         }}
       >
         <Outlet />
-<IncomingCallModal />
-<CallDispositionModal />
+        <IncomingCallModal />
+        <CallDispositionModal />
       </Box>
     </Box>
   );

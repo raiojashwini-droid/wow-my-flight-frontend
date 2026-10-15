@@ -403,7 +403,7 @@ export const SuperAdminDashboard = () => {
   };
 
   return (
-    <Box sx={{ pb: 6, minHeight: '100vh', pt: { xs: 2.5, sm: 3.5 }, px: { xs: 1, sm: 2 } }}>
+    <Box sx={{ pb: 6 }}>
       {/* Executive Header Card with clean spacing and live status */}
       <Paper
         elevation={0}

@@ -819,7 +819,7 @@ export const SuperAdminAgents = () => {
   }
 
   return (
-    <Box sx={{ minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', pt: { xs: 2.5, sm: 3.5 }, px: { xs: 1.5, sm: 3 }, pb: 4 }}>
+    <Box sx={{ minHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', pb: 4 }}>
       <PageHeader
         title="Agents Management"
         subtitle="Manage agent accounts, review key performance metrics, commissions, and access privileges."

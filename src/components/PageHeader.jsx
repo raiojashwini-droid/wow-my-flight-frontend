@@ -20,7 +20,7 @@ export const PageHeader = ({
         alignItems: { xs: 'stretch', md: 'flex-start' },
         gap: { xs: 1.5, md: 2 },
         mt: { xs: 0.5, sm: 1 },
-        mb: { xs: 2.5, md: 3 },
+        mb: { xs: 2.5, md: 3.5 },
         overflow: 'hidden',
         minWidth: 0,
       }}
@@ -54,13 +54,16 @@ export const PageHeader = ({
           </Breadcrumbs>
         )}
         <Typography
-          variant="h3"
+          variant="h4"
           component="h1"
           sx={{
-            fontWeight: 800,
-            fontSize: { xs: '1rem', sm: '1.15rem', md: '1.35rem' },
-            lineHeight: 1.2,
+            fontWeight: 900,
+            fontSize: { xs: '1.2rem', sm: '1.4rem', md: '1.55rem' },
+            lineHeight: 1.25,
+            letterSpacing: '-0.02em',
             wordBreak: 'break-word',
+            color: 'text.primary',
+            fontFamily: 'Outfit, Inter, sans-serif',
           }}
         >
           {title}
@@ -70,9 +73,10 @@ export const PageHeader = ({
             variant="body2"
             color="text.secondary"
             sx={{
-              mt: 0.5,
-              fontSize: { xs: '0.72rem', sm: '0.8rem' },
-              lineHeight: 1.4,
+              mt: 0.6,
+              fontSize: { xs: '0.78rem', sm: '0.85rem' },
+              lineHeight: 1.45,
+              fontWeight: 500,
             }}
           >
             {subtitle}
