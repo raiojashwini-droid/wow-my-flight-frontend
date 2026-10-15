@@ -92,8 +92,8 @@ export const AppModal = ({
         className="modal-scroll"
         sx={{
           px: { xs: 2, sm: 3 },
-          pt: 2.5,
-          pb: 1,
+          pt: '24px !important',
+          pb: 2,
           mt: title ? 0 : 2,
           maxHeight: { xs: '55vh', sm: '60vh', md: '65vh' },
           overflowY: 'auto',

@@ -300,8 +300,36 @@ export default function QuotationProposalBuilder({ quote, clientInfo, initialOpt
 
   const handleCopyWhatsApp = () => {
     const text = generateWhatsAppMessage();
-    navigator.clipboard.writeText(text);
-    showAlert('✓ Copied formatted WhatsApp message proposal to clipboard!', 'success');
+    try {
+      navigator.clipboard.writeText(text);
+    } catch (e) {}
+
+    // Clean phone number (strip symbols, spaces, dashes)
+    let cleanPhone = (clientPhone || '').replace(/\D/g, '');
+    let whatsappUrl = '';
+
+    if (cleanPhone && cleanPhone.length >= 7) {
+      if (cleanPhone.length === 10) {
+        cleanPhone = cleanPhone.startsWith('9') || cleanPhone.startsWith('8') || cleanPhone.startsWith('7') || cleanPhone.startsWith('6')
+          ? `91${cleanPhone}`
+          : `1${cleanPhone}`;
+      }
+      whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
+    } else {
+      // Fallback: lets agent choose contact on WhatsApp Web
+      whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    }
+
+    // Direct link click that bypasses popup blocker
+    const anchor = document.createElement('a');
+    anchor.href = whatsappUrl;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+
+    showAlert(`✓ Copied proposal & launched WhatsApp Web for ${clientName}!`, 'success');
   };
 
   const handleSendEmail = async () => {
@@ -315,7 +343,17 @@ export default function QuotationProposalBuilder({ quote, clientInfo, initialOpt
           body: JSON.stringify({ channel: 'email', recipient: clientEmail })
         });
       }
-      showAlert(`🚀 Official Quotation Proposal sent to ${clientEmail} for ${clientName}!`, 'success');
+
+      // Open email composer in client's default email app
+      const subject = encodeURIComponent(`Flight Quotation Proposal: ${routeTitle} - Wow My Flight`);
+      const body = encodeURIComponent(generateWhatsAppMessage().replace(/\*/g, ''));
+      const mailtoAnchor = document.createElement('a');
+      mailtoAnchor.href = `mailto:${clientEmail}?subject=${subject}&body=${body}`;
+      document.body.appendChild(mailtoAnchor);
+      mailtoAnchor.click();
+      document.body.removeChild(mailtoAnchor);
+
+      showAlert(`🚀 Official Quotation Proposal dispatched to ${clientEmail} & Email composer opened!`, 'success');
     } catch (e) {
       showAlert(`Quotation sent to ${clientEmail}`, 'success');
     }

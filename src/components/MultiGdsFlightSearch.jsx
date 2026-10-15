@@ -106,10 +106,15 @@ export default function MultiGdsFlightSearch({ onSelectFlight, onGenerateQuote }
   };
 
   const handleSearch = async () => {
+    const isRound = tripType.toLowerCase().includes('round');
+    if (isRound && returnDate && departDate && new Date(returnDate) < new Date(departDate)) {
+      showAlert('⚠️ Return date cannot be earlier than Departure date! Please select a return date after departure.', 'warning');
+      return;
+    }
+
     setIsSearching(true);
     setApiError(null);
     try {
-      const isRound = tripType.toLowerCase().includes('round');
       const data = await flightContentService.searchFlightsAcrossAdapters({
         origin: origin ? origin.trim().toUpperCase() : 'DEL',
         destination: destination ? destination.trim().toUpperCase() : 'LHR',
@@ -233,6 +238,7 @@ export default function MultiGdsFlightSearch({ onSelectFlight, onGenerateQuote }
                 value={returnDate}
                 onChange={(e) => setReturnDate(e.target.value)}
                 InputLabelProps={{ shrink: true }}
+                inputProps={{ min: departDate }}
               />
             </Grid>
           )}

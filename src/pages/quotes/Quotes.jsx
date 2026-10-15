@@ -596,30 +596,42 @@ export default function Quotes() {
   const handleConvertToBooking = (quote, optionIndex = 0) => {
     const opt = quote.options?.[optionIndex] || quote.options?.[0] || {};
     const newBookingId = 'BK-' + Math.floor(1000 + Math.random() * 9000);
+    const routeParts = quote.route ? quote.route.replace('➔', '→').split('→').map(s => s.trim()) : [];
+    const originCity = opt.origin || routeParts[0] || 'JFK';
+    const destCity = opt.destination || routeParts[1] || 'DXB';
+    const supplierCost = opt.supplierCost ?? (quote.supplierCost || 0);
+    const netFare = opt.baseFare ?? (quote.netFare || supplierCost);
+    const taxes = opt.taxes ?? (quote.taxes || 0);
+    const markup = opt.markupAmount ?? (quote.markupAmount || 0);
+    const serviceFee = opt.serviceFee ?? (quote.serviceFee || 0);
+    const discount = opt.discount ?? (quote.discount || 0);
+    const sellingPrice = opt.customerPrice ?? (quote.sellingPrice || (supplierCost + markup + serviceFee - discount));
+    const profit = markup + serviceFee - discount;
+
     const newBooking = {
       id: newBookingId,
       bookingId: newBookingId,
       customerName: quote.customerName,
-      customerEmail: quote.customerEmail || 'customer@example.com',
-      customerPhone: quote.customerPhone || '+1 212 555 0199',
-      route: quote.route,
-      origin: opt.origin || 'DEL',
-      destination: opt.destination || 'LHR',
-      travelDate: opt.depDateTime ? opt.depDateTime.split('T')[0] : '2026-10-15',
-      cabinClass: opt.cabinClass || 'Business',
-      passengers: 2,
+      customerEmail: quote.customerEmail || '',
+      customerPhone: quote.customerPhone || '',
+      route: quote.route || `${originCity} ➔ ${destCity}`,
+      origin: originCity,
+      destination: destCity,
+      travelDate: opt.depDateTime ? opt.depDateTime.split('T')[0] : (quote.travelDate || new Date().toISOString().split('T')[0]),
+      cabinClass: opt.cabinClass || quote.cabinClass || 'Economy',
+      passengers: quote.passengers || 1,
       pnr: 'PNR' + Math.floor(10000 + Math.random() * 89999),
-      airline: opt.airline || 'British Airways',
-      flightNumber: opt.flightNumber || 'BA-117',
-      supplier: opt.supplier || 'Amadeus GDS',
-      supplierCost: opt.supplierCost || 8800,
-      netFare: opt.baseFare || 7200,
-      taxes: opt.taxes || 1600,
-      markup: opt.markupAmount || 1320,
-      serviceFee: opt.serviceFee || 150,
-      discount: opt.discount || 50,
-      sellingPrice: opt.customerPrice || 10220,
-      profit: opt.profit || 1420,
+      airline: opt.airline || quote.airline || 'Emirates',
+      flightNumber: opt.flightNumber || 'FL-101',
+      supplier: opt.supplier || quote.supplier || 'Amadeus GDS',
+      supplierCost,
+      netFare,
+      taxes,
+      markup,
+      serviceFee,
+      discount,
+      sellingPrice,
+      profit,
       bookingStatus: 'CONFIRMED',
       status: 'Confirmed',
       paymentStatus: 'PENDING',
@@ -1635,7 +1647,7 @@ export default function Quotes() {
         }
       >
         {selectedQuote && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1.5 }}>
             {/* Header info */}
             <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
@@ -1673,12 +1685,12 @@ export default function Quotes() {
                       <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'primary.main', mb: 1 }}>
                         ✈️ FLIGHT ITINERARY SPECS
                       </Typography>
-                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Flight Number:</b> {opt.flightNumber}</Typography>
-                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Departure:</b> {opt.departure || opt.depDateTime}</Typography>
-                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Arrival:</b> {opt.arrival || opt.arrDateTime}</Typography>
-                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Duration:</b> {opt.duration || '8h 45m'}</Typography>
-                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Stops:</b> {opt.stops}</Typography>
-                      <Typography variant="body2">● <b>Cabin Class:</b> {opt.cabinClass}</Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Flight Number:</b> {opt.flightNumber || 'N/A'}</Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Departure:</b> {opt.departure || opt.depDateTime || 'N/A'}</Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Arrival:</b> {opt.arrival || opt.arrDateTime || 'N/A'}</Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Duration:</b> {opt.duration || 'N/A'}</Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Stops:</b> {opt.stops || 'Non-stop'}</Typography>
+                      <Typography variant="body2">● <b>Cabin Class:</b> {opt.cabinClass || 'Economy'}</Typography>
                     </Paper>
                   </Grid>
 
@@ -1687,11 +1699,11 @@ export default function Quotes() {
                       <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'secondary.main', mb: 1 }}>
                         📜 FARE FAMILY & CONDITIONS
                       </Typography>
-                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Fare Family:</b> {opt.fareFamily || 'Flex Classic'}</Typography>
-                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Baggage:</b> 🧳 {opt.baggage}</Typography>
-                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Fare Conditions:</b> {opt.fareConditions}</Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Fare Family:</b> {opt.fareFamily || 'Standard'}</Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Baggage:</b> 🧳 {opt.baggage || 'Standard'}</Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>● <b>Fare Conditions:</b> {opt.fareConditions || 'Standard'}</Typography>
                       <Typography variant="body2" color="warning.main">
-                        ● <b>Quote Expiry:</b> ⏰ {selectedQuote.expiryDateTime?.replace('T', ' ') || selectedQuote.validity}
+                        ● <b>Quote Expiry:</b> ⏰ {selectedQuote.expiryDateTime?.replace('T', ' ') || selectedQuote.validity || '24 hours'}
                       </Typography>
                     </Paper>
                   </Grid>
@@ -1703,15 +1715,15 @@ export default function Quotes() {
                     💰 FINANCIAL & MARGIN BREAKDOWN
                   </Typography>
                   <Grid container spacing={1} sx={{ fontSize: 13 }}>
-                    <Grid item xs={6} sm={3}>● <b>Base Fare:</b> ${opt.baseFare || 7200}</Grid>
-                    <Grid item xs={6} sm={3}>● <b>Taxes:</b> ${opt.taxes || 1600}</Grid>
-                    <Grid item xs={6} sm={3}>● <b>Supplier Cost:</b> ${opt.supplierCost || ((opt.baseFare || 7200) + (opt.taxes || 1600))}</Grid>
-                    <Grid item xs={6} sm={3}>● <b>Markup:</b> +${opt.markupAmount || 1320} ({opt.markupPct || 15}%)</Grid>
-                    <Grid item xs={6} sm={3}>● <b>Service Fee:</b> +${opt.serviceFee || 150}</Grid>
-                    <Grid item xs={6} sm={3}>● <b>Discount:</b> -${opt.discount || 50}</Grid>
+                    <Grid item xs={6} sm={3}>● <b>Base Fare:</b> ${opt.baseFare ?? 0}</Grid>
+                    <Grid item xs={6} sm={3}>● <b>Taxes:</b> ${opt.taxes ?? 0}</Grid>
+                    <Grid item xs={6} sm={3}>● <b>Supplier Cost:</b> ${opt.supplierCost ?? ((opt.baseFare || 0) + (opt.taxes || 0))}</Grid>
+                    <Grid item xs={6} sm={3}>● <b>Markup:</b> +${opt.markupAmount ?? 0} ({opt.markupPct ?? 0}%)</Grid>
+                    <Grid item xs={6} sm={3}>● <b>Service Fee:</b> +${opt.serviceFee ?? 0}</Grid>
+                    <Grid item xs={6} sm={3}>● <b>Discount:</b> -${opt.discount ?? 0}</Grid>
                     <Grid item xs={12} sm={6}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'success.main' }}>
-                        ● <b>Customer Price:</b> ${Number(opt.customerPrice || 10220).toLocaleString()}
+                        ● <b>Customer Price:</b> ${Number(opt.customerPrice ?? (opt.supplierCost || 0)).toLocaleString()}
                       </Typography>
                     </Grid>
                   </Grid>
