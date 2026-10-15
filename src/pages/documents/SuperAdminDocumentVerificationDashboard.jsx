@@ -41,6 +41,10 @@ import SecurityIcon from '@mui/icons-material/Security';
 import HotelIcon from '@mui/icons-material/Hotel';
 import DrawIcon from '@mui/icons-material/Draw';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 import PageHeader from '../../components/PageHeader';
 import AppTable from '../../components/AppTable';
@@ -425,29 +429,101 @@ export const SuperAdminDocumentVerificationDashboard = () => {
     });
   }, [documents, searchTerm, typeFilter, statusFilter]);
 
+  const formatDisplayDate = (dateVal) => {
+    if (!dateVal) return 'N/A';
+    try {
+      const d = new Date(dateVal);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().split('T')[0];
+      }
+    } catch (e) {}
+    const match = String(dateVal).match(/\d{4}-\d{2}-\d{2}/);
+    if (match) return match[0];
+    return String(dateVal).replace(/ GMT.*/, '').substring(0, 10);
+  };
+
   const columns = [
     {
       id: 'docId',
       label: 'Document ID',
-      render: (row) => (
-        <Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main', fontFamily: 'monospace' }}>
-          {row.id}
-        </Typography>
-      )
+      minWidth: '115px',
+      render: (row) => {
+        const isLongUuid = row.id && (row.id.length > 12 || (row.id.includes('-') && row.id.length > 9));
+        const displayId = isLongUuid
+          ? `DOC-${row.id.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase()}`
+          : row.id;
+
+        return (
+          <Tooltip title={`Full Document ID: ${row.id} (Click to copy)`} arrow placement="top">
+            <Box
+              component="span"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (navigator.clipboard) {
+                  navigator.clipboard.writeText(row.id);
+                  showAlert(`Copied ${row.id} to clipboard!`, 'success');
+                }
+              }}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.5,
+                px: 1,
+                py: 0.3,
+                borderRadius: 1.5,
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF',
+                border: '1px solid',
+                borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.35)' : '#BFDBFE',
+                color: 'primary.main',
+                fontFamily: 'monospace',
+                fontWeight: 800,
+                fontSize: '0.74rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.25)' : '#DBEAFE',
+                  transform: 'scale(1.02)'
+                }
+              }}
+            >
+              {displayId}
+              <ContentCopyIcon sx={{ fontSize: 10, opacity: 0.6 }} />
+            </Box>
+          </Tooltip>
+        );
+      }
     },
     {
       id: 'type',
       label: 'Document Type',
+      minWidth: '165px',
       render: (row) => {
         const item = DOC_TYPES.find(t => t.type === row.type) || DOC_TYPES[0];
         return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box sx={{ p: 0.5, bgcolor: item.bg, borderRadius: 1, display: 'flex' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box 
+              sx={{ 
+                p: 0.6, 
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : item.bg, 
+                borderRadius: 1.8, 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid',
+                borderColor: (theme) => theme.palette.mode === 'dark' ? 'divider' : 'rgba(0,0,0,0.04)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                flexShrink: 0
+              }}
+            >
               {item.icon}
             </Box>
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>{row.type}</Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>{item.purpose}</Typography>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.82rem', color: 'text.primary', lineHeight: 1.2 }}>
+                {row.type}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.67rem', fontWeight: 600, display: 'block', mt: 0.2 }}>
+                {item.purpose}
+              </Typography>
             </Box>
           </Box>
         );
@@ -456,37 +532,118 @@ export const SuperAdminDocumentVerificationDashboard = () => {
     {
       id: 'customer',
       label: 'Passenger / Customer',
+      minWidth: '165px',
       render: (row) => (
-        <Box>
-          <Typography variant="body2" sx={{ fontWeight: 700 }}>{row.customerName}</Typography>
-          <Typography variant="caption" color="text.secondary">Booking: <b>{row.bookingRef}</b> ({row.pnr})</Typography>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              fontWeight: 800, 
+              fontSize: '0.82rem', 
+              color: 'text.primary', 
+              textTransform: 'capitalize',
+              lineHeight: 1.2
+            }}
+          >
+            {row.customerName}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mt: 0.3, flexWrap: 'wrap' }}>
+            <Box 
+              sx={{ 
+                display: 'inline-flex',
+                alignItems: 'center',
+                px: 0.8,
+                py: 0.15,
+                borderRadius: 1,
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : '#F1F5F9',
+                color: 'text.secondary',
+                fontSize: '0.68rem',
+                fontWeight: 700
+              }}
+            >
+              Booking: <b style={{ marginLeft: 3, color: '#0F172A' }}>{row.bookingRef}</b>
+            </Box>
+            <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'text.secondary', fontSize: '0.68rem' }}>
+              ({row.pnr})
+            </Typography>
+          </Box>
         </Box>
       )
     },
     {
       id: 'file',
       label: 'File Name',
-      render: (row) => (
-        <Box>
-          <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'primary.main', fontFamily: 'monospace' }}>
-            {row.fileName}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">{row.fileSize} · Uploaded: {row.uploadDate}</Typography>
-        </Box>
-      )
+      minWidth: '185px',
+      render: (row) => {
+        const isPdf = (row.fileName || '').toLowerCase().endsWith('.pdf');
+        return (
+          <Box sx={{ minWidth: 0, maxWidth: 210 }}>
+            <Tooltip title={row.fileName} arrow placement="top">
+              <Box 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 0.6,
+                  cursor: 'pointer',
+                  '&:hover Typography': { textDecoration: 'underline' }
+                }}
+              >
+                {isPdf ? (
+                  <PictureAsPdfIcon sx={{ fontSize: 14, color: '#EF4444', flexShrink: 0 }} />
+                ) : (
+                  <InsertDriveFileIcon sx={{ fontSize: 14, color: 'primary.main', flexShrink: 0 }} />
+                )}
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    fontSize: '0.78rem',
+                    color: 'primary.main', 
+                    fontFamily: 'monospace',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {row.fileName}
+                </Typography>
+              </Box>
+            </Tooltip>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.67rem', fontWeight: 600, display: 'block', mt: 0.2 }}>
+              {row.fileSize} · Uploaded: {formatDisplayDate(row.uploadDate)}
+            </Typography>
+          </Box>
+        );
+      }
     },
     {
       id: 'expiry',
       label: 'Expiry Date',
-      render: (row) => (
-        <Typography variant="caption" sx={{ fontWeight: 700, color: row.status === 'Expired' ? 'error.main' : 'text.primary' }}>
-          {row.expiryDate || 'N/A'}
-        </Typography>
-      )
+      minWidth: '115px',
+      render: (row) => {
+        const isExpired = row.status === 'Expired';
+        return (
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6 }}>
+            <CalendarTodayIcon sx={{ fontSize: 12, color: isExpired ? 'error.main' : 'text.disabled' }} />
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontWeight: 700, 
+                fontSize: '0.78rem',
+                color: isExpired ? 'error.main' : 'text.primary',
+                fontFamily: 'monospace'
+              }}
+            >
+              {formatDisplayDate(row.expiryDate) || 'N/A'}
+            </Typography>
+          </Box>
+        );
+      }
     },
     {
       id: 'status',
       label: 'Status Flow',
+      minWidth: '125px',
       render: (row) => {
         const cfg = STATUS_CONFIG[row.status] || STATUS_CONFIG['Uploaded'];
         return (
@@ -494,7 +651,17 @@ export const SuperAdminDocumentVerificationDashboard = () => {
             size="small"
             icon={cfg.icon}
             label={row.status}
-            sx={{ bgcolor: cfg.bg, color: (theme) => themeText(theme, cfg.color), fontWeight: 800, fontSize: '0.68rem', height: 22 }}
+            sx={{ 
+              bgcolor: cfg.bg, 
+              color: (theme) => themeText(theme, cfg.color), 
+              fontWeight: 800, 
+              fontSize: '0.68rem', 
+              height: 24,
+              borderRadius: 1.5,
+              border: '1px solid',
+              borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              '& .MuiChip-icon': { fontSize: '0.85rem' }
+            }}
           />
         );
       }
@@ -713,42 +880,84 @@ export const SuperAdminDocumentVerificationDashboard = () => {
       </Box>
 
       {/* Documents Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.5, overflow: 'hidden' }}>
-        <AppTable
-          columns={columns}
-          data={filteredDocuments}
-          onRowClick={(row) => {
-            setSelectedDoc(row);
-            setDrawerOpen(true);
-          }}
-          actions={(row) => (
-            <Box sx={{ display: 'flex', gap: 0.8, whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
-              <Tooltip title="View & Verify Document">
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => { setSelectedDoc(row); setDrawerOpen(true); }}
-                  sx={{ py: 0.3, px: 1, fontSize: '0.72rem', fontWeight: 700 }}
+      <AppTable
+        columns={columns}
+        data={filteredDocuments}
+        onRowClick={(row) => {
+          setSelectedDoc(row);
+          setDrawerOpen(true);
+        }}
+        actions={(row) => (
+          <Box sx={{ display: 'flex', gap: 0.8, alignItems: 'center', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+            <Tooltip title="Review & Verify Document">
+              <Button
+                size="small"
+                variant="outlined"
+                color="primary"
+                onClick={() => { setSelectedDoc(row); setDrawerOpen(true); }}
+                sx={{ 
+                  py: 0.35, 
+                  px: 1.2, 
+                  fontSize: '0.72rem', 
+                  fontWeight: 800,
+                  borderRadius: 1.5,
+                  textTransform: 'none',
+                  height: 28,
+                  borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.4)' : '#BFDBFE',
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.08)' : '#EFF6FF',
+                  '&:hover': {
+                    bgcolor: 'primary.main',
+                    color: '#FFFFFF'
+                  }
+                }}
+              >
+                Review
+              </Button>
+            </Tooltip>
+
+            <Tooltip title="Mark as Verified">
+              <span>
+                <IconButton 
+                  size="small" 
+                  color="success" 
+                  disabled={row.status === 'Verified'}
+                  onClick={() => handleUpdateStatus(row.id, 'Verified')}
+                  sx={{ 
+                    p: 0.5,
+                    borderRadius: 1.5,
+                    border: '1px solid',
+                    borderColor: row.status === 'Verified' ? 'divider' : '#A7F3D0',
+                    bgcolor: row.status === 'Verified' 
+                      ? 'transparent' 
+                      : (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5',
+                    '&:hover': { bgcolor: '#D1FAE5' }
+                  }}
                 >
-                  Review
-                </Button>
-              </Tooltip>
-
-              <Tooltip title="Mark as Verified">
-                <IconButton size="small" color="success" onClick={() => handleUpdateStatus(row.id, 'Verified')}>
-                  <CheckCircleIcon fontSize="small" />
+                  <CheckCircleIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
-              </Tooltip>
+              </span>
+            </Tooltip>
 
-              <Tooltip title="Download PDF">
-                <IconButton size="small" color="primary" onClick={() => handleDownloadDocumentPdf(row)}>
-                  <DownloadIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          )}
-        />
-      </Paper>
+            <Tooltip title="Download Certified PDF / Real File">
+              <IconButton 
+                size="small" 
+                color="primary" 
+                onClick={() => handleDownloadDocumentPdf(row)}
+                sx={{ 
+                  p: 0.5,
+                  borderRadius: 1.5,
+                  border: '1px solid',
+                  borderColor: '#BFDBFE',
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(37, 99, 235, 0.1)' : '#EFF6FF',
+                  '&:hover': { bgcolor: '#DBEAFE' }
+                }}
+              >
+                <DownloadIcon sx={{ fontSize: '1rem' }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        )}
+      />
 
       {/* ─── SLIDE-OVER DOCUMENT INSPECTION & VERIFICATION MODAL ─── */}
       <AppModal

@@ -39,7 +39,7 @@ export const AppTable = ({
       <TableContainer sx={{ maxHeight, overflowX: 'auto' }}>
         <Table stickyHeader aria-label="customized table">
           <TableHead>
-            <TableRow>
+            <TableRow sx={{ bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1E293B' : '#F1F5F9' }}>
               {columns.map((column) => (
                 <TableCell
                   key={column.id}
@@ -47,9 +47,15 @@ export const AppTable = ({
                   style={{ minWidth: column.minWidth }}
                   sortDirection={sortColumn === column.id ? sortDirection : false}
                   sx={{
-                    py: 1,
-                    fontWeight: 600,
-                    fontSize: '0.8rem', // Reduced font size
+                    py: 1.2,
+                    fontWeight: 800,
+                    fontSize: '0.73rem',
+                    color: 'text.secondary',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1E293B' : '#F1F5F9',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
                   }}
                 >
                   {column.sortable !== false ? (
@@ -57,6 +63,9 @@ export const AppTable = ({
                       active={sortColumn === column.id}
                       direction={sortColumn === column.id ? sortDirection : 'asc'}
                       onClick={() => handleSort(column.id)}
+                      sx={{
+                        '&.Mui-active': { color: 'primary.main', fontWeight: 900 }
+                      }}
                     >
                       {column.label}
                     </TableSortLabel>
@@ -66,7 +75,20 @@ export const AppTable = ({
                 </TableCell>
               ))}
               {actions && (
-                <TableCell align="right" sx={{ py: 1, fontWeight: 600, fontSize: '0.85rem' }}>
+                <TableCell 
+                  align="right" 
+                  sx={{ 
+                    py: 1.2, 
+                    fontWeight: 800, 
+                    fontSize: '0.73rem', 
+                    color: 'text.secondary',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1E293B' : '#F1F5F9',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
                   Actions
                 </TableCell>
               )}
@@ -76,13 +98,13 @@ export const AppTable = ({
             {loading ? (
               <TableRow>
                 <TableCell colSpan={columns.length + (actions ? 1 : 0)} align="center" sx={{ py: 8 }}>
-                  <Box sx={{ color: 'text.secondary', fontWeight: 500 }}>Loading records...</Box>
+                  <Box sx={{ color: 'text.secondary', fontWeight: 600 }}>Loading records...</Box>
                 </TableCell>
               </TableRow>
             ) : data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length + (actions ? 1 : 0)} align="center" sx={{ py: 8 }}>
-                  <Box sx={{ color: 'text.secondary', fontWeight: 500 }}>No records found</Box>
+                  <Box sx={{ color: 'text.secondary', fontWeight: 600 }}>No records found</Box>
                 </TableCell>
               </TableRow>
             ) : (
@@ -96,6 +118,10 @@ export const AppTable = ({
                   sx={{
                     cursor: onRowClick ? 'pointer' : 'default',
                     '&:last-child td, &:last-child th': { border: 0 },
+                    transition: 'background-color 0.15s ease',
+                    '&:hover': {
+                      bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(241, 245, 249, 0.6) !important'
+                    }
                   }}
                 >
                   {columns.map((column) => {
@@ -105,10 +131,12 @@ export const AppTable = ({
                         key={column.id}
                         align={column.align || 'left'}
                         sx={{
-                          py: 0.8,
-                          fontSize: '0.8rem', // Reduced font size
+                          py: 1.1,
+                          fontSize: '0.81rem',
                           whiteSpace: column.wrap ? 'normal' : 'nowrap',
-                          minWidth: column.minWidth || '120px',
+                          minWidth: column.minWidth,
+                          borderBottom: '1px solid',
+                          borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(226, 232, 240, 0.6)'
                         }}
                       >
                         {column.render ? (
@@ -124,7 +152,11 @@ export const AppTable = ({
                   {actions && (
                     <TableCell
                       align="right"
-                      sx={{ py: 0.6 }}
+                      sx={{ 
+                        py: 0.8,
+                        borderBottom: '1px solid',
+                        borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(226, 232, 240, 0.6)'
+                      }}
                       onClick={(e) => e.stopPropagation()} // Stop row click triggers when clicking actions
                     >
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
