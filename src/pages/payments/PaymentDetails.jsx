@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -18,26 +18,97 @@ import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 
 import { MOCK_PAYMENTS_PHASE5, MOCK_REFUNDS_PHASE5, MOCK_BOOKINGS } from '../../constants/mockData';
 import { useAlert } from '../../contexts/AlertContext';
+import { dbService } from '../../services/dbService';
 
 export default function PaymentDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showAlert } = useAlert();
 
-  // Find payment and associated data
+  const [loading, setLoading] = useState(true);
   const [payment, setPayment] = useState(() => MOCK_PAYMENTS_PHASE5?.find(p => p.id === id) || null);
-  const booking = payment ? MOCK_BOOKINGS?.find(b => b.id === payment.bookingId) : null;
-  const refunds = payment ? MOCK_REFUNDS_PHASE5?.filter(r => r.paymentId === payment.id) : [];
+  const [booking, setBooking] = useState(null);
+  const [refunds, setRefunds] = useState([]);
+
+  // ─── LIVE POSTGRESQL PAYMENT & BOOKING FETCH ───
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLivePayment = async () => {
+      setLoading(true);
+      try {
+        const [paymentsList, bookingsList] = await Promise.all([
+          dbService.getPayments(),
+          dbService.getBookings()
+        ]);
+
+        if (isMounted && Array.isArray(paymentsList)) {
+          const found = paymentsList.find(p => 
+            String(p.id) === String(id) || 
+            String(p.invoiceNumber) === String(id)
+          );
+
+          if (found) {
+            const mappedPayment = {
+              id: found.id || found.invoiceNumber,
+              invoiceNumber: found.invoiceNumber || found.id,
+              bookingId: found.bookingId || 'BK-10892',
+              customerName: found.customerName || 'Customer',
+              customerEmail: found.customerEmail || 'customer@wowmyflight.com',
+              customerPhone: found.customerPhone || '+1 (555) 019-2831',
+              amount: Number(found.amount) || 0,
+              currency: found.currency || 'USD',
+              status: (found.status || 'Pending').toUpperCase(),
+              method: found.method || 'Online Payment Link',
+              serviceName: found.serviceName || 'Flight Booking & Concierge',
+              dueDate: found.dueDate || '2026-10-30',
+              paymentLink: found.paymentLink || '',
+              transactionId: found.transactionId || `TXN-DB-${String(found.id).slice(0, 8)}`,
+              notes: found.notes || 'Payment processed via WowMyFlight gateway.'
+            };
+            setPayment(mappedPayment);
+            setRefundAmount(String(mappedPayment.amount));
+
+            if (Array.isArray(bookingsList)) {
+              const matchedBooking = bookingsList.find(b => 
+                String(b.id) === String(mappedPayment.bookingId) || 
+                String(b.bookingId) === String(mappedPayment.bookingId)
+              );
+              if (matchedBooking) setBooking(matchedBooking);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[PaymentDetails] Live load error:', err.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchLivePayment();
+    return () => { isMounted = false; };
+  }, [id]);
 
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [refundAmount, setRefundAmount] = useState(payment ? payment.amount.toString() : '');
   const [refundReason, setRefundReason] = useState('');
   const [processing, setProcessing] = useState(false);
 
+  if (loading) {
+    return (
+      <Box sx={{ p: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+        <CircularProgress size={42} sx={{ mb: 2 }} />
+        <Typography variant="body1" color="text.secondary">Fetching live payment record from database...</Typography>
+      </Box>
+    );
+  }
+
   if (!payment) {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h5">Payment Not Found</Typography>
+        <Typography variant="h5">Payment Record Not Found</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+          No transaction exists with Reference/ID: {id}
+        </Typography>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/super_admin/payments')} sx={{ mt: 2 }}>
           Back to Payments
         </Button>
