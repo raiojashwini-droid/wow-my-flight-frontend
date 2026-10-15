@@ -22,7 +22,6 @@ import * as yup from 'yup';
 import AddIcon from '@mui/icons-material/Add';
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import PhoneIcon from '@mui/icons-material/Phone';
-import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import EmailIcon from '@mui/icons-material/Email';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import StarIcon from '@mui/icons-material/Star';
@@ -339,14 +338,26 @@ export const SuperAdminClientList = () => {
           onRowClick={(row) => navigate(`/${getRolePrefix()}/customers/details/${row.id}`)}
           actions={(row) => (
             <Box sx={{ display: 'flex', gap: 0.5, whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
-              <Tooltip title="Direct Phone Call">
-                <IconButton size="small" color="success" onClick={() => showAlert(`Calling ${row.firstName} ${row.lastName} via Telnyx WebRTC…`, 'success')}>
+              <Tooltip title="Direct Phone Call (Softphone)">
+                <IconButton
+                  size="small"
+                  color="success"
+                  onClick={() => {
+                    const targetPhone = row.phone || row.phoneNumber || row.contactPhone;
+                    const customerName = `${row.firstName || ''} ${row.lastName || ''}`.trim() || row.name || 'Customer';
+                    if (!targetPhone) {
+                      showAlert(`⚠️ No phone number available for ${customerName}`, 'warning');
+                      return;
+                    }
+                    navigate('/calling-desk', {
+                      state: {
+                        autoDialNumber: targetPhone,
+                        customerName: customerName,
+                      }
+                    });
+                  }}
+                >
                   <PhoneIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="WhatsApp Chat">
-                <IconButton size="small" color="success" onClick={() => navigate('/social-inbox?channel=whatsapp')}>
-                  <WhatsAppIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
               <Tooltip title="View Full Customer Profile">

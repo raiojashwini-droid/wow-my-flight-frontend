@@ -1955,12 +1955,21 @@ export const dbService = {
   // ─── CALL DISPOSITIONS API ───
   getCallDispositions: async () => {
     const res = await apiFetch('/api/telnyx/dispositions');
+    if (res && res.success && Array.isArray(res.data)) {
+      const cleanData = res.data.filter(l => l.customer !== 'Ambassador Harold Vance' && l.id !== 'LOG-771');
+      return { ...res, data: cleanData };
+    }
     return res && res.success ? res : null;
   },
   saveCallDisposition: async (data) => {
     return await apiFetch('/api/telnyx/dispositions', {
       method: 'POST',
       body: JSON.stringify(data)
+    });
+  },
+  deleteCallDisposition: async (id) => {
+    return await apiFetch(`/api/telnyx/dispositions/${id}`, {
+      method: 'DELETE'
     });
   }
 };

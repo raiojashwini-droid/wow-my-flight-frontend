@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -45,6 +46,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import DeleteIcon from '@mui/icons-material/Delete';
 import HeadsetIcon from '@mui/icons-material/Headset';
 import ScheduleIcon from '@mui/icons-material/Schedule';
+import NoteAltIcon from '@mui/icons-material/NoteAlt';
 
 import { io } from 'socket.io-client';
 import DualClock from '../../components/DualClock';
@@ -72,6 +74,8 @@ const getDeletedCallIds = () => {
 };
 
 export default function CallingSoftphoneWorkspace() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { showAlert } = useAlert();
   const { currentUser } = useAuth();
   const {
@@ -104,6 +108,17 @@ export default function CallingSoftphoneWorkspace() {
   const [dialNumber, setDialNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const activeCallIdRef = useRef(null);
+
+  // Handle incoming number from Customer 360, Leads, or Dispositions
+  useEffect(() => {
+    const incomingNumber = location.state?.autoDialNumber || location.state?.customerPhone || location.state?.targetNumber;
+    if (incomingNumber) {
+      setDialNumber(incomingNumber);
+      const callerName = location.state.customerName ? `for ${location.state.customerName}` : '';
+      showAlert(`📞 Number ${incomingNumber} loaded ${callerName}. Click 'Start WebRTC Call' to connect!`, 'success');
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, showAlert]);
 
   // Real Data Store
   const [callHistory, setCallHistory] = useState([]);
@@ -770,27 +785,56 @@ export default function CallingSoftphoneWorkspace() {
                   • {formatCallDuration(lastCall.durationSeconds || 0)}
                 </Typography>
               </Box>
-              <Button
-                size="small"
-                variant="contained"
-                color="info"
-                startIcon={<PhoneInTalkIcon sx={{ fontSize: '0.9rem' }} />}
-                onClick={() => {
-                  const targetNum = lastCall.toNumber || lastCall.fromNumber;
-                  setDialNumber(targetNum);
-                  handleStartCall(targetNum);
-                }}
-                sx={{
-                  fontWeight: 800,
-                  fontSize: '0.72rem',
-                  textTransform: 'none',
-                  bgcolor: '#0284C7',
-                  '&:hover': { bgcolor: '#0369A1' },
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Redial
-              </Button>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="info"
+                  startIcon={<PhoneInTalkIcon sx={{ fontSize: '0.9rem' }} />}
+                  onClick={() => {
+                    const targetNum = lastCall.toNumber || lastCall.fromNumber;
+                    setDialNumber(targetNum);
+                    handleStartCall(targetNum);
+                  }}
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: '0.72rem',
+                    textTransform: 'none',
+                    bgcolor: '#0284C7',
+                    '&:hover': { bgcolor: '#0369A1' },
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Redial
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="warning"
+                  startIcon={<NoteAltIcon sx={{ fontSize: '0.9rem' }} />}
+                  onClick={() => {
+                    const targetNum = lastCall.toNumber || lastCall.fromNumber;
+                    navigate('/call-dispositions', {
+                      state: {
+                        customerPhone: targetNum,
+                        customerName: lastCall.customerName || '',
+                        openWrapUp: true,
+                      },
+                    });
+                  }}
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: '0.72rem',
+                    textTransform: 'none',
+                    bgcolor: '#F59E0B',
+                    color: '#000',
+                    '&:hover': { bgcolor: '#D97706', color: '#FFF' },
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Disposition
+                </Button>
+              </Box>
             </Paper>
           )}
 
@@ -1266,6 +1310,31 @@ export default function CallingSoftphoneWorkspace() {
                           >
                             Redial
                           </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="warning"
+                            startIcon={<NoteAltIcon />}
+                            onClick={() => {
+                              navigate('/call-dispositions', {
+                                state: {
+                                  customerPhone: targetNumber,
+                                  customerName: rec.customerName || '',
+                                  openWrapUp: true,
+                                },
+                              });
+                            }}
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: '0.72rem',
+                              textTransform: 'none',
+                              bgcolor: '#F59E0B',
+                              color: '#000',
+                              '&:hover': { bgcolor: '#D97706', color: '#FFF' },
+                            }}
+                          >
+                            Disposition
+                          </Button>
                           <Tooltip title="Delete this call record">
                             <IconButton
                               size="small"
@@ -1498,6 +1567,31 @@ export default function CallingSoftphoneWorkspace() {
                           sx={{ fontWeight: 800, fontSize: '0.72rem', textTransform: 'none' }}
                         >
                           Redial Now
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="warning"
+                          startIcon={<NoteAltIcon />}
+                          onClick={() => {
+                            navigate('/call-dispositions', {
+                              state: {
+                                customerPhone: rec.number,
+                                customerName: '',
+                                openWrapUp: true,
+                              },
+                            });
+                          }}
+                          sx={{
+                            fontWeight: 800,
+                            fontSize: '0.72rem',
+                            textTransform: 'none',
+                            bgcolor: '#F59E0B',
+                            color: '#000',
+                            '&:hover': { bgcolor: '#D97706', color: '#FFF' },
+                          }}
+                        >
+                          Disposition
                         </Button>
                       </Box>
                     </Paper>
