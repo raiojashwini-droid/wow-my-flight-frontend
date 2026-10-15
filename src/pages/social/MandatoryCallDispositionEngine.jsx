@@ -60,6 +60,33 @@ const DISPOSITION_CONFIG = [
   { name: 'Complaint', category: 'Escalation', color: '#B91C1C', icon: '👿', action: 'Create priority customer support grievance case.' }
 ];
 
+const formatDispositionTime = (rawTime, createdAt) => {
+  const ts = createdAt || rawTime;
+  if (!ts) return '';
+  if (ts === 'Just now') {
+    return new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+  const dateObj = new Date(ts);
+  if (!isNaN(dateObj.getTime())) {
+    return dateObj.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+  return rawTime;
+};
+
 export default function MandatoryCallDispositionEngine() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -227,6 +254,16 @@ export default function MandatoryCallDispositionEngine() {
         bookingValue: bookingValue ? parseFloat(bookingValue) : null
       });
 
+      const now = new Date();
+      const formattedTimestamp = now.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+
       const newLog = res && res.log ? res.log : {
         id: `LOG-${Math.floor(100 + Math.random() * 900)}`,
         customer: targetCustomer,
@@ -234,7 +271,8 @@ export default function MandatoryCallDispositionEngine() {
         agent: currentAgentName,
         disposition,
         notes: notes.trim(),
-        time: 'Just now',
+        createdAt: now.toISOString(),
+        time: formattedTimestamp,
         actionTaken: actionDesc,
         linkedLead: selectedLeadId ? targetCustomer : null
       };
@@ -635,8 +673,8 @@ export default function MandatoryCallDispositionEngine() {
                         <TableCell sx={{ fontWeight: 800, color: '#059669', maxWidth: 220 }}>
                           {l.actionTaken || 'CRM Status Updated'}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 700, fontFamily: 'monospace', whiteSpace: 'nowrap', color: 'text.secondary' }}>
-                          {l.time}
+                        <TableCell sx={{ fontWeight: 700, fontFamily: 'monospace', whiteSpace: 'nowrap', color: 'text.secondary', fontSize: '0.8rem' }}>
+                          {formatDispositionTime(l.time, l.createdAt)}
                         </TableCell>
                         <TableCell align="right">
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
