@@ -48,6 +48,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { themeText } from '../../theme/themeColor';
 import { dbService } from '../../services/dbService';
 import { qaService } from '../../services/phase3Service';
+import { getRealisticDocumentVisual } from './documentVisualTemplates';
 // ─── SPECIFICATION CONSTANTS ───
 export const DOC_TYPES = [
   { type: 'Passport', purpose: 'Identity + travel eligibility', icon: <BadgeIcon sx={{ color: '#2563EB' }} />, color: '#2563EB', bg: 'var(--wl-EFF6FF, #EFF6FF)' },
@@ -178,6 +179,15 @@ export const SuperAdminDocumentVerificationDashboard = () => {
           notes: d.comment || d.notes || 'Verified against traveler registry.'
         }));
 
+        try {
+          const localDocs = JSON.parse(localStorage.getItem('wmf_qa_uploaded_docs') || '[]');
+          if (localDocs.length > 0) {
+            setDocuments([...localDocs, ...normalized.filter(d => !localDocs.some(ld => ld.id === d.id))]);
+            return;
+          }
+        } catch (e) {
+          console.warn('Local docs load error:', e);
+        }
         setDocuments(normalized);
       }
     }).catch(e => console.warn('Live documents load warning:', e));
@@ -200,17 +210,39 @@ export const SuperAdminDocumentVerificationDashboard = () => {
     notes: ''
   });
   const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFileDataUrl, setSelectedFileDataUrl] = useState(null);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
       setNewDocForm(prev => ({ ...prev, fileName: file.name }));
+      const reader = new FileReader();
+      reader.onload = (uploadEvt) => {
+        setSelectedFileDataUrl(uploadEvt.target.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleDownloadDocumentPdf = (doc) => {
     if (!doc) return;
+
+    // If user uploaded a real file (Image, PDF, Doc), download that EXACT original file!
+    if (doc.fileData) {
+      try {
+        const link = document.createElement('a');
+        link.href = doc.fileData;
+        link.download = doc.fileName || `${(doc.customerName || 'document').replace(/\s+/g, '_')}_${doc.type || 'file'}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showAlert(`✓ Successfully downloaded real uploaded file: ${doc.fileName}`, 'success');
+        return;
+      } catch (err) {
+        console.error('Real file download error:', err);
+      }
+    }
     try {
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -378,13 +410,22 @@ export const SuperAdminDocumentVerificationDashboard = () => {
       expiryDate: newDocForm.expiryDate,
       verifiedBy: 'Pending Review',
       status: 'Uploaded',
-      notes: newDocForm.notes || 'Uploaded via Super Admin console.'
+      notes: newDocForm.notes || 'Uploaded via Super Admin console.',
+      fileData: selectedFileDataUrl,
+      fileType: selectedFile ? selectedFile.type : 'application/pdf'
     };
 
     setDocuments([newDoc, ...documents]);
+    try {
+      const existingLocal = JSON.parse(localStorage.getItem('wmf_qa_uploaded_docs') || '[]');
+      localStorage.setItem('wmf_qa_uploaded_docs', JSON.stringify([newDoc, ...existingLocal]));
+    } catch (err) {
+      console.warn('LocalStorage save failed:', err);
+    }
     await qaService.uploadDocument(newDoc);
     showAlert(`📄 Document ${newId} (${newDocForm.type}) uploaded successfully!`, 'success');
     setSelectedFile(null);
+    setSelectedFileDataUrl(null);
     setUploadModalOpen(false);
   };
 
@@ -635,7 +676,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                 onClick={() => handleDownloadDocumentPdf(selectedDoc)}
                 sx={{ fontWeight: 800, textTransform: 'none' }}
               >
-                Download PDF
+                {selectedDoc.fileData ? 'Download Real File' : 'Download Document'}
               </Button>
               <Box sx={{ display: 'flex', gap: 1.5 }}>
               <Button
@@ -721,12 +762,77 @@ export const SuperAdminDocumentVerificationDashboard = () => {
 
               {/* Document Preview Box Simulator */}
               <Grid item xs={12} md={6}>
-                <Paper elevation={0} sx={{ p: 3, bgcolor: 'background.neutral', border: '2px dashed var(--wb-CBD5E1, #CBD5E1)', borderRadius: 2, textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                  <ArticleIcon sx={{ fontSize: 48, color: '#64748B', mb: 1 }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{selectedDoc.fileName}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                    Encrypted Storage on AWS S3 Bucket · SHA-256 Checksum Verified
-                  </Typography>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    height: '100%'
+                  }}
+                >
+                  <Box sx={{ mb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 900, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.8, textTransform: 'uppercase' }}>
+                      <ArticleIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+                      REAL DOCUMENT VIEW ({selectedDoc.type})
+                    </Typography>
+                    <Chip
+                      label={selectedDoc.fileData ? 'USER UPLOADED' : 'OFFICIAL ARCHIVE'}
+                      size="small"
+                      color={selectedDoc.fileData ? 'success' : 'primary'}
+                      variant="outlined"
+                      sx={{ fontWeight: 800, fontSize: '0.62rem', height: 20 }}
+                    />
+                  </Box>
+
+                  {/* Real Document Visual Image / PDF Frame */}
+                  <Box
+                    sx={{
+                      width: '100%',
+                      borderRadius: 1.5,
+                      overflow: 'hidden',
+                      bgcolor: '#0f172a',
+                      border: '1px solid #334155',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      p: 0.5,
+                      minHeight: 210,
+                      maxHeight: 230
+                    }}
+                  >
+                    {selectedDoc.fileData && selectedDoc.fileType === 'application/pdf' ? (
+                      <iframe
+                        src={selectedDoc.fileData}
+                        title={selectedDoc.fileName}
+                        style={{ width: '100%', height: 210, border: 'none', borderRadius: 4 }}
+                      />
+                    ) : (
+                      <img
+                        src={getRealisticDocumentVisual(selectedDoc)}
+                        alt={selectedDoc.fileName}
+                        style={{
+                          maxWidth: '100%',
+                          maxHeight: 210,
+                          objectFit: 'contain',
+                          borderRadius: 4
+                        }}
+                      />
+                    )}
+                  </Box>
+                  <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, fontSize: '0.72rem', maxWidth: '50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {selectedDoc.fileName}
+                    </Typography>
+
+
+
+
                   <Button
                     variant="contained"
                     color="primary"
@@ -735,8 +841,9 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                     onClick={() => handleDownloadDocumentPdf(selectedDoc)}
                     size="small"
                   >
-                    Download PDF Preview
+                    {selectedDoc.fileData ? 'Download Real File' : 'Download Document'}
                   </Button>
+                </Box>
                 </Paper>
               </Grid>
             </Grid>
