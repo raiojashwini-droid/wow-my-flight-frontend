@@ -922,10 +922,8 @@ export const dbService = {
     try {
       const remote = await apiFetch('/api/bookings');
       if (remote && remote.success && Array.isArray(remote.data)) {
-        if (remote.data.length > 0) {
-          localStorage.setItem('crm-bookings', JSON.stringify(remote.data));
-          return remote.data;
-        }
+        localStorage.setItem('crm-bookings', JSON.stringify(remote.data));
+        return remote.data;
       }
     } catch (e) {
       console.warn('[dbService] getBookings API warning:', e.message);
