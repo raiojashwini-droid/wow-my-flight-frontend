@@ -954,7 +954,7 @@ export const SuperAdminLeadList = () => {
                   <Typography variant="caption" sx={{ fontWeight: 600 }}>{(selectedLead.adults || selectedLead.passengers || 1)} Passenger(s)</Typography>
 
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Budget Range:</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'success.main' }}>{selectedLead.budget || '—'}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'success.main' }}>{selectedLead.budgetRange || selectedLead.budget || '—'}</Typography>
 
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Flexibility:</Typography>
                   <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.flexibility || '—'}</Typography>
