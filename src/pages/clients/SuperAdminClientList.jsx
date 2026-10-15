@@ -338,8 +338,25 @@ export const SuperAdminClientList = () => {
           onRowClick={(row) => navigate(`/${getRolePrefix()}/customers/details/${row.id}`)}
           actions={(row) => (
             <Box sx={{ display: 'flex', gap: 0.5, whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
-              <Tooltip title="Direct Phone Call">
-                <IconButton size="small" color="success" onClick={() => showAlert(`Calling ${row.firstName} ${row.lastName} via Telnyx WebRTC…`, 'success')}>
+              <Tooltip title="Direct Phone Call (Softphone)">
+                <IconButton
+                  size="small"
+                  color="success"
+                  onClick={() => {
+                    const targetPhone = row.phone || row.phoneNumber || row.contactPhone;
+                    const customerName = `${row.firstName || ''} ${row.lastName || ''}`.trim() || row.name || 'Customer';
+                    if (!targetPhone) {
+                      showAlert(`⚠️ No phone number available for ${customerName}`, 'warning');
+                      return;
+                    }
+                    navigate('/calling-desk', {
+                      state: {
+                        autoDialNumber: targetPhone,
+                        customerName: customerName,
+                      }
+                    });
+                  }}
+                >
                   <PhoneIcon fontSize="small" />
                 </IconButton>
               </Tooltip>

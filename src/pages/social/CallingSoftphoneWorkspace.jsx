@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -75,6 +75,7 @@ const getDeletedCallIds = () => {
 
 export default function CallingSoftphoneWorkspace() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { showAlert } = useAlert();
   const { currentUser } = useAuth();
   const {
@@ -107,6 +108,17 @@ export default function CallingSoftphoneWorkspace() {
   const [dialNumber, setDialNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const activeCallIdRef = useRef(null);
+
+  // Handle incoming number from Customer 360, Leads, or Dispositions
+  useEffect(() => {
+    const incomingNumber = location.state?.autoDialNumber || location.state?.customerPhone || location.state?.targetNumber;
+    if (incomingNumber) {
+      setDialNumber(incomingNumber);
+      const callerName = location.state.customerName ? `for ${location.state.customerName}` : '';
+      showAlert(`📞 Number ${incomingNumber} loaded ${callerName}. Click 'Start WebRTC Call' to connect!`, 'success');
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, showAlert]);
 
   // Real Data Store
   const [callHistory, setCallHistory] = useState([]);
