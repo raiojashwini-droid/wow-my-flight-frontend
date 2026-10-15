@@ -876,13 +876,6 @@ export const SuperAdminLeadList = () => {
                     </IconButton>
                   </Tooltip>
                 )}
-                {hasSendWhatsAppPermission() && (
-                  <Tooltip title={`WhatsApp ${row.firstName || 'Lead'}`}>
-                    <IconButton size="small" color="success" onClick={() => handleOpenWhatsAppModal(row)}>
-                      <WhatsAppIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                )}
                 <Tooltip title={`Email ${row.firstName || 'Lead'}`}>
                   <IconButton size="small" color="primary" onClick={() => handleOpenEmailModal(row)}>
                     <EmailIcon fontSize="small" />
