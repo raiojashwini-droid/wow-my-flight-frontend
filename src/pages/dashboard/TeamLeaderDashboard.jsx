@@ -514,45 +514,143 @@ export default function TeamLeaderDashboard() {
   const pendingApprovals = approvals.filter(a => a.status.startsWith('Pending'));
 
   return (
-    <Box sx={{ pb: 5, minHeight: '100vh' }}>
+    <Box sx={{ pb: 6, minHeight: '100vh', pt: { xs: 0.5, sm: 1 } }}>
       
       {/* Top Header Card with Command Center Identity */}
-      <Paper elevation={0} sx={{ p: 2, px: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: 'background.paper' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.main', width: 44, height: 44, fontWeight: 900 }}>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: { xs: 2.2, sm: 2.8, md: 3 }, 
+          mb: 3.5, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          borderRadius: 3.5, 
+          bgcolor: 'background.paper',
+          boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: { xs: 'column', lg: 'row' },
+          alignItems: { xs: 'stretch', lg: 'center' },
+          justifyContent: 'space-between',
+          gap: { xs: 2.2, lg: 3 }
+        }}
+      >
+        {/* Left Side: Avatar & Identity */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.2, minWidth: 0 }}>
+          <Avatar 
+            sx={{ 
+              width: { xs: 46, sm: 50 }, 
+              height: { xs: 46, sm: 50 }, 
+              fontWeight: 900, 
+              fontSize: '1.15rem',
+              background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
+              flexShrink: 0
+            }}
+          >
             TL
           </Avatar>
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif' }}>
+          <Box sx={{ minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap', mb: 0.6 }}>
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  fontWeight: 800, 
+                  color: 'text.primary', 
+                  fontFamily: 'Outfit, sans-serif', 
+                  fontSize: { xs: '1.2rem', sm: '1.4rem' }, 
+                  letterSpacing: '-0.01em' 
+                }}
+              >
                 Team Leader Command Centre
               </Typography>
-              <Chip label="ROLE: TEAM LEADER" size="small" color="primary" sx={{ fontWeight: 800, fontSize: '0.68rem', height: 22 }} />
+              <Chip 
+                label="ROLE: TEAM LEADER" 
+                size="small" 
+                sx={{ 
+                  fontWeight: 800, 
+                  fontSize: '0.68rem', 
+                  height: 22,
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.2)' : '#EFF6FF',
+                  color: 'primary.main',
+                  border: '1px solid',
+                  borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.4)' : '#BFDBFE'
+                }} 
+              />
               <Chip
-                icon={<StorageIcon sx={{ fontSize: '0.9rem !important' }} />}
+                icon={
+                  <Box 
+                    sx={{ 
+                      width: 8, 
+                      height: 8, 
+                      borderRadius: '50%', 
+                      bgcolor: isDbLive ? '#10B981' : '#EF4444', 
+                      ml: 1,
+                      boxShadow: isDbLive ? '0 0 0 3px rgba(16, 185, 129, 0.25)' : 'none' 
+                    }} 
+                  />
+                }
                 label={isDbLive ? 'LIVE DB CONNECTED' : 'OFFLINE'}
-                color={isDbLive ? 'success' : 'error'}
                 size="small"
-                sx={{ fontWeight: 800, fontSize: '0.68rem', height: 22 }}
+                sx={{ 
+                  fontWeight: 800, 
+                  fontSize: '0.68rem', 
+                  height: 22,
+                  bgcolor: isDbLive 
+                    ? (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' 
+                    : (theme) => theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2',
+                  color: isDbLive ? '#059669' : '#DC2626',
+                  border: '1px solid',
+                  borderColor: isDbLive ? '#A7F3D0' : '#FECACA',
+                  '& .MuiChip-icon': { ml: '6px', mr: '-2px' }
+                }}
               />
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-              Live Flight Operations, Agent QA Oversight, Floor Escalations & Revenue Monitoring
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: '0.8rem', sm: '0.86rem' } }}>
+              Live Flight Operations • Agent QA Oversight • Floor Escalations • Revenue Monitoring
             </Typography>
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+
+        {/* Right Side: Operational Action & Clocks */}
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: { xs: 'flex-start', lg: 'flex-end' },
+            flexWrap: 'wrap', 
+            gap: 1.5,
+            pt: { xs: 1.8, lg: 0 },
+            borderTop: { xs: '1px solid', lg: 'none' },
+            borderColor: 'divider',
+            flexShrink: 0
+          }}
+        >
           <Button
             size="small"
             variant="outlined"
             onClick={handleManualRefresh}
             disabled={isRefreshing}
-            startIcon={isRefreshing ? <CircularProgress size={12} /> : <SyncIcon />}
-            sx={{ borderRadius: 2, fontSize: '0.72rem', fontWeight: 700 }}
+            startIcon={isRefreshing ? <CircularProgress size={13} color="inherit" /> : <SyncIcon sx={{ fontSize: '1.1rem' }} />}
+            sx={{ 
+              borderRadius: 2.5, 
+              fontSize: '0.78rem', 
+              fontWeight: 700, 
+              px: 2, 
+              height: 38,
+              borderColor: 'divider',
+              textTransform: 'none',
+              bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#FFFFFF',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              '&:hover': {
+                borderColor: 'primary.main',
+                bgcolor: 'action.hover'
+              }
+            }}
           >
-            Sync DB
+            {isRefreshing ? 'Syncing...' : 'Sync DB'}
           </Button>
-          <DualClock client={{ timezone: 'America/New_York', label: 'Client Time (EST)' }} />
+          <DualClock client={{ timezone: 'America/New_York', label: 'EST' }} />
         </Box>
       </Paper>
 
