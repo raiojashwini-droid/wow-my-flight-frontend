@@ -63,7 +63,6 @@ export const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [shake, setShake] = useState(false);
   const [activeTab, setActiveTab] = useState('admin');
-  const [isExiting, setIsExiting] = useState(false);
   const hasJustLoggedIn = React.useRef(false);
 
   useEffect(() => {
@@ -89,10 +88,8 @@ export const Login = () => {
     hasJustLoggedIn.current = true;
     login(userObj);
     showAlert(`Logged in successfully as ${name}`, 'success');
-    setIsExiting(true);
-    setTimeout(() => {
-      navigate(`/${rolePrefix}/dashboard`);
-    }, 200);
+    const targetPath = rolePrefix ? `/${rolePrefix}/dashboard` : '/dashboard';
+    navigate(targetPath, { replace: true });
   };
 
   const onSubmit = async (data) => {
@@ -212,8 +209,9 @@ export const Login = () => {
     }
 
     if (routePrefix === 'integrations') {
-      executeLogin(mockUser, '', `Demo ${role.toUpperCase().replace('_', ' ')}`);
-      setTimeout(() => navigate('/integrations'), 600);
+      login(mockUser);
+      showAlert(`Logged in successfully as Demo ${role.toUpperCase().replace('_', ' ')}`, 'success');
+      navigate('/integrations', { replace: true });
     } else {
       executeLogin(mockUser, routePrefix, `Demo ${role.toUpperCase().replace('_', ' ')}`);
     }
@@ -227,16 +225,14 @@ export const Login = () => {
   const isDark = mode === 'dark';
 
   return (
-    <AnimatePresence>
-      {!isExiting && (
-        <motion.div
-          key="login-form"
-          initial={{ opacity: 0, y: 30 }}
-          animate={shake ? shakeAnimation : { opacity: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: -20 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className={`w-full max-w-[500px] p-8 md:p-10 rounded-[24px] shadow-2xl backdrop-blur-xl border ${isDark ? 'bg-[#0B1020]/80 border-white/5 shadow-black/50' : 'bg-white/95 border-slate-200 shadow-slate-200/50'}`}
-        >
+    <>
+      <motion.div
+        key="login-form"
+        initial={{ opacity: 0, y: 20 }}
+        animate={shake ? shakeAnimation : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+        className={`w-full max-w-[500px] p-8 md:p-10 rounded-[24px] shadow-2xl backdrop-blur-xl border ${isDark ? 'bg-[#0B1020]/80 border-white/5 shadow-black/50' : 'bg-white/95 border-slate-200 shadow-slate-200/50'}`}
+      >
           {/* Header */}
           <div className="text-center mb-8">
             <h2 className={`font-['Sora'] font-bold text-3xl mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -389,14 +385,13 @@ export const Login = () => {
           </div>
           
         </motion.div>
-      )}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes shimmer {
-          100% { transform: translateX(100%); }
-        }
-      `}} />
-    </AnimatePresence>
-  );
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes shimmer {
+            100% { transform: translateX(100%); }
+          }
+        `}} />
+      </>
+    );
 };
 
 export default Login;

@@ -14,7 +14,7 @@ import {
 } from '../constants/mockData';
 import { getMeetingUrl, generateMeetingRoom } from './jitsiService';
 
-const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = () => Promise.resolve();
 
 export const getBackendUrl = () => {
   if (import.meta.env.VITE_BACKEND_URL) {
