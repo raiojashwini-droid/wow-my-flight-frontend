@@ -345,9 +345,9 @@ export const SuperAdminDashboard = () => {
   }, [filteredQuotes, totalVolume]);
 
   // Live Lead-to-Sale Conversion Computed Values
-  const totalInquiriesCount = totalLeadsCount;
-  const convertedInquiriesCount = wonCount;
-  const liveConvRate = Math.min(100, Math.round((convertedInquiriesCount / totalInquiriesCount) * 100));
+  const totalInquiriesCount = Math.max(1, totalLeadsCount || 1);
+  const convertedInquiriesCount = wonCount || 0;
+  const liveConvRate = Math.min(100, Math.max(0, Math.round((convertedInquiriesCount / totalInquiriesCount) * 100)));
 
   // AI Flight Booking Simulation State
   const [activeSimTab, setActiveSimTab] = useState(0);
@@ -709,7 +709,7 @@ export const SuperAdminDashboard = () => {
               />
               <CircularProgress
                 variant="determinate"
-                value={liveConvRate}
+                value={Math.min(100, Math.max(0, Number(liveConvRate) || 0))}
                 size={140}
                 thickness={4.5}
                 sx={{ color: 'var(--wd-10B981, #10B981)', position: 'absolute', left: 0 }}
