@@ -615,32 +615,108 @@ export default function ManagementReportingDashboard() {
         </Box>
       </Box>
 
-      {/* ─── 3. NAVIGATION TABS ─── */}
-      <Paper elevation={0} sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'background.paper' }}>
-        <Tabs
-          value={currentTab}
-          onChange={(e, val) => setCurrentTab(val)}
-          variant="scrollable"
-          scrollButtons="auto"
-          textColor="secondary"
-          indicatorColor="secondary"
-          sx={{
-            px: 2,
-            '& .MuiTab-root': {
-              fontWeight: 800,
-              fontSize: '0.82rem',
-              py: 2,
-              minHeight: 52,
-              textTransform: 'none'
-            }
-          }}
-        >
-          <Tab label="1. Revenue & Profit P&L Analytics" icon={<TrendingUpIcon fontSize="small" />} iconPosition="start" />
-          <Tab label={`2. Sales Agent Performance Leaderboard (${agentLeaderboard.length})`} icon={<LeaderboardIcon fontSize="small" />} iconPosition="start" />
-          <Tab label={`3. Flight Operations & Route Audit (${bookings.length})`} icon={<AirlinesIcon fontSize="small" />} iconPosition="start" />
-          <Tab label={`4. Financial Receivables & Invoices (${payments.length})`} icon={<ReceiptLongIcon fontSize="small" />} iconPosition="start" />
-        </Tabs>
-      </Paper>
+      {/* ─── 3. NAVIGATION TABS (NO-SCROLL SEGMENTED MATRIX) ─── */}
+      <Box 
+        sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { 
+            xs: 'repeat(1, 1fr)', 
+            sm: 'repeat(2, 1fr)', 
+            md: 'repeat(4, 1fr)' 
+          }, 
+          gap: 1.5,
+          mb: 3.5
+        }}
+      >
+        {[
+          { id: 0, label: '1. Revenue & P&L Analytics', icon: <TrendingUpIcon sx={{ fontSize: '1.1rem' }} /> },
+          { id: 1, label: '2. Agent Leaderboard', badge: agentLeaderboard.length, icon: <LeaderboardIcon sx={{ fontSize: '1.1rem' }} /> },
+          { id: 2, label: '3. Route & Flight Audit', badge: bookings.length, icon: <AirlinesIcon sx={{ fontSize: '1.1rem' }} /> },
+          { id: 3, label: '4. Invoices & Receivables', badge: payments.length, icon: <ReceiptLongIcon sx={{ fontSize: '1.1rem' }} /> },
+        ].map((tab) => {
+          const isActive = currentTab === tab.id;
+          return (
+            <Box
+              key={tab.id}
+              component="button"
+              onClick={() => setCurrentTab(tab.id)}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 1,
+                py: 1.2,
+                px: 1.6,
+                minHeight: 48,
+                border: '1px solid',
+                borderColor: isActive ? 'primary.main' : 'divider',
+                borderRadius: 2.2,
+                bgcolor: isActive 
+                  ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main' 
+                  : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                color: isActive ? '#FFFFFF' : 'text.primary',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease-in-out',
+                outline: 'none',
+                textAlign: 'left',
+                boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.22)' : 'none',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  bgcolor: isActive 
+                    ? 'primary.dark' 
+                    : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#EFF6FF',
+                  color: isActive ? '#FFFFFF' : 'primary.main'
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
+                <Box 
+                  sx={{ 
+                    color: isActive ? '#FFFFFF' : 'primary.main', 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  {tab.icon}
+                </Box>
+                <Typography 
+                  variant="body2" 
+                  noWrap
+                  sx={{ 
+                    fontWeight: isActive ? 800 : 700, 
+                    fontSize: { xs: '0.74rem', sm: '0.78rem', md: '0.82rem' },
+                    color: 'inherit',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {tab.label}
+                </Typography>
+              </Box>
+              {tab.badge !== undefined && (
+                <Chip 
+                  label={tab.badge} 
+                  size="small" 
+                  sx={{ 
+                    height: 20, 
+                    minWidth: 20, 
+                    px: 0.6, 
+                    fontWeight: 900, 
+                    fontSize: '0.65rem',
+                    bgcolor: isActive 
+                      ? 'rgba(255,255,255,0.25)' 
+                      : (theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#E2E8F0'),
+                    color: isActive ? '#FFFFFF' : 'text.secondary',
+                    borderRadius: '10px',
+                    flexShrink: 0
+                  }} 
+                />
+              )}
+            </Box>
+          );
+        })}
+      </Box>
 
       {/* ========================================================= */}
       {/* TAB 1: REVENUE & PROFIT P&L ANALYTICS */}

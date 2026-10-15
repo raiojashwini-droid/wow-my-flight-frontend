@@ -293,29 +293,18 @@ export default function SlaManagement() {
       </Box>
 
       {/* ─── 3. TABS (NO-SCROLL RESPONSIVE MATRIX) ─── */}
-      <Paper 
-        elevation={0} 
+      <Box 
         sx={{ 
-          p: 1.2, 
-          mb: 3.5, 
-          border: '1px solid', 
-          borderColor: 'divider', 
-          borderRadius: 3, 
-          bgcolor: 'background.paper',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.02)'
+          display: 'grid', 
+          gridTemplateColumns: { 
+            xs: 'repeat(1, 1fr)', 
+            sm: 'repeat(2, 1fr)', 
+            md: 'repeat(4, 1fr)' 
+          }, 
+          gap: 1.5,
+          mb: 3.5
         }}
       >
-        <Box 
-          sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { 
-              xs: 'repeat(1, 1fr)', 
-              sm: 'repeat(2, 1fr)', 
-              md: 'repeat(4, 1fr)' 
-            }, 
-            gap: 1.2 
-          }}
-        >
           {[
             { id: 0, label: '1. Live SLA Countdown', icon: <TimerIcon sx={{ fontSize: '1.1rem' }} /> },
             { id: 1, label: '2. Mandatory Rules Config', icon: <GavelIcon sx={{ fontSize: '1.1rem' }} /> },
@@ -411,7 +400,6 @@ export default function SlaManagement() {
             );
           })}
         </Box>
-      </Paper>
 
       {/* ========================================================= */}
       {/* TAB 1: LIVE SLA COUNTDOWN TRACKER */}

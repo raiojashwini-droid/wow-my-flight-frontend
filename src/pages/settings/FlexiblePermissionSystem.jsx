@@ -331,30 +331,19 @@ export default function FlexiblePermissionSystem() {
       </Paper>
 
       {/* ─── 2. NAVIGATION TABS (NO-SCROLL SEGMENTED MATRIX) ─── */}
-      <Paper 
-        elevation={0} 
+      <Box 
         sx={{ 
-          p: 1.2, 
-          mb: 3.5, 
-          border: '1px solid', 
-          borderColor: 'divider', 
-          borderRadius: 3, 
-          bgcolor: 'background.paper',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.02)'
+          display: 'grid', 
+          gridTemplateColumns: { 
+            xs: 'repeat(1, 1fr)', 
+            sm: 'repeat(2, 1fr)', 
+            md: 'repeat(3, 1fr)', 
+            lg: 'repeat(5, 1fr)' 
+          }, 
+          gap: 1.5,
+          mb: 3.5
         }}
       >
-        <Box 
-          sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { 
-              xs: 'repeat(1, 1fr)', 
-              sm: 'repeat(2, 1fr)', 
-              md: 'repeat(3, 1fr)', 
-              lg: 'repeat(5, 1fr)' 
-            }, 
-            gap: 1.2 
-          }}
-        >
           {[
             { 
               id: 0, 
@@ -467,7 +456,6 @@ export default function FlexiblePermissionSystem() {
             );
           })}
         </Box>
-      </Paper>
 
       {/* ==================================================================== */}
       {/* TAB 0: ROLE BUILDER & CONFIGURATOR */}

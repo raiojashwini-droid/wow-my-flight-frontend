@@ -709,30 +709,19 @@ export default function TeamLeaderDashboard() {
       <AgentActivityFeed agents={floorAgents} />
 
       {/* DASHBOARD MODULE NAVIGATION (NO SCROLL - ALL 8 MODULES VISIBLE) */}
-      <Paper 
-        elevation={0} 
+      <Box 
         sx={{ 
-          p: 1.2, 
-          mb: 3, 
-          border: '1px solid', 
-          borderColor: 'divider', 
-          borderRadius: 3, 
-          bgcolor: 'background.paper',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.02)'
+          display: 'grid', 
+          gridTemplateColumns: { 
+            xs: 'repeat(2, 1fr)', 
+            sm: 'repeat(4, 1fr)', 
+            md: 'repeat(4, 1fr)', 
+            xl: 'repeat(8, 1fr)' 
+          }, 
+          gap: 1.2,
+          mb: 3.5
         }}
       >
-        <Box 
-          sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { 
-              xs: 'repeat(2, 1fr)', 
-              sm: 'repeat(4, 1fr)', 
-              md: 'repeat(4, 1fr)', 
-              xl: 'repeat(8, 1fr)' 
-            }, 
-            gap: 1 
-          }}
-        >
           {[
             { id: 0, label: '1. Overview & Floor', icon: <HeadsetIcon sx={{ fontSize: '1.05rem' }} /> },
             { id: 1, label: '2. Agent Performance', icon: <PeopleIcon sx={{ fontSize: '1.05rem' }} /> },
@@ -844,7 +833,6 @@ export default function TeamLeaderDashboard() {
             );
           })}
         </Box>
-      </Paper>
 
       {/* ========================================================= */}
       {/* TAB 1: OVERVIEW & LIVE FLOOR CALL MONITORING */}

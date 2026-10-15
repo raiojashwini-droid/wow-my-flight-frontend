@@ -10,6 +10,8 @@ import Tabs from '@mui/material/Tabs';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import DualClock from '../../components/DualClock';
+import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -292,16 +294,77 @@ export const SuperAdminRefundCommissionHub = () => {
         </Box>
       </Paper>
 
-      <Tabs
-        value={tabValue}
-        onChange={(e, val) => setTabValue(val)}
-        indicatorColor="primary"
-        textColor="primary"
-        sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}
+      {/* ─── NAVIGATION TABS (NO-BOX FLOATING PILLS) ─── */}
+      <Box 
+        sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, 
+          gap: 1.5,
+          mb: 3.5
+        }}
       >
-        <Tab label="Commission Management" />
-        <Tab label="Refund Management" />
-      </Tabs>
+        {[
+          { id: 0, label: '1. Commission Management', icon: <MonetizationOnIcon sx={{ fontSize: '1.1rem' }} /> },
+          { id: 1, label: '2. Refund Management & Visa Policies', icon: <ReceiptLongIcon sx={{ fontSize: '1.1rem' }} /> },
+        ].map((tab) => {
+          const isActive = tabValue === tab.id;
+          return (
+            <Box
+              key={tab.id}
+              component="button"
+              onClick={() => setTabValue(tab.id)}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.2,
+                py: 1.2,
+                px: 2,
+                minHeight: 48,
+                border: '1px solid',
+                borderColor: isActive ? 'primary.main' : 'divider',
+                borderRadius: 2.2,
+                bgcolor: isActive 
+                  ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main' 
+                  : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                color: isActive ? '#FFFFFF' : 'text.primary',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease-in-out',
+                outline: 'none',
+                textAlign: 'left',
+                boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.22)' : 'none',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  bgcolor: isActive 
+                    ? 'primary.dark' 
+                    : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#EFF6FF',
+                  color: isActive ? '#FFFFFF' : 'primary.main'
+                }
+              }}
+            >
+              <Box 
+                sx={{ 
+                  color: isActive ? '#FFFFFF' : 'primary.main', 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  flexShrink: 0
+                }}
+              >
+                {tab.icon}
+              </Box>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontWeight: isActive ? 800 : 700, 
+                  fontSize: { xs: '0.8rem', sm: '0.86rem' },
+                  color: 'inherit'
+                }}
+              >
+                {tab.label}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
 
       {/* Tab 1: Commission Management */}
       {tabValue === 0 && (
