@@ -412,30 +412,29 @@ export default function ManagementReportingDashboard() {
     <Box sx={{ pb: 6, minHeight: '100vh', width: '100%' }}>
 
       {/* ─── 1. TOP EXECUTIVE HEADER ─── */}
+      {/* ─── 1. TOP EXECUTIVE HEADER ─── */}
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 2, sm: 2.5, md: 3 },
-          mb: 3,
+          p: { xs: 2.2, sm: 2.8, md: 3 },
+          mb: 3.5,
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 3,
+          borderRadius: 3.5,
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', md: 'center' },
-          flexDirection: { xs: 'column', md: 'row' },
+          flexDirection: 'column',
           gap: 2,
           bgcolor: 'background.paper',
-          boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.4)' : '0 2px 10px rgba(0,0,0,0.03)'
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)'
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
           <Avatar
             sx={{
               bgcolor: 'primary.main',
               color: 'primary.contrastText',
-              width: 52,
-              height: 52,
+              width: 48,
+              height: 48,
               fontWeight: 900,
               fontSize: '1.2rem',
               boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)'
@@ -445,19 +444,19 @@ export default function ManagementReportingDashboard() {
           </Avatar>
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
-              <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.15rem', sm: '1.4rem' } }}>
+              <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.1rem', sm: '1.4rem' } }}>
                 Executive Management Reporting & Analytics Command Center
               </Typography>
               <Chip label="MANAGEMENT / C-SUITE / ADMIN" size="small" color="primary" sx={{ fontWeight: 900, fontSize: '0.65rem', height: 22 }} />
               <Chip label="REAL-TIME POSTGRESQL P&L" size="small" variant="outlined" color="secondary" sx={{ fontWeight: 800, fontSize: '0.65rem', height: 22 }} />
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' } }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
               Live Enterprise Audit of Real Bookings, Financial Yields, Rep Leaderboards, and Inbound Pipeline Performance
             </Typography>
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
           <FormControl size="small" sx={{ width: 140 }}>
             <InputLabel>Date Range</InputLabel>
             <Select value={dateRange} label="Date Range" onChange={e => setDateRange(e.target.value)}>
@@ -473,7 +472,7 @@ export default function ManagementReportingDashboard() {
             color="primary"
             startIcon={<FileDownloadIcon />}
             onClick={() => handleExport('pdf')}
-            sx={{ fontWeight: 800, borderRadius: 2 }}
+            sx={{ fontWeight: 800, borderRadius: 2.2, textTransform: 'none', height: 38 }}
           >
             PDF Export
           </Button>
@@ -482,7 +481,7 @@ export default function ManagementReportingDashboard() {
             color="success"
             startIcon={<FileDownloadIcon />}
             onClick={() => handleExport('excel')}
-            sx={{ fontWeight: 800, borderRadius: 2 }}
+            sx={{ fontWeight: 800, borderRadius: 2.2, textTransform: 'none', height: 38 }}
           >
             Excel Export
           </Button>

@@ -517,6 +517,7 @@ export default function TeamLeaderDashboard() {
     <Box sx={{ pb: 6, minHeight: '100vh', pt: { xs: 0.5, sm: 1 } }}>
       
       {/* Top Header Card with Command Center Identity */}
+      {/* ─── 1. TOP EXECUTIVE HEADER ─── */}
       <Paper 
         elevation={0} 
         sx={{ 
@@ -526,22 +527,20 @@ export default function TeamLeaderDashboard() {
           borderColor: 'divider', 
           borderRadius: 3.5, 
           bgcolor: 'background.paper',
-          boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
           display: 'flex',
-          flexDirection: { xs: 'column', lg: 'row' },
-          alignItems: { xs: 'stretch', lg: 'center' },
-          justifyContent: 'space-between',
-          gap: { xs: 2.2, lg: 3 }
+          flexDirection: 'column',
+          gap: 2
         }}
       >
-        {/* Left Side: Avatar & Identity */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.2, minWidth: 0 }}>
+        {/* Top: Avatar & Identity */}
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
           <Avatar 
             sx={{ 
-              width: { xs: 46, sm: 50 }, 
-              height: { xs: 46, sm: 50 }, 
+              width: 48, 
+              height: 48, 
               fontWeight: 900, 
-              fontSize: '1.15rem',
+              fontSize: '1.1rem',
               background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
               color: '#FFFFFF',
               boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
@@ -550,15 +549,15 @@ export default function TeamLeaderDashboard() {
           >
             TL
           </Avatar>
-          <Box sx={{ minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap', mb: 0.6 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
               <Typography 
                 variant="h5" 
                 sx={{ 
-                  fontWeight: 800, 
+                  fontWeight: 900, 
                   color: 'text.primary', 
                   fontFamily: 'Outfit, sans-serif', 
-                  fontSize: { xs: '1.2rem', sm: '1.4rem' }, 
+                  fontSize: { xs: '1.1rem', sm: '1.4rem' }, 
                   letterSpacing: '-0.01em' 
                 }}
               >
@@ -568,8 +567,8 @@ export default function TeamLeaderDashboard() {
                 label="ROLE: TEAM LEADER" 
                 size="small" 
                 sx={{ 
-                  fontWeight: 800, 
-                  fontSize: '0.68rem', 
+                  fontWeight: 900, 
+                  fontSize: '0.65rem', 
                   height: 22,
                   bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.2)' : '#EFF6FF',
                   color: 'primary.main',
@@ -594,7 +593,7 @@ export default function TeamLeaderDashboard() {
                 size="small"
                 sx={{ 
                   fontWeight: 800, 
-                  fontSize: '0.68rem', 
+                  fontSize: '0.65rem', 
                   height: 22,
                   bgcolor: isDbLive 
                     ? (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' 
@@ -606,51 +605,42 @@ export default function TeamLeaderDashboard() {
                 }}
               />
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: '0.8rem', sm: '0.86rem' } }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
               Live Flight Operations • Agent QA Oversight • Floor Escalations • Revenue Monitoring
             </Typography>
           </Box>
         </Box>
 
-        {/* Right Side: Operational Action & Clocks */}
+        {/* Bottom: Action Buttons & DualClock */}
         <Box 
           sx={{ 
             display: 'flex', 
+            gap: 1.5, 
             alignItems: 'center', 
-            justifyContent: { xs: 'flex-start', lg: 'flex-end' },
             flexWrap: 'wrap', 
-            gap: 1.5,
-            pt: { xs: 1.8, lg: 0 },
-            borderTop: { xs: '1px solid', lg: 'none' },
-            borderColor: 'divider',
-            flexShrink: 0
+            width: '100%' 
           }}
         >
           <Button
             size="small"
-            variant="outlined"
+            variant="contained"
+            color="primary"
             onClick={handleManualRefresh}
             disabled={isRefreshing}
             startIcon={isRefreshing ? <CircularProgress size={13} color="inherit" /> : <SyncIcon sx={{ fontSize: '1.1rem' }} />}
             sx={{ 
-              borderRadius: 2.5, 
-              fontSize: '0.78rem', 
-              fontWeight: 700, 
-              px: 2, 
+              borderRadius: 2.2, 
+              fontSize: '0.82rem', 
+              fontWeight: 800, 
+              px: 2.2, 
               height: 38,
-              borderColor: 'divider',
               textTransform: 'none',
-              bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#FFFFFF',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              '&:hover': {
-                borderColor: 'primary.main',
-                bgcolor: 'action.hover'
-              }
+              boxShadow: '0 4px 14px rgba(37,99,235,0.25)'
             }}
           >
-            {isRefreshing ? 'Syncing...' : 'Sync DB'}
+            {isRefreshing ? 'Syncing...' : 'Sync Live DB'}
           </Button>
-          <DualClock client={{ timezone: 'America/New_York', label: 'EST' }} />
+          <DualClock client={{ timezone: 'America/New_York', label: 'Team Leader EST' }} />
         </Box>
       </Paper>
 

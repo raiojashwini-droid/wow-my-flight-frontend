@@ -182,26 +182,25 @@ export default function SlaManagement() {
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 2, sm: 2.5, md: 3 },
-          mb: 3,
+          p: { xs: 2.2, sm: 2.8, md: 3 },
+          mb: 3.5,
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 3,
+          borderRadius: 3.5,
           display: 'flex',
-          justify: 'space-between',
-          alignItems: { xs: 'flex-start', md: 'center' },
-          flexDirection: { xs: 'column', md: 'row' },
+          flexDirection: 'column',
           gap: 2,
-          bgcolor: 'background.paper'
+          bgcolor: 'background.paper',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)'
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
           <Avatar
             sx={{
               bgcolor: 'warning.main',
               color: 'warning.contrastText',
-              width: 52,
-              height: 52,
+              width: 48,
+              height: 48,
               fontWeight: 900,
               fontSize: '1rem',
               boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)'
@@ -211,18 +210,21 @@ export default function SlaManagement() {
           </Avatar>
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
-              <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.15rem', sm: '1.4rem' } }}>
+              <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.1rem', sm: '1.4rem' } }}>
                 SLA Service Level Agreement Management System
               </Typography>
               <Chip label="ROLE: ADMIN / TL / EXPERT TL" size="small" color="warning" sx={{ fontWeight: 900, fontSize: '0.65rem', height: 22 }} />
               <Chip label="REAL-TIME MONITORING" size="small" variant="outlined" color="primary" sx={{ fontWeight: 800, fontSize: '0.65rem', height: 22 }} />
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' } }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
               Automated Response Deadlines & Escalations: New Lead (5m), High-Value (2m), Payment Ticketing (10m), Customer Request (15m)
             </Typography>
           </Box>
         </Box>
-        <DualClock client={{ timezone: 'America/New_York', label: 'SLA Engine Time (EST)' }} />
+
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+          <DualClock client={{ timezone: 'America/New_York', label: 'SLA Engine EST' }} />
+        </Box>
       </Paper>
 
       {/* ─── 2. RESPONSIVE KPI CARDS GRID ─── */}

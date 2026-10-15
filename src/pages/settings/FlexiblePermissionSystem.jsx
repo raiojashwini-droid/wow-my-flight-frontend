@@ -266,21 +266,19 @@ export default function FlexiblePermissionSystem() {
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 2, sm: 2.5 },
-          px: { xs: 2, sm: 3 },
-          mb: 3,
+          p: { xs: 2.2, sm: 2.8, md: 3 },
+          mb: 3.5,
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 3,
+          borderRadius: 3.5,
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
+          flexDirection: 'column',
           gap: 2,
-          bgcolor: 'background.paper'
+          bgcolor: 'background.paper',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)'
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexWrap: 'wrap', minWidth: 0, width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
           <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48, boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 12px rgba(0,0,0,0.5)' : '0 4px 12px rgba(63,81,181,0.3)' }}>
             <SecurityIcon fontSize="medium" />
           </Avatar>
@@ -298,13 +296,13 @@ export default function FlexiblePermissionSystem() {
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
           <Button
             variant="contained"
             color="primary"
             startIcon={<AddIcon />}
             onClick={handleOpenCreateRole}
-            sx={{ fontWeight: 800, width: { xs: '100%', sm: 'auto' } }}
+            sx={{ fontWeight: 800, borderRadius: 2.2, textTransform: 'none', height: 38 }}
           >
             Create Custom Role
           </Button>
@@ -313,7 +311,7 @@ export default function FlexiblePermissionSystem() {
             color="secondary"
             startIcon={<TuneIcon />}
             onClick={() => navigate('/super_admin/customization')}
-            sx={{ fontWeight: 800, width: { xs: '100%', sm: 'auto' } }}
+            sx={{ fontWeight: 800, borderRadius: 2.2, textTransform: 'none', height: 38 }}
           >
             Menu & Card Access
           </Button>
@@ -322,7 +320,7 @@ export default function FlexiblePermissionSystem() {
             color="primary"
             startIcon={<FileDownloadIcon />}
             onClick={handleExportCSV}
-            sx={{ fontWeight: 800, width: { xs: '100%', sm: 'auto' } }}
+            sx={{ fontWeight: 800, borderRadius: 2.2, textTransform: 'none', height: 38 }}
           >
             Export Matrix CSV
           </Button>

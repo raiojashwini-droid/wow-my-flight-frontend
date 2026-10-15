@@ -192,20 +192,18 @@ export const SuperAdminRefundCommissionHub = () => {
           borderColor: 'divider', 
           borderRadius: 3.5, 
           bgcolor: 'background.paper',
-          boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
           display: 'flex',
-          flexDirection: { xs: 'column', lg: 'row' },
-          alignItems: { xs: 'stretch', lg: 'center' },
-          justifyContent: 'space-between',
-          gap: { xs: 2.2, lg: 3 }
+          flexDirection: 'column',
+          gap: 2
         }}
       >
-        {/* Left Side: FIN Avatar & Identity */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.2, minWidth: 0 }}>
+        {/* Top: FIN Avatar & Identity */}
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
           <Avatar 
             sx={{ 
-              width: { xs: 46, sm: 50 }, 
-              height: { xs: 46, sm: 50 }, 
+              width: 48, 
+              height: 48, 
               fontWeight: 900, 
               fontSize: '1.1rem',
               background: 'linear-gradient(135deg, #7C3AED 0%, #9333EA 100%)',
@@ -216,15 +214,15 @@ export const SuperAdminRefundCommissionHub = () => {
           >
             FIN
           </Avatar>
-          <Box sx={{ minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap', mb: 0.6 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
               <Typography 
                 variant="h5" 
                 sx={{ 
-                  fontWeight: 800, 
+                  fontWeight: 900, 
                   color: 'text.primary', 
                   fontFamily: 'Outfit, sans-serif', 
-                  fontSize: { xs: '1.2rem', sm: '1.4rem' }, 
+                  fontSize: { xs: '1.1rem', sm: '1.4rem' }, 
                   letterSpacing: '-0.01em' 
                 }}
               >
@@ -234,8 +232,8 @@ export const SuperAdminRefundCommissionHub = () => {
                 label="PHASE 3: FINANCE & COMMISSIONS" 
                 size="small" 
                 sx={{ 
-                  fontWeight: 800, 
-                  fontSize: '0.68rem', 
+                  fontWeight: 900, 
+                  fontSize: '0.65rem', 
                   height: 22,
                   bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(124, 58, 237, 0.2)' : '#F5F3FF',
                   color: '#7C3AED',
@@ -260,7 +258,7 @@ export const SuperAdminRefundCommissionHub = () => {
                 size="small"
                 sx={{ 
                   fontWeight: 800, 
-                  fontSize: '0.68rem', 
+                  fontSize: '0.65rem', 
                   height: 22,
                   bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#F0FDF4',
                   color: '#047857',
@@ -270,27 +268,23 @@ export const SuperAdminRefundCommissionHub = () => {
                 }}
               />
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: '0.8rem', sm: '0.86rem' } }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
               Manage consultant commission percentages, track payouts, request service refunds, and audit visa rejections.
             </Typography>
           </Box>
         </Box>
 
-        {/* Right Side: Clocks */}
+        {/* Bottom: Action Buttons & DualClock */}
         <Box 
           sx={{ 
             display: 'flex', 
+            gap: 1.5, 
             alignItems: 'center', 
-            justifyContent: { xs: 'flex-start', lg: 'flex-end' },
             flexWrap: 'wrap', 
-            gap: 1.5,
-            pt: { xs: 1.8, lg: 0 },
-            borderTop: { xs: '1px solid', lg: 'none' },
-            borderColor: 'divider',
-            flexShrink: 0
+            width: '100%' 
           }}
         >
-          <DualClock client={{ timezone: 'America/New_York', label: 'EST' }} />
+          <DualClock client={{ timezone: 'America/New_York', label: 'Finance EST' }} />
         </Box>
       </Paper>
 

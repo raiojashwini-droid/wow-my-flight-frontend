@@ -121,26 +121,43 @@ export default function AuditTrail() {
   return (
     <Box sx={{ pb: 6, minHeight: '100vh' }}>
       
-      {/* Top Executive Header */}
-      <Paper elevation={0} sx={{ p: 2.5, px: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: 'background.paper' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      {/* ─── 1. TOP EXECUTIVE HEADER ─── */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: { xs: 2.2, sm: 2.8, md: 3 }, 
+          mb: 3.5, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          borderRadius: 3.5, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 2, 
+          bgcolor: 'background.paper',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
           <Avatar sx={{ bgcolor: '#DC2626', width: 48, height: 48, fontWeight: 900, fontSize: '1.1rem', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)' }}>
             📜
           </Avatar>
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-              <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif' }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
+              <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.1rem', sm: '1.4rem' } }}>
                 Enterprise Audit Trail & System Security Logs
               </Typography>
-              <Chip label="IMMUTABLE AUDIT LOGS" size="small" sx={{ fontWeight: 900, fontSize: '0.68rem', bgcolor: '#DC2626', color: '#FFF', height: 24 }} />
-              <Chip label="READ-ONLY COMPLIANCE" size="small" variant="outlined" color="primary" sx={{ fontWeight: 800, fontSize: '0.68rem', height: 24 }} />
+              <Chip label="IMMUTABLE AUDIT LOGS" size="small" sx={{ fontWeight: 900, fontSize: '0.65rem', bgcolor: '#DC2626', color: '#FFF', height: 22 }} />
+              <Chip label="READ-ONLY COMPLIANCE" size="small" variant="outlined" color="primary" sx={{ fontWeight: 800, fontSize: '0.65rem', height: 22 }} />
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mt: 0.2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
               Permanent activity history logging Who, What, When, Old vs New values, IP addresses, and Reasons for all CRM actions
             </Typography>
           </Box>
         </Box>
-        <DualClock client={{ timezone: 'America/New_York', label: 'Audit Timestamp (EST)' }} />
+
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+          <DualClock client={{ timezone: 'America/New_York', label: 'Audit EST' }} />
+        </Box>
       </Paper>
 
       {/* 6 REAL-TIME AUDIT KPI CARDS */}

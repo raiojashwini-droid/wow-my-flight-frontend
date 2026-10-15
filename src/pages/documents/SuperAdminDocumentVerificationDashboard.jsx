@@ -513,22 +513,20 @@ export const SuperAdminDocumentVerificationDashboard = () => {
           borderColor: 'divider', 
           borderRadius: 3.5, 
           bgcolor: 'background.paper',
-          boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
           display: 'flex',
-          flexDirection: { xs: 'column', lg: 'row' },
-          alignItems: { xs: 'stretch', lg: 'center' },
-          justifyContent: 'space-between',
-          gap: { xs: 2.2, lg: 3 }
+          flexDirection: 'column',
+          gap: 2
         }}
       >
-        {/* Left Side: QA Avatar & Identity */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.2, minWidth: 0 }}>
+        {/* Top: Avatar & Identity */}
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
           <Avatar 
             sx={{ 
-              width: { xs: 46, sm: 50 }, 
-              height: { xs: 46, sm: 50 }, 
+              width: 48, 
+              height: 48, 
               fontWeight: 900, 
-              fontSize: '1.15rem',
+              fontSize: '1.1rem',
               background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
               color: '#FFFFFF',
               boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
@@ -537,15 +535,15 @@ export const SuperAdminDocumentVerificationDashboard = () => {
           >
             QA
           </Avatar>
-          <Box sx={{ minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap', mb: 0.6 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
               <Typography 
                 variant="h5" 
                 sx={{ 
-                  fontWeight: 800, 
+                  fontWeight: 900, 
                   color: 'text.primary', 
                   fontFamily: 'Outfit, sans-serif', 
-                  fontSize: { xs: '1.2rem', sm: '1.4rem' }, 
+                  fontSize: { xs: '1.1rem', sm: '1.4rem' }, 
                   letterSpacing: '-0.01em' 
                 }}
               >
@@ -555,8 +553,8 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                 label="PHASE 3: QA OVERSIGHT" 
                 size="small" 
                 sx={{ 
-                  fontWeight: 800, 
-                  fontSize: '0.68rem', 
+                  fontWeight: 900, 
+                  fontSize: '0.65rem', 
                   height: 22,
                   bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.2)' : '#ECFDF5',
                   color: '#059669',
@@ -581,7 +579,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                 size="small"
                 sx={{ 
                   fontWeight: 800, 
-                  fontSize: '0.68rem', 
+                  fontSize: '0.65rem', 
                   height: 22,
                   bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#F0FDF4',
                   color: '#047857',
@@ -591,24 +589,20 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                 }}
               />
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: '0.8rem', sm: '0.86rem' } }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
               Manage and verify passenger passports, e-tickets, official itineraries, travel insurance, visas & payment auth forms.
             </Typography>
           </Box>
         </Box>
 
-        {/* Right Side: Action Button & DualClock */}
+        {/* Bottom: Action Button & DualClock */}
         <Box 
           sx={{ 
             display: 'flex', 
+            gap: 1.5, 
             alignItems: 'center', 
-            justifyContent: { xs: 'flex-start', lg: 'flex-end' },
             flexWrap: 'wrap', 
-            gap: 1.5,
-            pt: { xs: 1.8, lg: 0 },
-            borderTop: { xs: '1px solid', lg: 'none' },
-            borderColor: 'divider',
-            flexShrink: 0
+            width: '100%' 
           }}
         >
           <Button
@@ -617,18 +611,18 @@ export const SuperAdminDocumentVerificationDashboard = () => {
             startIcon={<CloudUploadIcon />}
             onClick={() => setUploadModalOpen(true)}
             sx={{ 
-              borderRadius: 2.5, 
+              borderRadius: 2.2, 
               fontSize: '0.82rem', 
               fontWeight: 800, 
               px: 2.5, 
-              height: 40,
+              height: 38,
               textTransform: 'none',
               boxShadow: '0 4px 14px rgba(37,99,235,0.25)'
             }}
           >
             + Upload New Document
           </Button>
-          <DualClock client={{ timezone: 'America/New_York', label: 'EST' }} />
+          <DualClock client={{ timezone: 'America/New_York', label: 'QA EST' }} />
         </Box>
       </Paper>
 
