@@ -32,43 +32,56 @@ export default function DualClock({ client }) {
   };
 
   const agentTime = formatTime(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  const clientTime = formatTime(client.timezone);
-  const hour = getClientHour(client.timezone);
+  const clientTime = formatTime(client?.timezone || 'America/New_York');
+  const hour = getClientHour(client?.timezone || 'America/New_York');
   const isDay = hour >= 6 && hour < 18;
+
+  const getClientDisplayLabel = () => {
+    if (!client?.label) return 'EST';
+    const raw = String(client.label).trim();
+    const match = raw.match(/\(([^)]+)\)/);
+    if (match) return match[1];
+    if (raw.toLowerCase().includes('client')) {
+      const cleaned = raw.replace(/client\s*(time)?/i, '').trim();
+      return cleaned || 'EST';
+    }
+    return raw;
+  };
 
   return (
     <Box sx={{ 
-      display: 'flex', 
+      display: 'inline-flex', 
       alignItems: 'center', 
-      justifyContent: { xs: 'space-between', sm: 'flex-start' },
-      flexWrap: 'wrap',
-      gap: { xs: 1, sm: 2 }, 
-      bgcolor: 'background.paper',
-      p: { xs: 1, sm: 1.5 },
-      px: { xs: 1.5, sm: 3 },
-      borderRadius: { xs: 2.5, sm: 4 },
-      boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+      justifyContent: 'center',
+      flexWrap: 'nowrap',
+      gap: 1.5, 
+      bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+      py: 0.6,
+      px: 1.8,
+      height: 38,
+      boxSizing: 'border-box',
+      borderRadius: 2.5,
       border: '1px solid',
       borderColor: 'divider',
-      width: { xs: '100%', sm: 'auto' },
-      transition: 'all 0.3s ease',
-      '&:hover': { boxShadow: '0 8px 25px rgba(0,0,0,0.06)' }
+      transition: 'all 0.2s ease',
+      whiteSpace: 'nowrap',
+      '&:hover': { borderColor: 'primary.light', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
         <AccessTimeIcon sx={{ color: 'text.secondary', fontSize: 16 }} />
         <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: { xs: 'none', sm: 'inline' } }}>Agent (Local):</Typography>
         <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: { xs: 'inline', sm: 'none' } }}>Agent:</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main', fontFamily: 'monospace' }}>{agentTime}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main', fontFamily: 'monospace', fontSize: '0.84rem' }}>{agentTime}</Typography>
       </Box>
-      <Box sx={{ width: '1px', height: 18, bgcolor: 'divider' }} />
+      <Box sx={{ width: '1px', height: 16, bgcolor: 'divider' }} />
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
         <PublicIcon sx={{ color: 'text.secondary', fontSize: 16 }} />
-        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: { xs: 'none', sm: 'inline' } }}>Client ({client?.label || 'EST'}):</Typography>
+        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: { xs: 'none', sm: 'inline' } }}>Client ({getClientDisplayLabel()}):</Typography>
         <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: { xs: 'inline', sm: 'none' } }}>Client:</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 800, color: 'secondary.main', fontFamily: 'monospace' }}>{clientTime}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 800, color: 'secondary.main', fontFamily: 'monospace', fontSize: '0.84rem' }}>{clientTime}</Typography>
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.3, borderRadius: 1.5, bgcolor: isDay ? '#FFFBEB' : '#F1F5F9' }}>
-        {isDay ? <WbSunnyIcon sx={{ color: '#F59E0B', fontSize: 14 }} /> : <NightlightRoundIcon sx={{ color: 'var(--wd-475569, #475569)', fontSize: 14 }} />}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 0.8, py: 0.2, borderRadius: 1.5, bgcolor: isDay ? '#FFFBEB' : '#F1F5F9' }}>
+        {isDay ? <WbSunnyIcon sx={{ color: '#F59E0B', fontSize: 13 }} /> : <NightlightRoundIcon sx={{ color: 'var(--wd-475569, #475569)', fontSize: 13 }} />}
         <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.62rem', color: isDay ? '#D97706' : '#334155' }}>
           {isDay ? 'DAY' : 'NIGHT'}
         </Typography>

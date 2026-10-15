@@ -266,21 +266,19 @@ export default function FlexiblePermissionSystem() {
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 2, sm: 2.5 },
-          px: { xs: 2, sm: 3 },
-          mb: 3,
+          p: { xs: 2.2, sm: 2.8, md: 3 },
+          mb: 3.5,
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 3,
+          borderRadius: 3.5,
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
+          flexDirection: 'column',
           gap: 2,
-          bgcolor: 'background.paper'
+          bgcolor: 'background.paper',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)'
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexWrap: 'wrap', minWidth: 0, width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
           <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48, boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 12px rgba(0,0,0,0.5)' : '0 4px 12px rgba(63,81,181,0.3)' }}>
             <SecurityIcon fontSize="medium" />
           </Avatar>
@@ -298,13 +296,13 @@ export default function FlexiblePermissionSystem() {
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
           <Button
             variant="contained"
             color="primary"
             startIcon={<AddIcon />}
             onClick={handleOpenCreateRole}
-            sx={{ fontWeight: 800, width: { xs: '100%', sm: 'auto' } }}
+            sx={{ fontWeight: 800, borderRadius: 2.2, textTransform: 'none', height: 38 }}
           >
             Create Custom Role
           </Button>
@@ -313,7 +311,7 @@ export default function FlexiblePermissionSystem() {
             color="secondary"
             startIcon={<TuneIcon />}
             onClick={() => navigate('/super_admin/customization')}
-            sx={{ fontWeight: 800, width: { xs: '100%', sm: 'auto' } }}
+            sx={{ fontWeight: 800, borderRadius: 2.2, textTransform: 'none', height: 38 }}
           >
             Menu & Card Access
           </Button>
@@ -322,7 +320,7 @@ export default function FlexiblePermissionSystem() {
             color="primary"
             startIcon={<FileDownloadIcon />}
             onClick={handleExportCSV}
-            sx={{ fontWeight: 800, width: { xs: '100%', sm: 'auto' } }}
+            sx={{ fontWeight: 800, borderRadius: 2.2, textTransform: 'none', height: 38 }}
           >
             Export Matrix CSV
           </Button>
@@ -330,31 +328,133 @@ export default function FlexiblePermissionSystem() {
         </Box>
       </Paper>
 
-      {/* ─── 2. NAVIGATION TABS ─── */}
-      <Paper elevation={0} sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'background.paper' }}>
-        <Tabs
-          value={currentTab}
-          onChange={(e, v) => setCurrentTab(v)}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            px: 2,
-            '& .MuiTab-root': {
-              fontWeight: 800,
-              fontSize: '0.78rem',
-              py: 1.8,
-              minHeight: 48,
-              textTransform: 'none'
-            }
-          }}
-        >
-          <Tab label={`1. Role Builder & Configurator (${roles.length})`} icon={<AdminPanelSettingsIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="2. Permission Matrix Grid" icon={<GridOnIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="3. User Permission Overrides" icon={<TuneIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="4. Organizational Hierarchy" icon={<AccountTreeIcon fontSize="small" />} iconPosition="start" />
-          <Tab label={`5. Permission Audit Trail (${auditLogs.length})`} icon={<HistoryIcon fontSize="small" />} iconPosition="start" />
-        </Tabs>
-      </Paper>
+      {/* ─── 2. NAVIGATION TABS (2 NEAT ROWS - NO CUTOFF) ─── */}
+      <Box 
+        sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { 
+            xs: 'repeat(1, 1fr)', 
+            sm: 'repeat(2, 1fr)', 
+            md: 'repeat(3, 1fr)', 
+            lg: 'repeat(3, 1fr)',
+            xl: 'repeat(3, 1fr)' 
+          }, 
+          gap: 1.5,
+          mb: 3.5
+        }}
+      >
+          {[
+            { 
+              id: 0, 
+              label: '1. Role Builder & Config', 
+              badge: roles.length, 
+              icon: <AdminPanelSettingsIcon sx={{ fontSize: '1.1rem' }} /> 
+            },
+            { 
+              id: 1, 
+              label: '2. Permission Matrix Grid', 
+              icon: <GridOnIcon sx={{ fontSize: '1.1rem' }} /> 
+            },
+            { 
+              id: 2, 
+              label: '3. User Overrides', 
+              icon: <TuneIcon sx={{ fontSize: '1.1rem' }} /> 
+            },
+            { 
+              id: 3, 
+              label: '4. Org Hierarchy', 
+              icon: <AccountTreeIcon sx={{ fontSize: '1.1rem' }} /> 
+            },
+            { 
+              id: 4, 
+              label: '5. Audit Trail', 
+              badge: auditLogs.length, 
+              icon: <HistoryIcon sx={{ fontSize: '1.1rem' }} /> 
+            },
+          ].map((tab) => {
+            const isActive = currentTab === tab.id;
+            return (
+              <Box
+                key={tab.id}
+                component="button"
+                onClick={() => setCurrentTab(tab.id)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1,
+                  py: 1.2,
+                  px: 1.5,
+                  minHeight: 48,
+                  border: '1px solid',
+                  borderColor: isActive ? 'primary.main' : 'divider',
+                  borderRadius: 2.2,
+                  bgcolor: isActive 
+                    ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main' 
+                    : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                  color: isActive ? '#FFFFFF' : 'text.primary',
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease-in-out',
+                  outline: 'none',
+                  textAlign: 'left',
+                  boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.22)' : 'none',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    bgcolor: isActive 
+                      ? 'primary.dark' 
+                      : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#EFF6FF',
+                    color: isActive ? '#FFFFFF' : 'primary.main'
+                  }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <Box 
+                    sx={{ 
+                      color: isActive ? '#FFFFFF' : 'primary.main', 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      flexShrink: 0
+                    }}
+                  >
+                    {tab.icon}
+                  </Box>
+                  <Typography 
+                    variant="body2" 
+                    noWrap
+                    sx={{ 
+                      fontWeight: isActive ? 800 : 700, 
+                      fontSize: { xs: '0.74rem', sm: '0.78rem', md: '0.82rem' },
+                      color: 'inherit',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {tab.label}
+                  </Typography>
+                </Box>
+                {tab.badge !== undefined && (
+                  <Chip 
+                    label={tab.badge} 
+                    size="small" 
+                    sx={{ 
+                      height: 20, 
+                      minWidth: 20, 
+                      px: 0.6, 
+                      fontWeight: 900, 
+                      fontSize: '0.65rem',
+                      bgcolor: isActive 
+                        ? 'rgba(255,255,255,0.25)' 
+                        : (theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#E2E8F0'),
+                      color: isActive ? '#FFFFFF' : 'text.secondary',
+                      borderRadius: '10px',
+                      flexShrink: 0
+                    }} 
+                  />
+                )}
+              </Box>
+            );
+          })}
+        </Box>
 
       {/* ==================================================================== */}
       {/* TAB 0: ROLE BUILDER & CONFIGURATOR */}

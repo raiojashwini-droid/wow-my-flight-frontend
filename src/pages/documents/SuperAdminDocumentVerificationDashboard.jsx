@@ -20,6 +20,8 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import Avatar from '@mui/material/Avatar';
+import DualClock from '../../components/DualClock';
 
 // Icons
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
@@ -500,22 +502,129 @@ export const SuperAdminDocumentVerificationDashboard = () => {
   ];
 
   return (
-    <Box sx={{ pb: 4 }}>
-      <PageHeader
-        title="Travel Documents Verification"
-        subtitle="Manage and verify passenger passports, e-tickets, official itineraries, travel insurance, visas & payment auth forms."
-        action={
+    <Box sx={{ pb: 6, minHeight: '100vh', width: '100%' }}>
+      {/* Top QA Command Header Card */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: { xs: 2.2, sm: 2.8, md: 3 }, 
+          mb: 3.5, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          borderRadius: 3.5, 
+          bgcolor: 'background.paper',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
+        }}
+      >
+        {/* Top: Avatar & Identity */}
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
+          <Avatar 
+            sx={{ 
+              width: 48, 
+              height: 48, 
+              fontWeight: 900, 
+              fontSize: '1.1rem',
+              background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+              flexShrink: 0
+            }}
+          >
+            QA
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  fontWeight: 900, 
+                  color: 'text.primary', 
+                  fontFamily: 'Outfit, sans-serif', 
+                  fontSize: { xs: '1.1rem', sm: '1.4rem' }, 
+                  letterSpacing: '-0.01em' 
+                }}
+              >
+                Travel Documents Verification
+              </Typography>
+              <Chip 
+                label="PHASE 3: QA OVERSIGHT" 
+                size="small" 
+                sx={{ 
+                  fontWeight: 900, 
+                  fontSize: '0.65rem', 
+                  height: 22,
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.2)' : '#ECFDF5',
+                  color: '#059669',
+                  border: '1px solid',
+                  borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.4)' : '#A7F3D0'
+                }} 
+              />
+              <Chip
+                icon={
+                  <Box 
+                    sx={{ 
+                      width: 8, 
+                      height: 8, 
+                      borderRadius: '50%', 
+                      bgcolor: '#10B981', 
+                      ml: 1,
+                      boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.25)' 
+                    }} 
+                  />
+                }
+                label="LIVE VAULT SECURE" 
+                size="small"
+                sx={{ 
+                  fontWeight: 800, 
+                  fontSize: '0.65rem', 
+                  height: 22,
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#F0FDF4',
+                  color: '#047857',
+                  border: '1px solid',
+                  borderColor: '#86EFAC',
+                  '& .MuiChip-icon': { ml: '6px', mr: '-2px' }
+                }}
+              />
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
+              Manage and verify passenger passports, e-tickets, official itineraries, travel insurance, visas & payment auth forms.
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Bottom: Action Button & DualClock */}
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            gap: 1.5, 
+            alignItems: 'center', 
+            flexWrap: 'wrap', 
+            width: '100%' 
+          }}
+        >
           <Button
             variant="contained"
             color="primary"
             startIcon={<CloudUploadIcon />}
             onClick={() => setUploadModalOpen(true)}
-            sx={{ fontWeight: 700 }}
+            sx={{ 
+              borderRadius: 2.2, 
+              fontSize: '0.82rem', 
+              fontWeight: 800, 
+              px: 2.5, 
+              height: 38,
+              textTransform: 'none',
+              boxShadow: '0 4px 14px rgba(37,99,235,0.25)'
+            }}
           >
             + Upload New Document
           </Button>
-        }
-      />
+          <DualClock client={{ timezone: 'America/New_York', label: 'QA EST' }} />
+        </Box>
+      </Paper>
 
       {/* ─── SECTION 1: 7 TRAVEL DOCUMENT TYPES SPECIFICATION CARDS ─── */}
       <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'background.paper' }}>

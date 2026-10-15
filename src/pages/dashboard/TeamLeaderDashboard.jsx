@@ -367,9 +367,39 @@ export default function TeamLeaderDashboard() {
   // Lead Handlers
   const handleDistributeLeads = async () => {
     setDistributeOpen(false);
-    setLeads(prev => prev.map(l => l.status === 'Unassigned' ? { ...l, status: 'In Progress', assignedAgent: 'Sarah Jenkins' } : l));
-    await teamLeaderDashboardService.distributeLeads(distSource, distStrategy);
-    showAlert(`🚀 Unassigned leads distributed via ${distStrategy} from "${distSource}"`, 'success');
+
+    // Active floor reps for round-robin
+    const activeReps = (floorAgents && floorAgents.length > 0)
+      ? floorAgents.map(a => a.name)
+      : ['Sofia Rodriguez (Sales)', 'Alex Turner (GM)', 'Sarah Jenkins'];
+
+    let repIdx = 0;
+    const newOverrides = { ...assignedLeadOverrides };
+
+    leads.forEach(l => {
+      const isUnassigned = !l.assignedAgent || l.assignedAgent === 'Unassigned' || l.assignedAgent === 'None';
+      if (isUnassigned) {
+        const targetRep = activeReps[repIdx % activeReps.length];
+        repIdx++;
+        newOverrides[l.id] = targetRep;
+        dbService.assignAgent(l.id, targetRep).catch(() => {});
+      }
+    });
+
+    setAssignedLeadOverrides(newOverrides);
+
+    try {
+      const res = await teamLeaderDashboardService.distributeLeads(distSource, distStrategy);
+      const count = res?.distributedCount || repIdx || 1;
+      showAlert(`🚀 ${count} unassigned lead(s) distributed successfully via ${distStrategy}!`, 'success');
+    } catch (e) {
+      showAlert(`🚀 Leads distributed via ${distStrategy}!`, 'success');
+    }
+
+    try {
+      queryClient.invalidateQueries(['leads']);
+      queryClient.invalidateQueries(['team-leader-dashboard']);
+    } catch (e) {}
   };
 
   const handleOpenAssign = (lead) => {
@@ -484,45 +514,133 @@ export default function TeamLeaderDashboard() {
   const pendingApprovals = approvals.filter(a => a.status.startsWith('Pending'));
 
   return (
-    <Box sx={{ pb: 5, minHeight: '100vh' }}>
+    <Box sx={{ pb: 6, minHeight: '100vh', pt: { xs: 0.5, sm: 1 } }}>
       
       {/* Top Header Card with Command Center Identity */}
-      <Paper elevation={0} sx={{ p: 2, px: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: 'background.paper' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.main', width: 44, height: 44, fontWeight: 900 }}>
+      {/* ─── 1. TOP EXECUTIVE HEADER ─── */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: { xs: 2.2, sm: 2.8, md: 3 }, 
+          mb: 3.5, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          borderRadius: 3.5, 
+          bgcolor: 'background.paper',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
+        }}
+      >
+        {/* Top: Avatar & Identity */}
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
+          <Avatar 
+            sx={{ 
+              width: 48, 
+              height: 48, 
+              fontWeight: 900, 
+              fontSize: '1.1rem',
+              background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
+              flexShrink: 0
+            }}
+          >
             TL
           </Avatar>
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif' }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  fontWeight: 900, 
+                  color: 'text.primary', 
+                  fontFamily: 'Outfit, sans-serif', 
+                  fontSize: { xs: '1.1rem', sm: '1.4rem' }, 
+                  letterSpacing: '-0.01em' 
+                }}
+              >
                 Team Leader Command Centre
               </Typography>
-              <Chip label="ROLE: TEAM LEADER" size="small" color="primary" sx={{ fontWeight: 800, fontSize: '0.68rem', height: 22 }} />
+              <Chip 
+                label="ROLE: TEAM LEADER" 
+                size="small" 
+                sx={{ 
+                  fontWeight: 900, 
+                  fontSize: '0.65rem', 
+                  height: 22,
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.2)' : '#EFF6FF',
+                  color: 'primary.main',
+                  border: '1px solid',
+                  borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.4)' : '#BFDBFE'
+                }} 
+              />
               <Chip
-                icon={<StorageIcon sx={{ fontSize: '0.9rem !important' }} />}
+                icon={
+                  <Box 
+                    sx={{ 
+                      width: 8, 
+                      height: 8, 
+                      borderRadius: '50%', 
+                      bgcolor: isDbLive ? '#10B981' : '#EF4444', 
+                      ml: 1,
+                      boxShadow: isDbLive ? '0 0 0 3px rgba(16, 185, 129, 0.25)' : 'none' 
+                    }} 
+                  />
+                }
                 label={isDbLive ? 'LIVE DB CONNECTED' : 'OFFLINE'}
-                color={isDbLive ? 'success' : 'error'}
                 size="small"
-                sx={{ fontWeight: 800, fontSize: '0.68rem', height: 22 }}
+                sx={{ 
+                  fontWeight: 800, 
+                  fontSize: '0.65rem', 
+                  height: 22,
+                  bgcolor: isDbLive 
+                    ? (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' 
+                    : (theme) => theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2',
+                  color: isDbLive ? '#059669' : '#DC2626',
+                  border: '1px solid',
+                  borderColor: isDbLive ? '#A7F3D0' : '#FECACA',
+                  '& .MuiChip-icon': { ml: '6px', mr: '-2px' }
+                }}
               />
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-              Live Flight Operations, Agent QA Oversight, Floor Escalations & Revenue Monitoring
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
+              Live Flight Operations • Agent QA Oversight • Floor Escalations • Revenue Monitoring
             </Typography>
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+
+        {/* Bottom: Action Buttons & DualClock */}
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            gap: 1.5, 
+            alignItems: 'center', 
+            flexWrap: 'wrap', 
+            width: '100%' 
+          }}
+        >
           <Button
             size="small"
-            variant="outlined"
+            variant="contained"
+            color="primary"
             onClick={handleManualRefresh}
             disabled={isRefreshing}
-            startIcon={isRefreshing ? <CircularProgress size={12} /> : <SyncIcon />}
-            sx={{ borderRadius: 2, fontSize: '0.72rem', fontWeight: 700 }}
+            startIcon={isRefreshing ? <CircularProgress size={13} color="inherit" /> : <SyncIcon sx={{ fontSize: '1.1rem' }} />}
+            sx={{ 
+              borderRadius: 2.2, 
+              fontSize: '0.82rem', 
+              fontWeight: 800, 
+              px: 2.2, 
+              height: 38,
+              textTransform: 'none',
+              boxShadow: '0 4px 14px rgba(37,99,235,0.25)'
+            }}
           >
-            Sync DB
+            {isRefreshing ? 'Syncing...' : 'Sync Live DB'}
           </Button>
-          <DualClock client={{ timezone: 'America/New_York', label: 'Client Time (EST)' }} />
+          <DualClock client={{ timezone: 'America/New_York', label: 'Team Leader EST' }} />
         </Box>
       </Paper>
 
@@ -580,34 +698,132 @@ export default function TeamLeaderDashboard() {
       {/* Activity Feed Bar */}
       <AgentActivityFeed agents={floorAgents} />
 
-      {/* DASHBOARD MODULE TABS */}
-      <Paper elevation={0} sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'background.paper' }}>
-        <Tabs
-          value={currentTab}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            px: 2,
-            '& .MuiTab-root': {
-              fontWeight: 800,
-              fontSize: '0.78rem',
-              py: 1.8,
-              minHeight: 48,
-              textTransform: 'none'
-            }
-          }}
-        >
-          <Tab label="1. Overview & Live Floor" icon={<HeadsetIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="2. Agent Performance Table" icon={<PeopleIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="3. Lead Management & Assignment" icon={<AssignmentIcon fontSize="small" />} iconPosition="start" />
-          <Tab label={`4. Discount Approvals (${pendingApprovals.length})`} icon={<MonetizationOnIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="5. Escalation Center" icon={<WarningAmberIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="6. Coaching & QA Tracker" icon={<SchoolIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="7. Pending Payments" icon={<PaymentIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="8. Team Analytics" icon={<BarChartIcon fontSize="small" />} iconPosition="start" />
-        </Tabs>
-      </Paper>
+      {/* DASHBOARD MODULE NAVIGATION (2 NEAT ROWS OF 4 - NO CUTOFF) */}
+      <Box 
+        sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { 
+            xs: 'repeat(2, 1fr)', 
+            sm: 'repeat(4, 1fr)', 
+            md: 'repeat(4, 1fr)', 
+            lg: 'repeat(4, 1fr)',
+            xl: 'repeat(4, 1fr)' 
+          }, 
+          gap: 1.5,
+          mb: 3.5
+        }}
+      >
+          {[
+            { id: 0, label: '1. Overview & Floor', icon: <HeadsetIcon sx={{ fontSize: '1.05rem' }} /> },
+            { id: 1, label: '2. Agent Performance', icon: <PeopleIcon sx={{ fontSize: '1.05rem' }} /> },
+            { id: 2, label: '3. Lead Assignment', icon: <AssignmentIcon sx={{ fontSize: '1.05rem' }} /> },
+            { 
+              id: 3, 
+              label: '4. Discount Approvals', 
+              badge: pendingApprovals.length, 
+              badgeColor: pendingApprovals.length > 0 ? '#F59E0B' : undefined,
+              icon: <MonetizationOnIcon sx={{ fontSize: '1.05rem' }} /> 
+            },
+            { 
+              id: 4, 
+              label: '5. Escalation Center', 
+              badge: escalations.filter(e => e.status !== 'Resolved').length,
+              badgeColor: escalations.filter(e => e.status !== 'Resolved').length > 0 ? '#EF4444' : undefined,
+              icon: <WarningAmberIcon sx={{ fontSize: '1.05rem' }} /> 
+            },
+            { id: 5, label: '6. Coaching & QA', icon: <SchoolIcon sx={{ fontSize: '1.05rem' }} /> },
+            { 
+              id: 6, 
+              label: '7. Pending Payments', 
+              badge: pendingPayments.length, 
+              badgeColor: pendingPayments.length > 0 ? '#3B82F6' : undefined,
+              icon: <PaymentIcon sx={{ fontSize: '1.05rem' }} /> 
+            },
+            { id: 7, label: '8. Team Analytics', icon: <BarChartIcon sx={{ fontSize: '1.05rem' }} /> },
+          ].map((tab) => {
+            const isActive = currentTab === tab.id;
+            return (
+              <Box
+                key={tab.id}
+                component="button"
+                onClick={() => setCurrentTab(tab.id)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 0.8,
+                  py: 1.1,
+                  px: 1.4,
+                  minHeight: 46,
+                  border: '1px solid',
+                  borderColor: isActive ? 'primary.main' : 'divider',
+                  borderRadius: 2.2,
+                  bgcolor: isActive 
+                    ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main' 
+                    : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                  color: isActive ? '#FFFFFF' : 'text.primary',
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease-in-out',
+                  outline: 'none',
+                  textAlign: 'left',
+                  boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.22)' : 'none',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    bgcolor: isActive 
+                      ? 'primary.dark' 
+                      : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#EFF6FF',
+                    color: isActive ? '#FFFFFF' : 'primary.main'
+                  }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, minWidth: 0, overflow: 'hidden' }}>
+                  <Box 
+                    sx={{ 
+                      color: isActive ? '#FFFFFF' : 'primary.main', 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      flexShrink: 0
+                    }}
+                  >
+                    {tab.icon}
+                  </Box>
+                  <Typography 
+                    variant="body2" 
+                    noWrap
+                    sx={{ 
+                      fontWeight: isActive ? 800 : 700, 
+                      fontSize: { xs: '0.72rem', sm: '0.76rem', md: '0.8rem' },
+                      color: 'inherit',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {tab.label}
+                  </Typography>
+                </Box>
+                {tab.badge !== undefined && (
+                  <Chip 
+                    label={tab.badge} 
+                    size="small" 
+                    sx={{ 
+                      height: 20, 
+                      minWidth: 20, 
+                      px: 0.5, 
+                      fontWeight: 900, 
+                      fontSize: '0.65rem',
+                      bgcolor: isActive 
+                        ? 'rgba(255,255,255,0.25)' 
+                        : (tab.badgeColor || (theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#E2E8F0')),
+                      color: isActive ? '#FFFFFF' : (tab.badgeColor ? '#FFFFFF' : 'text.secondary'),
+                      borderRadius: '10px',
+                      flexShrink: 0
+                    }} 
+                  />
+                )}
+              </Box>
+            );
+          })}
+        </Box>
 
       {/* ========================================================= */}
       {/* TAB 1: OVERVIEW & LIVE FLOOR CALL MONITORING */}

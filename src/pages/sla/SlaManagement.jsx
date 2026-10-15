@@ -182,26 +182,25 @@ export default function SlaManagement() {
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 2, sm: 2.5, md: 3 },
-          mb: 3,
+          p: { xs: 2.2, sm: 2.8, md: 3 },
+          mb: 3.5,
           border: '1px solid',
           borderColor: 'divider',
-          borderRadius: 3,
+          borderRadius: 3.5,
           display: 'flex',
-          justify: 'space-between',
-          alignItems: { xs: 'flex-start', md: 'center' },
-          flexDirection: { xs: 'column', md: 'row' },
+          flexDirection: 'column',
           gap: 2,
-          bgcolor: 'background.paper'
+          bgcolor: 'background.paper',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)'
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
           <Avatar
             sx={{
               bgcolor: 'warning.main',
               color: 'warning.contrastText',
-              width: 52,
-              height: 52,
+              width: 48,
+              height: 48,
               fontWeight: 900,
               fontSize: '1rem',
               boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)'
@@ -211,18 +210,21 @@ export default function SlaManagement() {
           </Avatar>
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
-              <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.15rem', sm: '1.4rem' } }}>
+              <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.1rem', sm: '1.4rem' } }}>
                 SLA Service Level Agreement Management System
               </Typography>
               <Chip label="ROLE: ADMIN / TL / EXPERT TL" size="small" color="warning" sx={{ fontWeight: 900, fontSize: '0.65rem', height: 22 }} />
               <Chip label="REAL-TIME MONITORING" size="small" variant="outlined" color="primary" sx={{ fontWeight: 800, fontSize: '0.65rem', height: 22 }} />
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.78rem', sm: '0.85rem' } }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
               Automated Response Deadlines & Escalations: New Lead (5m), High-Value (2m), Payment Ticketing (10m), Customer Request (15m)
             </Typography>
           </Box>
         </Box>
-        <DualClock client={{ timezone: 'America/New_York', label: 'SLA Engine Time (EST)' }} />
+
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+          <DualClock client={{ timezone: 'America/New_York', label: 'SLA Engine EST' }} />
+        </Box>
       </Paper>
 
       {/* ─── 2. RESPONSIVE KPI CARDS GRID ─── */}
@@ -292,32 +294,114 @@ export default function SlaManagement() {
         </Box>
       </Box>
 
-      {/* ─── 3. TABS ─── */}
-      <Paper elevation={0} sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'background.paper' }}>
-        <Tabs
-          value={currentTab}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          textColor="secondary"
-          indicatorColor="secondary"
-          sx={{
-            px: 2,
-            '& .MuiTab-root': {
-              fontWeight: 800,
-              fontSize: '0.82rem',
-              py: 2,
-              minHeight: 52,
-              textTransform: 'none'
-            }
-          }}
-        >
-          <Tab label="1. Live SLA Countdown Tracker" icon={<TimerIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="2. Mandatory SLA Rules Config" icon={<GavelIcon fontSize="small" />} iconPosition="start" />
-          <Tab label={`3. Escalation & Breach Alerts (${alerts.length})`} icon={<NotificationsActiveIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="4. Agent SLA Compliance Leaderboard" icon={<AssessmentIcon fontSize="small" />} iconPosition="start" />
-        </Tabs>
-      </Paper>
+      {/* ─── 3. TABS (NO-SCROLL RESPONSIVE MATRIX) ─── */}
+      <Box 
+        sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { 
+            xs: 'repeat(1, 1fr)', 
+            sm: 'repeat(2, 1fr)', 
+            md: 'repeat(4, 1fr)' 
+          }, 
+          gap: 1.5,
+          mb: 3.5
+        }}
+      >
+          {[
+            { id: 0, label: '1. Live SLA Countdown', icon: <TimerIcon sx={{ fontSize: '1.1rem' }} /> },
+            { id: 1, label: '2. Mandatory Rules Config', icon: <GavelIcon sx={{ fontSize: '1.1rem' }} /> },
+            { 
+              id: 2, 
+              label: '3. Escalation & Breach Alerts', 
+              badge: alerts.length, 
+              badgeColor: alerts.length > 0 ? '#EF4444' : undefined,
+              icon: <NotificationsActiveIcon sx={{ fontSize: '1.1rem' }} /> 
+            },
+            { id: 3, label: '4. Agent Leaderboard', icon: <AssessmentIcon sx={{ fontSize: '1.1rem' }} /> },
+          ].map((tab) => {
+            const isActive = currentTab === tab.id;
+            return (
+              <Box
+                key={tab.id}
+                component="button"
+                onClick={() => setCurrentTab(tab.id)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1,
+                  py: 1.2,
+                  px: 1.6,
+                  minHeight: 48,
+                  border: '1px solid',
+                  borderColor: isActive ? 'warning.main' : 'divider',
+                  borderRadius: 2.2,
+                  bgcolor: isActive 
+                    ? (theme) => theme.palette.mode === 'dark' ? 'warning.main' : '#D97706' 
+                    : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                  color: isActive ? '#FFFFFF' : 'text.primary',
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease-in-out',
+                  outline: 'none',
+                  textAlign: 'left',
+                  boxShadow: isActive ? '0 4px 14px rgba(217,119,6,0.25)' : 'none',
+                  '&:hover': {
+                    borderColor: 'warning.main',
+                    bgcolor: isActive 
+                      ? '#B45309' 
+                      : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#FFFBEB',
+                    color: isActive ? '#FFFFFF' : 'warning.dark'
+                  }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <Box 
+                    sx={{ 
+                      color: isActive ? '#FFFFFF' : '#D97706', 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      flexShrink: 0
+                    }}
+                  >
+                    {tab.icon}
+                  </Box>
+                  <Typography 
+                    variant="body2" 
+                    noWrap
+                    sx={{ 
+                      fontWeight: isActive ? 800 : 700, 
+                      fontSize: { xs: '0.74rem', sm: '0.78rem', md: '0.82rem' },
+                      color: 'inherit',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {tab.label}
+                  </Typography>
+                </Box>
+                {tab.badge !== undefined && (
+                  <Chip 
+                    label={tab.badge} 
+                    size="small" 
+                    sx={{ 
+                      height: 20, 
+                      minWidth: 20, 
+                      px: 0.6, 
+                      fontWeight: 900, 
+                      fontSize: '0.65rem',
+                      bgcolor: isActive 
+                        ? 'rgba(255,255,255,0.25)' 
+                        : (tab.badgeColor || (theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#E2E8F0')),
+                      color: isActive ? '#FFFFFF' : (tab.badgeColor ? '#FFFFFF' : 'text.secondary'),
+                      borderRadius: '10px',
+                      flexShrink: 0
+                    }} 
+                  />
+                )}
+              </Box>
+            );
+          })}
+        </Box>
 
       {/* ========================================================= */}
       {/* TAB 1: LIVE SLA COUNTDOWN TRACKER */}

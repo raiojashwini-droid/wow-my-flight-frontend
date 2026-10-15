@@ -332,55 +332,154 @@ export default function FlightRequests() {
   const [pageTab, setPageTab] = useState(0);
 
   return (
-    <Box sx={{ pb: 4 }}>
-      <PageHeader
-        title="Flight Search & GDS Requests"
-        subtitle="Search live multi-GDS flights (Amadeus/Sabre/Galileo), compare airline legs, and manage incoming requests."
-        action={
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-            <Button
-              variant="contained"
-              startIcon={<TerminalIcon sx={{ color: '#38BDF8' }} />}
-              onClick={() => setTerminalOpen(true)}
+    <Box sx={{ pb: 6 }}>
+      {/* Executive Header Banner */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 2.5, sm: 3 },
+          mb: 3,
+          borderRadius: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          background: (theme) =>
+            theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)'
+              : 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
+          boxShadow: '0 4px 20px -4px rgba(0, 0, 0, 0.05)',
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'flex-start', md: 'center' },
+          gap: 2.5,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box
+            sx={{
+              width: 52,
+              height: 52,
+              borderRadius: 2.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
+              flexShrink: 0,
+            }}
+          >
+            <FlightTakeoffIcon sx={{ fontSize: 28 }} />
+          </Box>
+          <Box>
+            <Typography
+              variant="h5"
+              component="h1"
               sx={{
-                backgroundColor: '#0F172A',
-                color: '#FFFFFF',
-                fontWeight: 800,
-                border: '1px solid rgba(56, 189, 248, 0.4)',
-                '&:hover': { backgroundColor: '#1E293B' }
+                fontWeight: 900,
+                fontSize: { xs: '1.25rem', sm: '1.45rem' },
+                letterSpacing: '-0.02em',
+                lineHeight: 1.2,
+                color: 'text.primary',
               }}
             >
-              Launch GDS Cryptic Terminal
-            </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<PlayArrowIcon />}
-              onClick={() => navigate('/flight_expert/dashboard')}
-              sx={{ fontWeight: 800 }}
+              Flight Search & GDS Requests
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: 0.5, fontSize: { xs: '0.8rem', sm: '0.875rem' }, fontWeight: 500 }}
             >
-              Open Flight Expert / GDS Desk
-            </Button>
+              Search live multi-GDS flights (Amadeus/Sabre/Galileo), compare airline legs, and manage incoming requests.
+            </Typography>
           </Box>
-        }
-      />
+        </Box>
+
+        {/* Action Buttons */}
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
+          <Button
+            variant="contained"
+            startIcon={<TerminalIcon sx={{ color: '#38BDF8' }} />}
+            onClick={() => setTerminalOpen(true)}
+            sx={{
+              backgroundColor: '#0F172A',
+              color: '#FFFFFF',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              px: 2.2,
+              py: 1.1,
+              borderRadius: 2.2,
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              boxShadow: '0 2px 8px rgba(15, 23, 42, 0.25)',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                backgroundColor: '#1E293B',
+                borderColor: '#38BDF8',
+                boxShadow: '0 4px 16px rgba(56, 189, 248, 0.25)',
+              },
+            }}
+          >
+            Launch GDS Cryptic Terminal
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<PlayArrowIcon />}
+            onClick={() => navigate('/flight_expert/dashboard')}
+            sx={{
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              px: 2.2,
+              py: 1.1,
+              borderRadius: 2.2,
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                boxShadow: '0 6px 20px rgba(37, 99, 235, 0.4)',
+              },
+            }}
+          >
+            Open Flight Expert / GDS Desk
+          </Button>
+        </Box>
+      </Paper>
 
       {/* Primary Tabs */}
-      <Paper elevation={0} sx={{ mb: 3, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', borderRadius: 2.5 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          mb: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          borderRadius: 2.5,
+          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)',
+          overflow: 'hidden',
+        }}
+      >
         <Tabs
           value={pageTab}
           onChange={(_, val) => setPageTab(val)}
           sx={{
             px: 2,
             '& .MuiTab-root': {
-              minHeight: 48,
+              minHeight: 52,
               fontWeight: 800,
-              fontSize: '0.85rem'
-            }
+              fontSize: '0.88rem',
+              textTransform: 'none',
+              letterSpacing: '-0.01em',
+            },
+            '& .Mui-selected': {
+              color: 'primary.main',
+            },
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderRadius: '3px 3px 0 0',
+            },
           }}
         >
-          <Tab icon={<SearchIcon />} iconPosition="start" label="1. Multi-GDS Flight Search & Route Breakdown" />
-          <Tab icon={<FormatListBulletedIcon />} iconPosition="start" label="2. Incoming Flight Requests Queue" />
+          <Tab icon={<SearchIcon sx={{ fontSize: 20 }} />} iconPosition="start" label="1. Multi-GDS Flight Search & Route Breakdown" />
+          <Tab icon={<FormatListBulletedIcon sx={{ fontSize: 20 }} />} iconPosition="start" label="2. Incoming Flight Requests Queue" />
         </Tabs>
       </Paper>
 

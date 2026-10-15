@@ -121,26 +121,43 @@ export default function AuditTrail() {
   return (
     <Box sx={{ pb: 6, minHeight: '100vh' }}>
       
-      {/* Top Executive Header */}
-      <Paper elevation={0} sx={{ p: 2.5, px: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: 'background.paper' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      {/* ─── 1. TOP EXECUTIVE HEADER ─── */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: { xs: 2.2, sm: 2.8, md: 3 }, 
+          mb: 3.5, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          borderRadius: 3.5, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 2, 
+          bgcolor: 'background.paper',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
           <Avatar sx={{ bgcolor: '#DC2626', width: 48, height: 48, fontWeight: 900, fontSize: '1.1rem', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)' }}>
             📜
           </Avatar>
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-              <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif' }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
+              <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.1rem', sm: '1.4rem' } }}>
                 Enterprise Audit Trail & System Security Logs
               </Typography>
-              <Chip label="IMMUTABLE AUDIT LOGS" size="small" sx={{ fontWeight: 900, fontSize: '0.68rem', bgcolor: '#DC2626', color: '#FFF', height: 24 }} />
-              <Chip label="READ-ONLY COMPLIANCE" size="small" variant="outlined" color="primary" sx={{ fontWeight: 800, fontSize: '0.68rem', height: 24 }} />
+              <Chip label="IMMUTABLE AUDIT LOGS" size="small" sx={{ fontWeight: 900, fontSize: '0.65rem', bgcolor: '#DC2626', color: '#FFF', height: 22 }} />
+              <Chip label="READ-ONLY COMPLIANCE" size="small" variant="outlined" color="primary" sx={{ fontWeight: 800, fontSize: '0.65rem', height: 22 }} />
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mt: 0.2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
               Permanent activity history logging Who, What, When, Old vs New values, IP addresses, and Reasons for all CRM actions
             </Typography>
           </Box>
         </Box>
-        <DualClock client={{ timezone: 'America/New_York', label: 'Audit Timestamp (EST)' }} />
+
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+          <DualClock client={{ timezone: 'America/New_York', label: 'Audit EST' }} />
+        </Box>
       </Paper>
 
       {/* 6 REAL-TIME AUDIT KPI CARDS */}
@@ -198,31 +215,115 @@ export default function AuditTrail() {
         </Box>
       </Box>
 
-      {/* DASHBOARD MODULE TABS */}
-      <Paper elevation={0} sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'background.paper' }}>
-        <Tabs
-          value={currentTab}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            px: 2,
-            '& .MuiTab-root': {
-              fontWeight: 800,
-              fontSize: '0.78rem',
-              py: 1.8,
-              minHeight: 48,
-              textTransform: 'none'
-            }
-          }}
-        >
-          <Tab label="1. Audit Security Dashboard" icon={<SecurityIcon fontSize="small" />} iconPosition="start" />
-          <Tab label={`2. Activity Timeline (${filteredLogs.length} Events)`} icon={<HistoryIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="3. Sensitive Changes Ledger (🔴 Red Alerts)" icon={<ReportProblemIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="4. Refund Audit Ledger" icon={<CurrencyExchangeIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="5. Login & Session History" icon={<LockIcon fontSize="small" />} iconPosition="start" />
-        </Tabs>
-      </Paper>
+      {/* ─── DASHBOARD MODULE NAVIGATION (NO-BOX 2-LINE GRID) ─── */}
+      <Box 
+        sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { 
+            xs: 'repeat(1, 1fr)', 
+            sm: 'repeat(2, 1fr)', 
+            md: 'repeat(3, 1fr)' 
+          }, 
+          gap: 1.5,
+          mb: 3.5
+        }}
+      >
+        {[
+          { id: 0, label: '1. Audit Security Dashboard', icon: <SecurityIcon sx={{ fontSize: '1.1rem' }} /> },
+          { id: 1, label: '2. Activity Timeline', badge: filteredLogs.length, icon: <HistoryIcon sx={{ fontSize: '1.1rem' }} /> },
+          { 
+            id: 2, 
+            label: '3. Sensitive Changes (Alerts)', 
+            badge: logs.filter(l => l.sensitive).length, 
+            badgeColor: '#EF4444', 
+            icon: <ReportProblemIcon sx={{ fontSize: '1.1rem' }} /> 
+          },
+          { id: 3, label: '4. Refund Audit Ledger', icon: <CurrencyExchangeIcon sx={{ fontSize: '1.1rem' }} /> },
+          { id: 4, label: '5. Login & Session History', icon: <LockIcon sx={{ fontSize: '1.1rem' }} /> },
+        ].map((tab) => {
+          const isActive = currentTab === tab.id;
+          return (
+            <Box
+              key={tab.id}
+              component="button"
+              onClick={() => setCurrentTab(tab.id)}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 1,
+                py: 1.2,
+                px: 1.6,
+                minHeight: 48,
+                border: '1px solid',
+                borderColor: isActive ? 'primary.main' : 'divider',
+                borderRadius: 2.2,
+                bgcolor: isActive 
+                  ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main' 
+                  : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                color: isActive ? '#FFFFFF' : 'text.primary',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease-in-out',
+                outline: 'none',
+                textAlign: 'left',
+                boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.22)' : 'none',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  bgcolor: isActive 
+                    ? 'primary.dark' 
+                    : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#EFF6FF',
+                  color: isActive ? '#FFFFFF' : 'primary.main'
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
+                <Box 
+                  sx={{ 
+                    color: isActive ? '#FFFFFF' : 'primary.main', 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  {tab.icon}
+                </Box>
+                <Typography 
+                  variant="body2" 
+                  noWrap
+                  sx={{ 
+                    fontWeight: isActive ? 800 : 700, 
+                    fontSize: { xs: '0.74rem', sm: '0.78rem', md: '0.82rem' },
+                    color: 'inherit',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {tab.label}
+                </Typography>
+              </Box>
+              {tab.badge !== undefined && (
+                <Chip 
+                  label={tab.badge} 
+                  size="small" 
+                  sx={{ 
+                    height: 20, 
+                    minWidth: 20, 
+                    px: 0.6, 
+                    fontWeight: 900, 
+                    fontSize: '0.65rem',
+                    bgcolor: isActive 
+                      ? 'rgba(255,255,255,0.25)' 
+                      : (tab.badgeColor || (theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#E2E8F0')),
+                    color: isActive ? '#FFFFFF' : (tab.badgeColor ? '#FFFFFF' : 'text.secondary'),
+                    borderRadius: '10px',
+                    flexShrink: 0
+                  }} 
+                />
+              )}
+            </Box>
+          );
+        })}
+      </Box>
 
       {/* ========================================================= */}
       {/* TAB 1: AUDIT SECURITY DASHBOARD */}

@@ -8,6 +8,10 @@ import Typography from '@mui/material/Typography';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Button from '@mui/material/Button';
+import Avatar from '@mui/material/Avatar';
+import DualClock from '../../components/DualClock';
+import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -177,22 +181,184 @@ export const SuperAdminRefundCommissionHub = () => {
   const agentPerformance = getAgentPerformance();
 
   return (
-    <Box>
-      <PageHeader
-        title="Refund & Commission Hub"
-        subtitle="Manage consultant commission percentages, track payouts, request service refunds, and audit visa rejections."
-      />
-
-      <Tabs
-        value={tabValue}
-        onChange={(e, val) => setTabValue(val)}
-        indicatorColor="primary"
-        textColor="primary"
-        sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}
+    <Box sx={{ pb: 6, minHeight: '100vh', width: '100%' }}>
+      {/* Top Finance Command Header Card */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: { xs: 2.2, sm: 2.8, md: 3 }, 
+          mb: 3.5, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          borderRadius: 3.5, 
+          bgcolor: 'background.paper',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
+        }}
       >
-        <Tab label="Commission Management" />
-        <Tab label="Refund Management" />
-      </Tabs>
+        {/* Top: FIN Avatar & Identity */}
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
+          <Avatar 
+            sx={{ 
+              width: 48, 
+              height: 48, 
+              fontWeight: 900, 
+              fontSize: '1.1rem',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #9333EA 100%)',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 14px rgba(147,51,234,0.3)',
+              flexShrink: 0
+            }}
+          >
+            FIN
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  fontWeight: 900, 
+                  color: 'text.primary', 
+                  fontFamily: 'Outfit, sans-serif', 
+                  fontSize: { xs: '1.1rem', sm: '1.4rem' }, 
+                  letterSpacing: '-0.01em' 
+                }}
+              >
+                Refund & Commission Hub
+              </Typography>
+              <Chip 
+                label="PHASE 3: FINANCE & COMMISSIONS" 
+                size="small" 
+                sx={{ 
+                  fontWeight: 900, 
+                  fontSize: '0.65rem', 
+                  height: 22,
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(124, 58, 237, 0.2)' : '#F5F3FF',
+                  color: '#7C3AED',
+                  border: '1px solid',
+                  borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(124, 58, 237, 0.4)' : '#DDD6FE'
+                }} 
+              />
+              <Chip
+                icon={
+                  <Box 
+                    sx={{ 
+                      width: 8, 
+                      height: 8, 
+                      borderRadius: '50%', 
+                      bgcolor: '#10B981', 
+                      ml: 1,
+                      boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.25)' 
+                    }} 
+                  />
+                }
+                label="LIVE MARGIN MATRIX" 
+                size="small"
+                sx={{ 
+                  fontWeight: 800, 
+                  fontSize: '0.65rem', 
+                  height: 22,
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#F0FDF4',
+                  color: '#047857',
+                  border: '1px solid',
+                  borderColor: '#86EFAC',
+                  '& .MuiChip-icon': { ml: '6px', mr: '-2px' }
+                }}
+              />
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
+              Manage consultant commission percentages, track payouts, request service refunds, and audit visa rejections.
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Bottom: Action Buttons & DualClock */}
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            gap: 1.5, 
+            alignItems: 'center', 
+            flexWrap: 'wrap', 
+            width: '100%' 
+          }}
+        >
+          <DualClock client={{ timezone: 'America/New_York', label: 'Finance EST' }} />
+        </Box>
+      </Paper>
+
+      {/* ─── NAVIGATION TABS (NO-BOX FLOATING PILLS) ─── */}
+      <Box 
+        sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, 
+          gap: 1.5,
+          mb: 3.5
+        }}
+      >
+        {[
+          { id: 0, label: '1. Commission Management', icon: <MonetizationOnIcon sx={{ fontSize: '1.1rem' }} /> },
+          { id: 1, label: '2. Refund Management & Visa Policies', icon: <ReceiptLongIcon sx={{ fontSize: '1.1rem' }} /> },
+        ].map((tab) => {
+          const isActive = tabValue === tab.id;
+          return (
+            <Box
+              key={tab.id}
+              component="button"
+              onClick={() => setTabValue(tab.id)}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.2,
+                py: 1.2,
+                px: 2,
+                minHeight: 48,
+                border: '1px solid',
+                borderColor: isActive ? 'primary.main' : 'divider',
+                borderRadius: 2.2,
+                bgcolor: isActive 
+                  ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main' 
+                  : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                color: isActive ? '#FFFFFF' : 'text.primary',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease-in-out',
+                outline: 'none',
+                textAlign: 'left',
+                boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.22)' : 'none',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  bgcolor: isActive 
+                    ? 'primary.dark' 
+                    : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#EFF6FF',
+                  color: isActive ? '#FFFFFF' : 'primary.main'
+                }
+              }}
+            >
+              <Box 
+                sx={{ 
+                  color: isActive ? '#FFFFFF' : 'primary.main', 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  flexShrink: 0
+                }}
+              >
+                {tab.icon}
+              </Box>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontWeight: isActive ? 800 : 700, 
+                  fontSize: { xs: '0.8rem', sm: '0.86rem' },
+                  color: 'inherit'
+                }}
+              >
+                {tab.label}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
 
       {/* Tab 1: Commission Management */}
       {tabValue === 0 && (

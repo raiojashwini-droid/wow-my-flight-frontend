@@ -789,9 +789,9 @@ export const DashboardLayout = () => {
         {sidebarOpen && (
           <ListItemText
             primary={
-              currentUser?.role === 'consultant' && item.label === 'Leads' ? 'My Leads' : 
-              currentUser?.role === 'consultant' && item.label === 'Customers' ? 'My Customers' : 
-              item.label
+              currentUser?.role === 'consultant' && item.label === 'Leads' ? 'My Leads' :
+                currentUser?.role === 'consultant' && item.label === 'Customers' ? 'My Customers' :
+                  item.label
             }
             sx={{ m: 0 }}
             slotProps={{
@@ -1211,18 +1211,20 @@ export const DashboardLayout = () => {
       {/* Main Content Area */}
       <Box
         component="main"
-        className="flex-grow h-full overflow-y-auto overflow-x-hidden flex flex-col box-border min-w-0 w-full px-2 sm:px-3 md:px-4 pb-6"
+        className="flex-grow h-full overflow-y-auto overflow-x-hidden flex flex-col box-border min-w-0 w-full"
         sx={{
           backgroundColor: 'background.default',
           // Critical: prevent any child from blowing out the container
           minWidth: 0,
           maxWidth: '100%',
-          pt: { xs: '68px', sm: '80px' },
+          pt: { xs: '76px', sm: '86px', md: '88px' },
+          px: { xs: 2, sm: 3, md: 3.5 },
+          pb: { xs: 3, sm: 5 },
         }}
       >
         <Outlet />
-<IncomingCallModal />
-<CallDispositionModal />
+        <IncomingCallModal />
+        <CallDispositionModal />
       </Box>
     </Box>
   );
