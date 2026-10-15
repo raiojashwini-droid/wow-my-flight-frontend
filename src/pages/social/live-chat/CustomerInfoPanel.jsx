@@ -36,7 +36,7 @@ const ActionModal = ({ isOpen, onClose, title, children }) => {
 
 export const CustomerInfoPanel = ({ session, onClose, isMobile }) => {
   const [modalState, setModalState] = useState(null); // 'lead', 'link', 'tag', null
-  const [activeTags, setActiveTags] = useState(['VIP', 'Booking']);
+  const [activeTags, setActiveTags] = useState(session?.tags || []);
 
   const handleAddTag = (t) => {
     if (!activeTags.includes(t)) {
@@ -87,7 +87,7 @@ export const CustomerInfoPanel = ({ session, onClose, isMobile }) => {
               </div>
               <div className="flex items-center gap-3 text-sm text-slate-600">
                 <MapPin size={16} className="text-slate-400 shrink-0" />
-                <span>Delhi, India (Estimated)</span>
+                <span>{session.customerLocation || session.ipLocation || 'Verified Customer IP'}</span>
               </div>
             </div>
 

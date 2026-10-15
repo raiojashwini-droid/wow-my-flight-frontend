@@ -1860,6 +1860,12 @@ export const dbService = {
       body: JSON.stringify(data)
     });
   },
+  createRoutingRule: async (data) => {
+    return await apiFetch('/api/leads/distribution/rules', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
   reassignLeadRoute: async (data) => {
     return await apiFetch('/api/leads/distribution/reassign', {
       method: 'POST',
@@ -1874,7 +1880,10 @@ export const dbService = {
   // ─── DUPLICATE LEAD PROTECTION API ───
   getDuplicateLeads: async () => {
     const res = await apiFetch('/api/leads/duplicates/detect');
-    return res && res.success ? res.data : null;
+    if (!res || !res.success) return [];
+    const list = Array.isArray(res.data) ? res.data : [];
+    list.stats = res.stats || null;
+    return list;
   },
   mergeDuplicateLeads: async (data) => {
     return await apiFetch('/api/leads/duplicates/merge', {

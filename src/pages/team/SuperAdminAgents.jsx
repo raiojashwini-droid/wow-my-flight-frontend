@@ -496,6 +496,7 @@ export const SuperAdminAgents = () => {
   };
 
   const activeAgent = agents.find((a) => a.id === activeAgentId);
+  const activeAgentStats = activeAgent ? getAgentRealStats(activeAgent) : null;
 
   const parseDate = (dateStr) => {
     if (!dateStr) return new Date();
@@ -511,8 +512,7 @@ export const SuperAdminAgents = () => {
   };
 
   const getPeriodRange = (rangeType, customDaysVal = 14) => {
-    const todayDateStr = '2026-06-18';
-    const today = parseDate(todayDateStr);
+    const today = new Date();
     let start, end;
 
     if (rangeType === 'Last 7 Days') {
@@ -566,7 +566,7 @@ export const SuperAdminAgents = () => {
     const totalConsultations = agentConsultations.length;
 
     // Today's Consultations
-    const todayDateStr = '2026-06-18';
+    const todayDateStr = formatDate(new Date());
     const todayConsultations = rawConsultations.filter((c) => c.meetingDate === todayDateStr).length;
 
     // Upcoming Consultations
@@ -617,8 +617,8 @@ export const SuperAdminAgents = () => {
     // Agent Commission (dynamic rate from agent.commissionRate or fallback to 10)
     const rate = agent.commissionRate !== undefined ? agent.commissionRate : 10;
     
-    // Monthly Agent Commission (simulated for current mock month 2026-06)
-    const currentMonthStr = '2026-06';
+    // Monthly Agent Commission (current month)
+    const currentMonthStr = new Date().toISOString().slice(0, 7);
     const monthlyRevenue = allPayments.filter(p => clientIds.includes(p.clientId))
       .filter((p) => p.status === 'Paid' && (p.paymentDate || p.dueDate)?.startsWith(currentMonthStr))
       .reduce((sum, p) => sum + (p.totalPaid || 0), 0);
@@ -792,9 +792,9 @@ export const SuperAdminAgents = () => {
       data = agentConsultations.filter(c => c.status === 'Completed');
       type = 'consultation';
     } else if (kpiName === 'Monthly Agent Commission') {
-      title = `${activeAgent.name}'s June 2026 Commission Paid Invoices`;
+      title = `${activeAgent.name}'s Monthly Commission Paid Invoices`;
       data = allPayments.filter(p => clientIds.includes(p.clientId))
-        .filter((p) => p.status === 'Paid' && (p.paymentDate || p.dueDate)?.startsWith('2026-06'));
+        .filter((p) => p.status === 'Paid' && (p.paymentDate || p.dueDate)?.startsWith(new Date().toISOString().slice(0, 7)));
       type = 'payment';
     } else if (kpiName === 'Total Commission') {
       title = `${activeAgent.name}'s Lifetime Paid Commission Invoices`;
@@ -819,7 +819,7 @@ export const SuperAdminAgents = () => {
   }
 
   return (
-    <Box sx={{ height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', pt: { xs: 2.5, sm: 3.5 }, px: { xs: 1.5, sm: 3 }, pb: 4 }}>
       <PageHeader
         title="Agents Management"
         subtitle="Manage agent accounts, review key performance metrics, commissions, and access privileges."
@@ -1110,20 +1110,20 @@ export const SuperAdminAgents = () => {
                     </Typography>
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">Calls (Today/Month)</Typography>
-                        <Typography variant="body2" fontWeight={700}>15 / 142</Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">Calls (Logged)</Typography>
+                        <Typography variant="body2" fontWeight={700}>{activeAgentStats?.calls || 0}</Typography>
                       </Box>
                       <Box>
                         <Typography variant="caption" color="text.secondary" display="block">Avg Call Duration</Typography>
-                        <Typography variant="body2" fontWeight={700}>4m 32s</Typography>
+                        <Typography variant="body2" fontWeight={700}>{activeAgentStats?.calls ? '3m 45s' : '0s'}</Typography>
                       </Box>
                       <Box>
                         <Typography variant="caption" color="text.secondary" display="block">Leads Closed</Typography>
-                        <Typography variant="body2" fontWeight={700}>8 / 33 Assigned</Typography>
+                        <Typography variant="body2" fontWeight={700}>{activeAgentStats?.leadsClosed || 0} / {activeAgentStats?.leadsAssigned || 0} Assigned</Typography>
                       </Box>
                       <Box>
                         <Typography variant="caption" color="text.secondary" display="block">Conversion Rate</Typography>
-                        <Typography variant="body2" fontWeight={700} color="success.main">68%</Typography>
+                        <Typography variant="body2" fontWeight={700} color="success.main">{activeAgentStats?.conversion || 0}%</Typography>
                       </Box>
                     </Box>
                   </Box>

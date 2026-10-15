@@ -44,98 +44,70 @@ import { useAlert } from '../../contexts/AlertContext';
 import { dbService } from '../../services/dbService';
 
 // ==========================================
-// DATASETS & DUPLICATE PAIRS
-// ==========================================
-
-const DUPLICATE_PAIRS = [
-  {
-    id: 'DUP-881',
-    confidenceScore: 100,
-    confidenceBadge: 'High Match (100%)',
-    badgeColor: '#059669',
-    matchReason: 'Exact Match: Same Email (harold.vance@embassy.gov)',
-    existingLead: {
-      id: 'LD-8440',
-      name: 'Ambassador Harold Vance',
-      email: 'harold.vance@embassy.gov',
-      phone: '+1 555-234-8901',
-      route: 'DEL ➔ LHR ➔ JFK',
-      agent: 'Sarah Jenkins',
-      status: 'Quote Sent',
-      source: 'Google Ads',
-      expectedValue: 28500,
-      lastContact: '2026-08-20 10:15'
-    },
-    incomingLead: {
-      id: 'LD-99144 (New Inquiry)',
-      name: 'Harold Vance',
-      email: 'harold.vance@embassy.gov',
-      phone: '+1 555-234-8901',
-      route: 'DEL ➔ LHR',
-      agent: 'Unassigned',
-      status: 'New Inquiry',
-      source: 'WhatsApp Inbound',
-      expectedValue: 28500,
-      lastContact: '2026-08-20 14:30'
-    },
-    detectedDate: '2026-08-20 14:30'
-  }
-];
-
-// ==========================================
 // MAIN COMPONENT
 // ==========================================
 
 export default function DuplicateLeadProtection() {
   const { showAlert } = useAlert();
-  const [pairs, setPairs] = useState(DUPLICATE_PAIRS);
-  const [selectedPair, setSelectedPair] = useState(DUPLICATE_PAIRS[0]);
+  const [pairs, setPairs] = useState([]);
+  const [selectedPair, setSelectedPair] = useState(null);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
-  const [warningModalOpen, setWarningModalOpen] = useState(false);
+  const [stats, setStats] = useState({
+    detected: 0,
+    merged: 0,
+    reengaged: 0,
+    pending: 0,
+    preventionRate: '100%'
+  });
+
+  const fetchLiveDuplicates = async () => {
+    try {
+      const liveDuplicates = await dbService.getDuplicateLeads();
+      if (liveDuplicates && liveDuplicates.stats) {
+        setStats(liveDuplicates.stats);
+      }
+      if (Array.isArray(liveDuplicates)) {
+        const formatted = liveDuplicates.map(d => ({
+          ...d,
+          existingLead: {
+            id: d.existingLead?.id || 'LEAD-EXT',
+            name: `${d.existingLead?.firstName || ''} ${d.existingLead?.lastName || ''}`.trim() || 'Customer',
+            email: d.existingLead?.email || 'N/A',
+            phone: d.existingLead?.phone || 'N/A',
+            route: d.existingLead?.origin && d.existingLead?.destination ? `${d.existingLead.origin} ➔ ${d.existingLead.destination}` : (d.existingLead?.route || 'Route Not Specified'),
+            agent: d.existingLead?.assignedAgent?.name || 'Assigned Rep',
+            status: d.existingLead?.status || 'Active Lead',
+            source: d.existingLead?.source || 'Direct',
+            expectedValue: d.existingLead?.budget || 2500,
+            lastContact: d.existingLead?.createdAt ? new Date(d.existingLead.createdAt).toLocaleString() : 'Recent'
+          },
+          incomingLead: {
+            id: d.incomingLead?.id || 'LEAD-INC',
+            name: `${d.incomingLead?.firstName || ''} ${d.incomingLead?.lastName || ''}`.trim() || 'New Inquiry',
+            email: d.incomingLead?.email || 'N/A',
+            phone: d.incomingLead?.phone || 'N/A',
+            route: d.incomingLead?.origin && d.incomingLead?.destination ? `${d.incomingLead.origin} ➔ ${d.incomingLead.destination}` : (d.incomingLead?.route || 'Route Not Specified'),
+            agent: 'Unassigned',
+            status: d.incomingLead?.status || 'New Inquiry',
+            source: d.incomingLead?.source || 'Inbound Channel',
+            expectedValue: d.incomingLead?.budget || 2500,
+            lastContact: 'Just now'
+          }
+        }));
+        setPairs(formatted);
+        setSelectedPair(formatted.length > 0 ? formatted[0] : null);
+      } else {
+        setPairs([]);
+        setSelectedPair(null);
+      }
+    } catch (e) {
+      console.warn('⚠️ [DuplicateLeadProtection] Live duplicate load error:', e.message);
+    }
+  };
 
   // Live duplicate detection
   useEffect(() => {
-    let isMounted = true;
-    const fetchLiveDuplicates = async () => {
-      try {
-        const liveDuplicates = await dbService.getDuplicateLeads();
-        if (isMounted && Array.isArray(liveDuplicates) && liveDuplicates.length > 0) {
-          const formatted = liveDuplicates.map(d => ({
-            ...d,
-            existingLead: {
-              id: d.existingLead?.id || 'LD-8440',
-              name: `${d.existingLead?.firstName || ''} ${d.existingLead?.lastName || ''}`.trim() || 'Customer',
-              email: d.existingLead?.email || '',
-              phone: d.existingLead?.phone || '',
-              route: `${d.existingLead?.origin || 'DEL'} ➔ ${d.existingLead?.destination || 'JFK'}`,
-              agent: d.existingLead?.assignedAgent?.name || 'Assigned Rep',
-              status: d.existingLead?.status || 'New Lead',
-              source: d.existingLead?.source || 'Website',
-              expectedValue: 2500,
-              lastContact: d.existingLead?.createdAt ? new Date(d.existingLead.createdAt).toLocaleString() : 'Recent'
-            },
-            incomingLead: {
-              id: d.incomingLead?.id || 'LD-INCOMING',
-              name: `${d.incomingLead?.firstName || ''} ${d.incomingLead?.lastName || ''}`.trim() || 'New Inquiry',
-              email: d.incomingLead?.email || '',
-              phone: d.incomingLead?.phone || '',
-              route: `${d.incomingLead?.origin || 'DEL'} ➔ ${d.incomingLead?.destination || 'JFK'}`,
-              agent: 'Unassigned',
-              status: d.incomingLead?.status || 'New Inquiry',
-              source: d.incomingLead?.source || 'WhatsApp Inbound',
-              expectedValue: 2500,
-              lastContact: 'Just now'
-            }
-          }));
-          setPairs(formatted);
-          if (formatted.length > 0) setSelectedPair(formatted[0]);
-        }
-      } catch (e) {
-        console.warn('⚠️ [DuplicateLeadProtection] Live duplicate load error:', e.message);
-      }
-    };
     fetchLiveDuplicates();
-    return () => { isMounted = false; };
   }, []);
 
   // Field selection state for merge
@@ -148,6 +120,7 @@ export default function DuplicateLeadProtection() {
   });
 
   const handleMergeSubmit = async () => {
+    if (!selectedPair) return;
     try {
       await dbService.mergeDuplicateLeads({
         primaryId: selectedPair.existingLead.id,
@@ -155,6 +128,11 @@ export default function DuplicateLeadProtection() {
         pairKey: selectedPair.pairKey
       });
       setPairs(pairs.filter(p => p.id !== selectedPair.id));
+      setStats(prev => ({
+        ...prev,
+        merged: prev.merged + 1,
+        pending: Math.max(0, prev.pending - 1)
+      }));
       setMergeModalOpen(false);
       showAlert(`✓ Successfully merged duplicate records into Primary ${selectedPair.existingLead.id} in live backend! No history lost.`, 'success');
     } catch {
@@ -168,6 +146,10 @@ export default function DuplicateLeadProtection() {
     try {
       await dbService.dismissDuplicatePair(p.pairKey);
       setPairs(pairs.filter(item => item.id !== p.id));
+      setStats(prev => ({
+        ...prev,
+        pending: Math.max(0, prev.pending - 1)
+      }));
       showAlert(`Duplicate record dismissed`, 'info');
     } catch {
       setPairs(pairs.filter(item => item.id !== p.id));
@@ -176,30 +158,52 @@ export default function DuplicateLeadProtection() {
   };
 
   return (
-    <Box sx={{ pb: 6, minHeight: '100vh' }}>
+    <Box sx={{ pb: 6, minHeight: '100vh', pt: 3, px: { xs: 0.5, sm: 1 } }}>
       
       {/* Top Executive Header */}
-      <Paper elevation={0} sx={{ p: 2.5, px: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: 'background.paper' }}>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: { xs: 2, sm: 2.5, md: 3 }, 
+          mb: 3, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          borderRadius: 3, 
+          display: 'flex', 
+          flexDirection: { xs: 'column', md: 'row' },
+          justifyContent: 'space-between', 
+          alignItems: { xs: 'flex-start', md: 'center' }, 
+          gap: 2.5, 
+          bgcolor: 'background.paper',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar sx={{ bgcolor: '#3F51B5', width: 48, height: 48, fontWeight: 900, fontSize: '1.1rem', boxShadow: '0 4px 12px rgba(63, 81, 181, 0.3)' }}>
             🛡️
           </Avatar>
           <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap' }}>
               <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif' }}>
                 Duplicate Lead Protection & Smart Customer Linking Engine
               </Typography>
-              <Chip label="98.6% PREVENTION RATE" size="small" sx={{ fontWeight: 900, fontSize: '0.68rem', bgcolor: '#059669', color: '#FFF' }} />
+              <Chip label={`${stats.preventionRate} PREVENTION RATE`} size="small" sx={{ fontWeight: 900, fontSize: '0.68rem', bgcolor: '#059669', color: '#FFF' }} />
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mt: 0.2 }}>
-              Real-time exact/combined matching, confidence scoring, side-by-side merge, and repeat inquiry linking
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mt: 0.5 }}>
+              Real-time exact & phone matching, confidence scoring, side-by-side merge, and repeat inquiry linking
             </Typography>
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Button variant="outlined" color="warning" startIcon={<WarningAmberIcon />} onClick={() => setWarningModalOpen(true)} sx={{ fontWeight: 800 }}>
-            Simulate Duplicate Warning
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+          <Button 
+            variant="outlined" 
+            color="primary" 
+            startIcon={<SecurityIcon />} 
+            onClick={fetchLiveDuplicates} 
+            sx={{ fontWeight: 800, textTransform: 'none' }}
+          >
+            Re-Scan Leads
           </Button>
           <DualClock client={{ timezone: 'America/New_York', label: 'Protection EST' }} />
         </Box>
@@ -208,11 +212,11 @@ export default function DuplicateLeadProtection() {
       {/* 5 DUPLICATE ANALYTICS KPI CARDS */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(5, 1fr)' }, gap: 1.5, mb: 3 }}>
         {[
-          { label: 'Duplicate Leads Detected', val: '142', color: '#3F51B5' },
-          { label: 'Merged Leads', val: '128', color: '#059669' },
-          { label: 'Customers Re-engaged', val: '89', color: '#7C3AED' },
-          { label: 'Manual Review Pending', val: '14', color: '#D97706' },
-          { label: 'Duplicate Prevention %', val: '98.6%', color: '#059669' }
+          { label: 'Duplicate Leads Detected', val: stats.detected, color: '#3F51B5' },
+          { label: 'Merged Leads', val: stats.merged, color: '#059669' },
+          { label: 'Customers Re-engaged', val: stats.reengaged, color: '#7C3AED' },
+          { label: 'Manual Review Pending', val: stats.pending, color: '#D97706' },
+          { label: 'Duplicate Prevention %', val: stats.preventionRate, color: '#059669' }
         ].map((kpi, i) => (
           <Paper key={i} elevation={0} sx={{ p: 2, borderRadius: 2.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', position: 'relative', overflow: 'hidden', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: kpi.color } }}>
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.68rem', display: 'block' }}>{kpi.label}</Typography>
@@ -242,116 +246,69 @@ export default function DuplicateLeadProtection() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {pairs.map((p) => (
-                <TableRow key={p.id} hover>
-                  <TableCell sx={{ fontWeight: 900, fontFamily: 'monospace' }}>{p.id}</TableCell>
-                  <TableCell>
-                    <Chip label={p.confidenceBadge} size="small" sx={{ fontWeight: 900, bgcolor: p.badgeColor, color: '#FFF' }} />
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>
-                    {p.existingLead.name} ({p.existingLead.id}) • Rep: {p.existingLead.agent}
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 800, color: 'primary.main' }}>
-                    {p.incomingLead.name} ({p.incomingLead.source})
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.8rem' }}>
-                    {p.matchReason}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="primary"
-                        startIcon={<MergeTypeIcon />}
-                        onClick={() => { setSelectedPair(p); setMergeModalOpen(true); }}
-                        sx={{ fontWeight: 800, fontSize: '0.72rem' }}
-                      >
-                        Compare & Merge
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="inherit"
-                        startIcon={<CloseIcon />}
-                        onClick={() => handleDismissPair(p)}
-                        sx={{ fontWeight: 700, fontSize: '0.72rem' }}
-                      >
-                        Dismiss
-                      </Button>
+              {pairs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                      <CheckCircleIcon sx={{ fontSize: 44, color: '#059669' }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                        No Duplicate Leads Detected
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 500 }}>
+                        The real-time duplicate engine is active and continuously scanning incoming email, phone, and passenger combinations. All active CRM leads are 100% unique.
+                      </Typography>
                     </Box>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                pairs.map((p) => (
+                  <TableRow key={p.id} hover>
+                    <TableCell sx={{ fontWeight: 900, fontFamily: 'monospace' }}>{p.id}</TableCell>
+                    <TableCell>
+                      <Chip label={p.confidenceBadge} size="small" sx={{ fontWeight: 900, bgcolor: p.badgeColor, color: '#FFF' }} />
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>
+                      {p.existingLead?.name} ({p.existingLead?.id}) • Rep: {p.existingLead?.agent}
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: 'primary.main' }}>
+                      {p.incomingLead?.name} ({p.incomingLead?.source})
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.8rem' }}>
+                      {p.matchReason}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          startIcon={<MergeTypeIcon />}
+                          onClick={() => { setSelectedPair(p); setMergeModalOpen(true); }}
+                          sx={{ fontWeight: 800, fontSize: '0.72rem' }}
+                        >
+                          Compare & Merge
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="inherit"
+                          startIcon={<CloseIcon />}
+                          onClick={() => handleDismissPair(p)}
+                          sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+                        >
+                          Dismiss
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
       </Paper>
 
       {/* REAL-TIME DUPLICATE WARNING POPUP SIMULATOR */}
-      <Dialog
-        open={warningModalOpen}
-        onClose={() => setWarningModalOpen(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            mx: { xs: 1.5, sm: 3 },
-            my: { xs: 1, sm: 2 },
-            maxHeight: { xs: 'calc(100dvh - 32px)', sm: '85vh' },
-            borderRadius: 3,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }
-        }}
-      >
-        <DialogTitle sx={{ fontWeight: 900, color: '#DC2626', display: 'flex', alignItems: 'center', gap: 1, py: 2, px: { xs: 2, sm: 3 }, flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
-          <WarningAmberIcon /> Potential Existing Customer / Lead Detected!
-        </DialogTitle>
-        <DialogContent
-          className="modal-scroll"
-          sx={{
-            py: 2.5,
-            px: { xs: 2, sm: 3 },
-            maxHeight: { xs: '55vh', sm: '60vh', md: '65vh' },
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            overscrollBehavior: 'contain',
-            flexGrow: 1,
-            WebkitOverflowScrolling: 'touch'
-          }}
-        >
-          <Alert severity="warning" sx={{ mb: 2, fontWeight: 700 }}>
-            Exact Match Found: Email <b>harold.vance@embassy.gov</b> & Phone <b>+1 555-234-8901</b> already exists in Customer 360!
-          </Alert>
-
-          <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'var(--wl-FEFCE8, #FEFCE8)', borderColor: '#FDE047' }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#D97706', mb: 1 }}>Existing Lead Profile Details:</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 800 }}>Customer Name: Ambassador Harold Vance</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>
-              Existing Lead ID: <b>LD-99120</b> • Assigned Agent: <b>Sarah Jenkins</b> • Status: <b>Quote Sent</b>
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>
-              Travel Route: <b>DEL ➔ LHR ➔ JFK</b> • Expected Value: <b>$28,500</b> • Last Contact: <b>2026-08-20 10:15</b>
-            </Typography>
-          </Paper>
-        </DialogContent>
-        <DialogActions sx={{ py: 2, px: { xs: 2, sm: 3 }, borderTop: '1px solid', borderColor: 'divider', flexShrink: 0, bgcolor: 'background.paper', justifyContent: 'space-between' }}>
-          <Button variant="outlined" color="primary" onClick={() => { setWarningModalOpen(false); showAlert('Navigating to existing Lead LD-99120 Customer 360 profile', 'info'); }}>
-            View Existing Lead
-          </Button>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant="contained" color="success" onClick={() => { setWarningModalOpen(false); setMergeModalOpen(true); }}>
-              Merge into Existing Lead
-            </Button>
-            <Button variant="outlined" color="error" onClick={() => setWarningModalOpen(false)}>
-              Cancel
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
-
       {/* SIDE-BY-SIDE MERGE COMPARISON SCREEN */}
       <Dialog
         open={mergeModalOpen}
@@ -371,7 +328,7 @@ export default function DuplicateLeadProtection() {
         }}
       >
         <DialogTitle sx={{ fontWeight: 900, color: 'primary.main', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2, px: { xs: 2, sm: 3 }, flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
-          <span>Side-by-Side Duplicate Merge Comparison Screen ({selectedPair?.id})</span>
+          <span>Side-by-Side Duplicate Merge Comparison Screen ({selectedPair?.id || 'Pair'})</span>
           <Chip label="ZERO DATA LOSS GUARANTEED" size="small" color="success" sx={{ fontWeight: 900 }} />
         </DialogTitle>
         <DialogContent
@@ -395,25 +352,25 @@ export default function DuplicateLeadProtection() {
             {/* Primary Existing Record */}
             <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.12)' : '#EFF6FF', borderColor: '#BFDBFE' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#2563EB', mb: 1 }}>
-                📌 Primary Existing Record ({selectedPair?.existingLead.id})
+                📌 Primary Existing Record ({selectedPair?.existingLead?.id || 'N/A'})
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>Name: {selectedPair?.existingLead.name}</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>Email: {selectedPair?.existingLead.email}</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>Phone: {selectedPair?.existingLead.phone}</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>Route: {selectedPair?.existingLead.route}</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>Agent: {selectedPair?.existingLead.agent}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>Name: {selectedPair?.existingLead?.name || 'N/A'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>Email: {selectedPair?.existingLead?.email || 'N/A'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>Phone: {selectedPair?.existingLead?.phone || 'N/A'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>Route: {selectedPair?.existingLead?.route || 'N/A'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>Agent: {selectedPair?.existingLead?.agent || 'N/A'}</Typography>
             </Paper>
 
             {/* Incoming Duplicate Record */}
             <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(34, 197, 94, 0.12)' : '#F0FDF4', borderColor: '#86EFAC' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'var(--wd-059669, #059669)', mb: 1 }}>
-                📥 Incoming Duplicate Record ({selectedPair?.incomingLead.id})
+                📥 Incoming Duplicate Record ({selectedPair?.incomingLead?.id || 'N/A'})
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>Name: {selectedPair?.incomingLead.name}</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>Email: {selectedPair?.incomingLead.email}</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>Phone: {selectedPair?.incomingLead.phone}</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>Route: {selectedPair?.incomingLead.route}</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>Source: {selectedPair?.incomingLead.source}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>Name: {selectedPair?.incomingLead?.name || 'N/A'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>Email: {selectedPair?.incomingLead?.email || 'N/A'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>Phone: {selectedPair?.incomingLead?.phone || 'N/A'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>Route: {selectedPair?.incomingLead?.route || 'N/A'}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>Source: {selectedPair?.incomingLead?.source || 'N/A'}</Typography>
             </Paper>
           </Box>
         </DialogContent>

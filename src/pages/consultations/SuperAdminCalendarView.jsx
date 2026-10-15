@@ -9,6 +9,8 @@ import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import IconButton from '@mui/material/IconButton';
 import Badge from '@mui/material/Badge';
+import Chip from '@mui/material/Chip';
+import Autocomplete from '@mui/material/Autocomplete';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
@@ -80,16 +82,42 @@ export const SuperAdminCalendarView = () => {
     return currentUser.role;
   };
 
+  const getTodayDateStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [activeAgentId, setActiveAgentId] = useState(isConsultant ? currentUser?.id || '' : '');
-  const [selectedDate, setSelectedDate] = useState('2026-06-18');
+  const [selectedDate, setSelectedDate] = useState(getTodayDateStr);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   // New consultation fields
   const [clientName, setClientName] = useState('');
   const [meetingTime, setMeetingTime] = useState('10:00');
   const [duration, setDuration] = useState(30);
-  const [agentId, setAgentId] = useState(isConsultant ? currentUser?.id || 'c1' : 'c1');
+  const [agentId, setAgentId] = useState(isConsultant ? currentUser?.id || '' : '');
   const [meetingNotes, setMeetingNotes] = useState('');
+
+  // Month navigation handlers
+  const handlePrevMonth = () => {
+    setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  const handleToday = () => {
+    const today = new Date();
+    setCalendarDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    setSelectedDate(getTodayDateStr());
+  };
+
+  const monthYearTitle = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   // Sync with currentUser role/id changes
   useEffect(() => {
@@ -101,73 +129,163 @@ export const SuperAdminCalendarView = () => {
     }
   }, [currentUser, isConsultant]);
 
-  // Fetch consultations
+  // Fetch consultations from backend API
   const { data: consultations = [] } = useQuery({
     queryKey: ['consultations'],
-    queryFn: dbService.getConsultations });
+    queryFn: dbService.getConsultations
+  });
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
-    queryFn: dbService.getLeads });
+    queryFn: dbService.getLeads
+  });
 
   const { data: agents = [] } = useQuery({
     queryKey: ['agents'],
-    queryFn: dbService.getAgents });
+    queryFn: dbService.getAgents
+  });
+
+  // Ensure an agent is selected as host once agents are loaded
+  useEffect(() => {
+    if (agents && agents.length > 0) {
+      const match = agents.some(a => a.id === agentId);
+      if (!match || !agentId) {
+        if (isConsultant && currentUser) {
+          const self = agents.find(a => a.id === currentUser.id);
+          setAgentId(self ? self.id : agents[0].id);
+        } else {
+          setAgentId(agents[0].id);
+        }
+      }
+    }
+  }, [agents, currentUser, isConsultant, agentId]);
+
+  // Normalize consultations so that backend Prisma (dateTime, agentId) and frontend format work seamlessly
+  const normalizedConsultations = React.useMemo(() => {
+    return (consultations || []).map(c => {
+      const dStr = c.meetingDate || (c.dateTime ? c.dateTime.split('T')[0] : '');
+      const tStr = c.meetingTime || (c.dateTime && c.dateTime.includes('T') ? c.dateTime.split('T')[1].substring(0, 5) : '10:00');
+      const aId = c.assignedConsultantId || c.agentId;
+      return {
+        ...c,
+        meetingDate: dStr,
+        meetingTime: tStr,
+        assignedConsultantId: aId
+      };
+    });
+  }, [consultations]);
 
   // Mutations
   const createConsultationMutation = useMutation({
     mutationFn: dbService.createConsultation,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consultations'] });
-      showAlert('Consultation scheduled successfully', 'success');
+      showAlert('Flight consultation scheduled successfully in calendar & database!', 'success');
       setScheduleModalOpen(false);
       setClientName('');
       setMeetingNotes('');
-    } });
+    }
+  });
 
   const handleScheduleSubmit = () => {
-    if (!clientName) {
-      showAlert('Client name is required', 'warning');
+    if (!clientName.trim()) {
+      showAlert('Client or Lead name is required', 'warning');
       return;
     }
     
-    // Find if lead exists to bind leadId
-    const lead = leads.find(l => `${l.firstName} ${l.lastName}`.toLowerCase() === clientName.toLowerCase());
+    // Find if lead exists to bind leadId and contact info
+    const lead = leads.find(l => `${l.firstName || ''} ${l.lastName || ''}`.trim().toLowerCase() === clientName.trim().toLowerCase());
+    const selectedAgent = agents.find(a => a.id === agentId) || agents[0];
+    const resolvedAgentId = selectedAgent ? selectedAgent.id : (agentId || null);
+    const resolvedAgentName = selectedAgent ? (selectedAgent.name || selectedAgent.fullName || 'Flight Consultant') : 'Flight Consultant';
 
     createConsultationMutation.mutate({
       leadId: lead ? lead.id : null,
-      clientName,
+      clientName: clientName.trim(),
+      clientEmail: lead ? lead.email : null,
+      clientPhone: lead ? lead.phone : null,
       meetingDate: selectedDate,
       meetingTime,
+      dateTime: `${selectedDate}T${meetingTime}:00`,
       durationMinutes: duration,
-      assignedConsultantId: agentId,
-      notes: meetingNotes });
+      assignedConsultantId: resolvedAgentId,
+      agentId: resolvedAgentId,
+      agentName: resolvedAgentName,
+      serviceType: 'Flight Consultation & Follow-up',
+      notes: meetingNotes
+    });
   };
 
-  // Mock June 2026 Calendar Grid (Starts on Monday, June 1st)
-  // June 1st 2026 is a Monday. June has 30 days.
-  const daysInJune = 30;
-  const calendarCells = Array.from({ length: daysInJune }, (_, i) => {
-    const dayNum = i + 1;
-    const dateStr = `2026-06-${String(dayNum).padStart(2, '0')}`;
-    const dayMeetings = consultations.filter(
-      (c) =>
-        c.meetingDate === dateStr &&
-        (activeAgentId 
-          ? (c.assignedConsultantId === activeAgentId || (isConsultant && !c.assignedConsultantId))
-          : true)
-    );
-    return { dayNum, dateStr, meetings: dayMeetings };
-  });
+  // Full Dynamic Calendar Grid (Monday to Sunday)
+  const calendarCells = React.useMemo(() => {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+
+    const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
+    const firstDayOfWeek = new Date(year, month, 1).getDay();
+    const leadingOffset = (firstDayOfWeek + 6) % 7;
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    const cells = [];
+
+    // 1. Previous month leading days
+    for (let i = leadingOffset - 1; i >= 0; i--) {
+      const dayNum = daysInPrevMonth - i;
+      const prevDate = new Date(year, month - 1, dayNum);
+      const dateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      cells.push({
+        dayNum,
+        dateStr,
+        isCurrentMonth: false,
+        meetings: normalizedConsultations.filter(c =>
+          c.meetingDate === dateStr &&
+          (activeAgentId ? (c.assignedConsultantId === activeAgentId || (isConsultant && !c.assignedConsultantId)) : true)
+        )
+      });
+    }
+
+    // 2. Current month days
+    for (let d = 1; d <= daysInCurrentMonth; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      cells.push({
+        dayNum: d,
+        dateStr,
+        isCurrentMonth: true,
+        meetings: normalizedConsultations.filter(c =>
+          c.meetingDate === dateStr &&
+          (activeAgentId ? (c.assignedConsultantId === activeAgentId || (isConsultant && !c.assignedConsultantId)) : true)
+        )
+      });
+    }
+
+    // 3. Trailing days from next month to complete rows of 7
+    const remaining = (7 - (cells.length % 7)) % 7;
+    for (let n = 1; n <= remaining; n++) {
+      const nextDate = new Date(year, month + 1, n);
+      const dateStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(n).padStart(2, '0')}`;
+      cells.push({
+        dayNum: n,
+        dateStr,
+        isCurrentMonth: false,
+        meetings: normalizedConsultations.filter(c =>
+          c.meetingDate === dateStr &&
+          (activeAgentId ? (c.assignedConsultantId === activeAgentId || (isConsultant && !c.assignedConsultantId)) : true)
+        )
+      });
+    }
+
+    return cells;
+  }, [calendarDate, normalizedConsultations, activeAgentId, isConsultant]);
 
   // Current selected day meetings list
-  const selectedDayMeetings = consultations.filter(
-    (c) =>
+  const selectedDayMeetings = React.useMemo(() => {
+    return normalizedConsultations.filter(c =>
       c.meetingDate === selectedDate &&
       (activeAgentId 
         ? (c.assignedConsultantId === activeAgentId || (isConsultant && !c.assignedConsultantId))
         : true)
-  );
+    );
+  }, [normalizedConsultations, selectedDate, activeAgentId, isConsultant]);
 
   return (
     <Box>
@@ -357,19 +475,31 @@ export const SuperAdminCalendarView = () => {
         {/* Right: Calendar Grid */}
         <Box sx={{ flex: 2.2, minWidth: 0, width: '100%' }}>
           <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%', display: 'flex', flexDirection: 'column' }}>
-            {/* Header controls */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                June 2026
+            {/* Dynamic Header Controls */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+              <Typography variant="h4" sx={{ fontWeight: 800 }}>
+                {monthYearTitle}
               </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                <IconButton disabled size="small"><ArrowBackIosIcon fontSize="inherit" /></IconButton>
-                <IconButton disabled size="small"><ArrowForwardIosIcon fontSize="inherit" /></IconButton>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={handleToday}
+                  sx={{ fontWeight: 700, borderRadius: 2 }}
+                >
+                  Today
+                </Button>
+                <IconButton onClick={handlePrevMonth} size="small" sx={{ border: '1px solid', borderColor: 'divider' }}>
+                  <ArrowBackIosIcon fontSize="inherit" />
+                </IconButton>
+                <IconButton onClick={handleNextMonth} size="small" sx={{ border: '1px solid', borderColor: 'divider' }}>
+                  <ArrowForwardIosIcon fontSize="inherit" />
+                </IconButton>
               </Box>
             </Box>
 
             {/* Weekdays Labels */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, mb: 1, textAlign: 'center', fontWeight: 600, color: 'text.secondary', fontSize: '0.8rem' }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, mb: 1, textAlign: 'center', fontWeight: 700, color: 'text.secondary', fontSize: '0.8rem' }}>
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
                 <Box key={day} sx={{ py: 0.5 }}>
                   {day}
@@ -377,79 +507,90 @@ export const SuperAdminCalendarView = () => {
               ))}
             </Box>
 
-            {/* Calendar Cells Grid */}
+            {/* Dynamic Calendar Cells Grid */}
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, flexGrow: 1 }}>
-              {calendarCells.map((cell) => {
+              {calendarCells.map((cell, idx) => {
                 const isSelected = cell.dateStr === selectedDate;
+                const isToday = cell.dateStr === getTodayDateStr();
                 const hasMeetings = cell.meetings.length > 0;
                 const hasNoShowOrCancelled = cell.meetings.some(m => m.status === 'Cancelled' || m.status === 'No-Show');
                 
-                // Color Code styling based on state (Available, Booked, Priority Rebooking)
                 let borderStyle = '1px solid';
                 let borderColor = 'divider';
-                let bgColor = 'background.paper';
+                let bgColor = cell.isCurrentMonth ? 'background.paper' : (isDark ? 'rgba(255,255,255,0.02)' : '#F8FAFC');
                 
                 if (isSelected) {
-                  borderColor = 'secondary.main';
-                  bgColor = isDark ? 'rgba(197, 155, 39, 0.2)' : 'background.neutral';
+                  borderStyle = '2px solid';
+                  borderColor = 'primary.main';
+                  bgColor = isDark ? 'rgba(37, 99, 235, 0.2)' : '#EFF6FF';
                 } else if (hasNoShowOrCancelled) {
-                  // Priority Rebooking: Orange highlights
                   borderStyle = '2px solid';
                   borderColor = '#F59E0B';
                   bgColor = isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB';
                 } else if (hasMeetings) {
-                  // Booked: solid/neutral highlights
                   borderStyle = '1px solid';
-                  borderColor = 'primary.main';
-                  bgColor = isDark ? 'rgba(99, 102, 241, 0.12)' : '#F0F9FF';
-                } else {
-                  // Available: transparent green accents
-                  borderStyle = '1px solid';
-                  borderColor = isDark ? 'rgba(16, 185, 129, 0.25)' : '#10B981';
-                  bgColor = isDark ? 'rgba(16, 185, 129, 0.06)' : '#ECFDF5';
+                  borderColor = '#3B82F6';
+                  bgColor = isDark ? 'rgba(59, 130, 246, 0.12)' : '#F0F9FF';
+                } else if (isToday) {
+                  borderColor = '#10B981';
+                  bgColor = isDark ? 'rgba(16, 185, 129, 0.12)' : '#ECFDF5';
                 }
 
                 return (
                   <Paper
-                    key={cell.dayNum}
+                    key={`${cell.dateStr}-${idx}`}
                     onClick={() => setSelectedDate(cell.dateStr)}
                     sx={{
-                      height: 72,
+                      minHeight: 74,
                       p: 1.2,
                       cursor: 'pointer',
                       borderRadius: 2,
                       border: borderStyle,
                       borderColor: borderColor,
                       backgroundColor: bgColor,
+                      opacity: cell.isCurrentMonth ? 1 : 0.45,
                       boxShadow: 'none',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
                       transition: 'all 0.15s ease',
                       '&:hover': {
-                        borderColor: 'secondary.main' } }}
+                        borderColor: 'primary.main',
+                        opacity: 1
+                      }
+                    }}
                   >
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontWeight: isSelected ? 800 : 500,
-                        color: isSelected ? 'secondary.main' : 'text.primary' }}
-                    >
-                      {cell.dayNum}
-                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: isSelected || isToday ? 900 : 600,
+                          color: isSelected ? 'primary.main' : isToday ? 'success.main' : 'text.primary',
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        {cell.dayNum}
+                      </Typography>
+                      {isToday && (
+                        <Chip label="Today" size="small" color="success" sx={{ height: 16, fontSize: '0.55rem', fontWeight: 800, px: 0.2 }} />
+                      )}
+                    </Box>
+
                     {hasMeetings && (
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
                         {cell.meetings.map((m) => (
                           <Box
                             key={m.id}
+                            title={`${m.clientName} (${m.meetingTime})`}
                             sx={{
-                              width: 6,
-                              height: 6,
+                              width: 7,
+                              height: 7,
                               borderRadius: '50%',
                               backgroundColor: 
                                 m.status === 'Completed' 
                                   ? 'success.main' 
-                                  : (m.status === 'Cancelled' || m.status === 'No-Show' ? '#F59E0B' : 'secondary.main') }}
+                                  : (m.status === 'Cancelled' || m.status === 'No-Show' ? '#F59E0B' : 'primary.main')
+                            }}
                           />
                         ))}
                       </Box>
@@ -462,11 +603,11 @@ export const SuperAdminCalendarView = () => {
         </Box>
       </Box>
 
-      {/* MODAL: Book Consultation */}
+      {/* MODAL: Book Flight Consultation */}
       <AppModal
         open={scheduleModalOpen}
         onClose={() => setScheduleModalOpen(false)}
-        title={`Book Assessment Consultation for ${selectedDate}`}
+        title={`Book Flight Consultation for ${selectedDate}`}
         actions={
           <>
             <Button onClick={() => setScheduleModalOpen(false)} variant="outlined">
@@ -475,22 +616,31 @@ export const SuperAdminCalendarView = () => {
             <Button
               onClick={handleScheduleSubmit}
               variant="contained"
-              color="secondary"
+              color="primary"
               disabled={createConsultationMutation.isPending}
+              sx={{ fontWeight: 800 }}
             >
-              Book Session
+              {createConsultationMutation.isPending ? 'Scheduling...' : 'Schedule Session'}
             </Button>
           </>
         }
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-          <TextField
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2.5, pb: 1 }}>
+          <Autocomplete
+            freeSolo
+            options={leads.map(l => `${l.firstName || ''} ${l.lastName || ''}`.trim()).filter(Boolean)}
             value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            label="Client or Lead Name"
-            placeholder="e.g. Amelia Watson"
-            fullWidth
-            required
+            onChange={(_, newValue) => setClientName(newValue || '')}
+            onInputChange={(_, newInputValue) => setClientName(newInputValue || '')}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Client or Lead Name"
+                placeholder="Select an existing lead or type customer name..."
+                fullWidth
+                required
+              />
+            )}
           />
 
           <Box className="grid grid-cols-12 gap-2">
@@ -502,6 +652,7 @@ export const SuperAdminCalendarView = () => {
                 type="time"
                 fullWidth
                 required
+                InputLabelProps={{ shrink: true }}
               />
             </Box>
             <Box className="col-span-6">
@@ -525,26 +676,31 @@ export const SuperAdminCalendarView = () => {
             <InputLabel id="agent-host-select-label">Select Agent Host</InputLabel>
             <Select
               labelId="agent-host-select-label"
-              value={agentId}
+              value={agents.some(c => c.id === agentId) ? agentId : (agents[0]?.id || '')}
               onChange={(e) => setAgentId(e.target.value)}
               label="Select Agent Host"
             >
               {agents.map((c) => (
                 <MenuItem key={c.id} value={c.id}>
-                  {c.name}
+                  {c.name || c.fullName || c.email} {c.role ? `(${c.role})` : ''}
                 </MenuItem>
               ))}
+              {agents.length === 0 && (
+                <MenuItem value="" disabled>
+                  No agents available
+                </MenuItem>
+              )}
             </Select>
           </FormControl>
 
           <TextField
             value={meetingNotes}
             onChange={(e) => setMeetingNotes(e.target.value)}
-            label="Meeting Objectives"
+            label="Meeting Objectives & Routing Notes"
             multiline
             rows={3}
             fullWidth
-            placeholder="Inquire passive income proofs or check remote work details..."
+            placeholder="Discuss preferred airlines, routing, layover constraints, or quote review..."
           />
         </Box>
       </AppModal>

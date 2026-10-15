@@ -113,9 +113,93 @@ export const SuperAdminClientDetails = () => {
     ...matchedClient
   }), [matchedClient, id]);
 
-  const mockBookingsList = [];
-  const mockInvoices = [];
-  const mockRefunds = [];
+  // Live Bookings from Backend API
+  const { data: allBookings = [] } = useQuery({
+    queryKey: ['bookings'],
+    queryFn: dbService.getBookings
+  });
+
+  const customerBookings = useMemo(() => {
+    const cEmail = (matchedClient?.email || '').toLowerCase();
+    const cPhone = (matchedClient?.phone || '').replace(/[^0-9]/g, '');
+    const cName = `${matchedClient?.firstName || ''} ${matchedClient?.lastName || ''}`.trim().toLowerCase();
+
+    return allBookings
+      .filter(b => {
+        const bEmail = (b.customerEmail || b.email || '').toLowerCase();
+        const bPhone = (b.customerPhone || b.phone || '').replace(/[^0-9]/g, '');
+        const bName = (b.passengerName || b.customerName || '').toLowerCase();
+        return (cEmail && bEmail && cEmail === bEmail) ||
+               (cPhone && bPhone && cPhone === bPhone) ||
+               (cName && bName && cName === bName) ||
+               (b.clientId && b.clientId === id);
+      })
+      .map(b => ({
+        id: b.bookingId || b.id,
+        pnr: b.pnr || b.pnrCode || '—',
+        ticketNumber: b.ticketNumber || b.ticketNo || b.eticketNumber || 'Pending Issuance',
+        route: b.route || `${b.origin || ''} → ${b.destination || ''}`,
+        travelDate: b.travelDate || b.departureDate || '—',
+        cabinClass: b.cabinClass || 'Economy',
+        baggage: b.baggage || 'Standard Allowance',
+        sellingPrice: Number(b.sellingPrice || b.totalAmount || b.amount || 0),
+        bookingStatus: b.bookingStatus || b.status || 'Confirmed'
+      }));
+  }, [allBookings, matchedClient, id]);
+
+  // Live Payments & Invoices from Backend API
+  const { data: allPayments = [] } = useQuery({
+    queryKey: ['payments'],
+    queryFn: dbService.getPayments
+  });
+
+  const customerInvoices = useMemo(() => {
+    const cEmail = (matchedClient?.email || '').toLowerCase();
+    const cPhone = (matchedClient?.phone || '').replace(/[^0-9]/g, '');
+    const cName = `${matchedClient?.firstName || ''} ${matchedClient?.lastName || ''}`.trim().toLowerCase();
+
+    return allPayments
+      .filter(p => {
+        const pEmail = (p.customerEmail || p.email || '').toLowerCase();
+        const pPhone = (p.customerPhone || p.phone || '').replace(/[^0-9]/g, '');
+        const pName = (p.clientName || p.customerName || '').toLowerCase();
+        return (cEmail && pEmail && cEmail === pEmail) ||
+               (cPhone && pPhone && cPhone === pPhone) ||
+               (cName && pName && cName === pName) ||
+               (p.clientId && p.clientId === id);
+      })
+      .map(p => ({
+        id: p.id || p.invoiceId,
+        bookingRef: p.bookingRef || p.bookingId || '—',
+        amount: typeof p.amount === 'number' ? `$${p.amount.toFixed(2)}` : (p.amount || '$0'),
+        method: p.paymentMethod || p.method || 'Credit Card (Stripe)',
+        type: p.paymentType || p.type || 'Payment Settlement',
+        status: p.status || 'Paid',
+        date: (p.billingDate || p.createdAt || '').split('T')[0] || new Date().toISOString().split('T')[0]
+      }));
+  }, [allPayments, matchedClient, id]);
+
+  // Live Refunds from Backend API
+  const { data: allRefunds = [] } = useQuery({
+    queryKey: ['refunds'],
+    queryFn: dbService.getRefundRequests
+  });
+
+  const customerRefunds = useMemo(() => {
+    const cEmail = (matchedClient?.email || '').toLowerCase();
+    return allRefunds
+      .filter(r => r.clientId === id || (cEmail && (r.clientEmail || '').toLowerCase() === cEmail))
+      .map(r => ({
+        id: r.id || r.refundId,
+        bookingRef: r.bookingRef || r.bookingId || '—',
+        grossAmount: r.grossAmount || r.amount || 0,
+        airlinePenalty: r.airlinePenalty || r.penalty || 0,
+        agencyFee: r.agencyFee || r.fee || 0,
+        netRefund: r.netRefund || r.amount || 0,
+        status: r.status || 'Pending'
+      }));
+  }, [allRefunds, matchedClient, id]);
+
 
   const { data: customerQuotes = [] } = useQuery({
     queryKey: ['customer-quotes', id, matchedClient?.email, matchedClient?.phone],
@@ -274,7 +358,7 @@ export const SuperAdminClientDetails = () => {
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
           {[
             { label: 'Customer Lifetime Value (LTV)', value: client.totalSpent || '$0', color: '#16A34A', bg: '#F0FDF4' },
-            { label: 'Total Confirmed Bookings', value: `${mockBookingsList.length} Flights`, color: '#2563EB', bg: '#EFF6FF' },
+            { label: 'Total Confirmed Bookings', value: `${customerBookings.length} Flights`, color: '#2563EB', bg: '#EFF6FF' },
             { label: 'Preferred Cabin Class', value: client.preferredCabinClass || '—', color: '#7C3AED', bg: '#F5F3FF' },
             { label: 'Loyalty Tier Status', value: client.tier || 'Standard', color: '#D97706', bg: '#FFFBEB' },
           ].map((kpi, idx) => (
@@ -301,8 +385,8 @@ export const SuperAdminClientDetails = () => {
         <Tab icon={<PersonIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="👤 Personal & Passport" sx={{ fontWeight: 700 }} />
         <Tab icon={<HistoryEduIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`📋 Previous Leads & Quotes (${customerQuotes.length})`} sx={{ fontWeight: 700 }} />
         <Tab icon={<ForumIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`💬 Communications & Calls (${commLogs.length})`} sx={{ fontWeight: 700 }} />
-        <Tab icon={<AirplaneTicketIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`✈️ Bookings & E-Tickets (${mockBookingsList.length})`} sx={{ fontWeight: 700 }} />
-        <Tab icon={<ReceiptIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`💳 Payments & Refunds (${mockInvoices.length})`} sx={{ fontWeight: 700 }} />
+        <Tab icon={<AirplaneTicketIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`✈️ Bookings & E-Tickets (${customerBookings.length})`} sx={{ fontWeight: 700 }} />
+        <Tab icon={<ReceiptIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`💳 Payments & Refunds (${customerInvoices.length})`} sx={{ fontWeight: 700 }} />
         <Tab icon={<StarIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="⭐ Preferences & SSR" sx={{ fontWeight: 700 }} />
         <Tab icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="📝 Notes, Tasks & Complaints" sx={{ fontWeight: 700 }} />
       </Tabs>
@@ -523,7 +607,7 @@ export const SuperAdminClientDetails = () => {
         <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.5, overflow: 'hidden' }}>
           <Box sx={{ p: 2, bgcolor: '#F8FAFC', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>CONFIRMED BOOKINGS & 13-DIGIT E-TICKETS</Typography>
-            <Chip size="small" label={`Lifetime Flights: ${mockBookingsList.length}`} color="primary" sx={{ fontWeight: 800 }} />
+            <Chip size="small" label={`Lifetime Flights: ${customerBookings.length}`} color="primary" sx={{ fontWeight: 800 }} />
           </Box>
           <Box sx={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 700 }}>
@@ -535,14 +619,14 @@ export const SuperAdminClientDetails = () => {
                 </tr>
               </thead>
               <tbody>
-                {mockBookingsList.length === 0 ? (
+                {customerBookings.length === 0 ? (
                   <tr>
                     <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#64748B' }}>
                       No confirmed bookings or e-tickets found for this customer.
                     </td>
                   </tr>
                 ) : (
-                  mockBookingsList.map((b) => (
+                  customerBookings.map((b) => (
                     <tr key={b.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                       <td style={{ padding: '12px', fontWeight: 800, color: '#2563EB' }}>{b.id}</td>
                       <td style={{ padding: '12px', fontFamily: 'monospace', fontWeight: 700 }}>{b.pnr || '—'}</td>
@@ -599,14 +683,14 @@ export const SuperAdminClientDetails = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockInvoices.length === 0 ? (
+                  {customerInvoices.length === 0 ? (
                     <tr>
                       <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748B' }}>
                         No financial invoices or payment transactions recorded.
                       </td>
                     </tr>
                   ) : (
-                    mockInvoices.map((inv) => (
+                    customerInvoices.map((inv) => (
                       <tr key={inv.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                         <td style={{ padding: '12px', fontWeight: 800, fontFamily: 'monospace' }}>{inv.id}</td>
                         <td style={{ padding: '12px', fontWeight: 700, color: '#64748B' }}>{inv.bookingRef}</td>
@@ -639,14 +723,14 @@ export const SuperAdminClientDetails = () => {
                 </tr>
               </thead>
               <tbody>
-                {mockRefunds.length === 0 ? (
+                {customerRefunds.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#64748B' }}>
                       No refund or cancellation dispute records logged.
                     </td>
                   </tr>
                 ) : (
-                  mockRefunds.map(r => (
+                  customerRefunds.map(r => (
                     <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '8px 10px', fontWeight: 800 }}>{r.id}</td>
                       <td style={{ padding: '8px 10px' }}>{r.bookingRef}</td>
@@ -776,8 +860,28 @@ export const SuperAdminClientDetails = () => {
       <PaymentLinkModal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
-        onSubmit={(data) => {
+        customerName={`${client.firstName || ''} ${client.lastName || ''}`.trim()}
+        bookingRef={customerBookings[0]?.id || 'BK-PENDING'}
+        amount={customerQuotes[0]?.primaryCustomerPrice || customerQuotes[0]?.totalPrice || 474}
+        currency="USD"
+        onSubmit={async (data) => {
           setPaymentModalOpen(false);
+          try {
+            await dbService.createInvoice({
+              clientId: client.id,
+              clientName: `${client.firstName || ''} ${client.lastName || ''}`.trim(),
+              customerEmail: client.email,
+              bookingRef: data.booking || 'BK-PENDING',
+              amount: parseFloat(data.amount) || 0,
+              currency: data.currency || 'USD',
+              method: 'Payment Link (Stripe)',
+              status: 'Sent',
+              description: data.description || 'Flight Ticket Payment'
+            });
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
+          } catch (e) {
+            console.warn('[ClientDetails] Create invoice warning:', e);
+          }
           showAlert(`Payment link generated for ${client.firstName} — ${data.currency} ${Number(data.amount).toLocaleString()}`, 'success');
         }}
       />

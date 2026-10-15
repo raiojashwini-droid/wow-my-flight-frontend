@@ -625,7 +625,7 @@ export default function CommunicationCenter() {
   const isCallActive = callState !== 'IDLE' && callState !== 'ENDED';
 
   return (
-    <Box sx={{ pb: 6, minHeight: '100vh', width: '100%', px: { xs: 1.5, sm: 2.5, md: 3 } }}>
+    <Box sx={{ pt: { xs: 2.5, sm: 3.5 }, pb: 6, minHeight: '100vh', width: '100%', px: { xs: 1.5, sm: 2.5, md: 3 } }}>
       
       {/* ── Top Executive Header ─────────────────────────────────────────────── */}
       <Paper

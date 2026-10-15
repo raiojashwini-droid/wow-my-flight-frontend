@@ -21,16 +21,32 @@ import EmailIcon from '@mui/icons-material/Email';
 import SmsIcon from '@mui/icons-material/Sms';
 import LinkIcon from '@mui/icons-material/Link';
 
-export default function PaymentLinkModal({ open, onClose, onSubmit }) {
+export default function PaymentLinkModal({ open, onClose, onSubmit, customerName, bookingRef, amount, currency, description, initialData }) {
   const [data, setData] = useState({
-    customer: 'Karan Singh',
-    booking: 'BK-001',
-    amount: '10350',
-    currency: 'USD',
-    description: 'Flight DEL → LHR for Karan Singh',
+    customer: customerName || initialData?.customer || 'Customer',
+    booking: bookingRef || initialData?.booking || 'BK-001',
+    amount: amount || initialData?.amount || '474',
+    currency: currency || initialData?.currency || 'USD',
+    description: description || initialData?.description || 'Flight Booking Payment',
     expiry: '24h',
     sendVia: ['email', 'whatsapp'],
   });
+
+  React.useEffect(() => {
+    if (open) {
+      setData({
+        customer: customerName || initialData?.customer || 'Customer',
+        booking: bookingRef || initialData?.booking || 'BK-001',
+        amount: amount || initialData?.amount || '474',
+        currency: currency || initialData?.currency || 'USD',
+        description: description || initialData?.description || (customerName ? `Flight Booking Payment for ${customerName}` : 'Flight Booking Payment'),
+        expiry: '24h',
+        sendVia: ['email', 'whatsapp'],
+      });
+      setGenerated(false);
+    }
+  }, [open, customerName, bookingRef, amount, currency, description, initialData]);
+
   const [generated, setGenerated] = useState(false);
   const [mockLink] = useState('https://pay.wowmyflight.com/lnk/A3F9X2');
 

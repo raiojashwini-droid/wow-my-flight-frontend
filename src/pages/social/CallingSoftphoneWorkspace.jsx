@@ -426,7 +426,7 @@ export default function CallingSoftphoneWorkspace() {
   const isCallActive = callState !== 'IDLE' && callState !== 'ENDED';
 
   return (
-    <Box sx={{ width: '100%', pb: 6, minHeight: '100vh', px: { xs: 1.5, sm: 2.5, md: 3 } }}>
+    <Box sx={{ width: '100%', pt: { xs: 2.5, sm: 3.5 }, pb: 6, minHeight: '100vh', px: { xs: 1.5, sm: 2.5, md: 3 } }}>
 
       {/* ── Top Executive Header ────────────────────────────────────────── */}
       <Paper

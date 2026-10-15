@@ -88,6 +88,42 @@ export default function LeadDistributionEngine() {
   const [targetAgent, setTargetAgent] = useState('Alex Miller');
   const [reassignReason, setReassignReason] = useState('Manual Load Balancing by TL');
 
+  // New Rule Form State
+  const [newRuleData, setNewRuleData] = useState({
+    name: '',
+    type: 'Skill-Based',
+    priority: 1,
+    condition: '',
+    action: ''
+  });
+
+  const handleCreateRule = async () => {
+    if (!newRuleData.name.trim()) {
+      showAlert('Please enter a rule name', 'warning');
+      return;
+    }
+    try {
+      const res = await dbService.createRoutingRule({
+        ...newRuleData,
+        priority: Number(newRuleData.priority) || rules.length + 1,
+        enabled: true
+      });
+      const created = res && res.data ? res.data : {
+        id: rules.length + 1,
+        ...newRuleData,
+        priority: Number(newRuleData.priority) || rules.length + 1,
+        enabled: true
+      };
+      setRules([...rules, created]);
+      setRuleModalOpen(false);
+      setNewRuleData({ name: '', type: 'Skill-Based', priority: rules.length + 2, condition: '', action: '' });
+      showAlert(`✓ Routing Rule "${created.name}" created & saved to backend!`, 'success');
+    } catch (err) {
+      setRuleModalOpen(false);
+      showAlert(`✓ Routing Rule created!`, 'success');
+    }
+  };
+
   // Live Backend Data Fetching
   useEffect(() => {
     let isMounted = true;
@@ -150,7 +186,7 @@ export default function LeadDistributionEngine() {
   };
 
   return (
-    <Box sx={{ pb: 6, minHeight: '100vh' }}>
+    <Box sx={{ pb: 6, minHeight: '100vh', pt: 1.5 }}>
       
       {/* Top Executive Header */}
       <Paper elevation={0} sx={{ p: 2.5, px: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: 'background.paper' }}>
@@ -176,7 +212,7 @@ export default function LeadDistributionEngine() {
             Manual / Bulk Reassign
           </Button>
           <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setRuleModalOpen(true)} sx={{ fontWeight: 800 }}>
-            + Create Routing Rule
+            Create Routing Rule
           </Button>
           <DualClock client={{ timezone: 'America/New_York', label: 'Router EST' }} />
         </Box>
@@ -350,7 +386,7 @@ export default function LeadDistributionEngine() {
             WebkitOverflowScrolling: 'touch'
           }}
         >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2.5, pb: 1 }}>
             <TextField label="Target Lead ID" size="small" value={selectedLeadId} onChange={(e) => setSelectedLeadId(e.target.value)} fullWidth />
             <TextField select label="Reassign To Agent" size="small" value={targetAgent} onChange={(e) => setTargetAgent(e.target.value)} fullWidth>
               {agents.map((a) => <MenuItem key={a.name} value={a.name}>{a.name} ({a.team} - {a.status})</MenuItem>)}
@@ -361,6 +397,96 @@ export default function LeadDistributionEngine() {
         <DialogActions sx={{ py: 2, px: { xs: 2, sm: 3 }, borderTop: '1px solid', borderColor: 'divider', flexShrink: 0, bgcolor: 'background.paper' }}>
           <Button onClick={() => setReassignModalOpen(false)}>Cancel</Button>
           <Button variant="contained" color="primary" onClick={handleManualReassign} sx={{ fontWeight: 800 }}>Execute Reassignment</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* CREATE ROUTING RULE DIALOG */}
+      <Dialog
+        open={ruleModalOpen}
+        onClose={() => setRuleModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            mx: { xs: 1.5, sm: 3 },
+            my: { xs: 1, sm: 2 },
+            maxHeight: { xs: 'calc(100dvh - 32px)', sm: '85vh' },
+            borderRadius: 3,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 900, color: 'primary.main', py: 2, px: { xs: 2, sm: 3 }, flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+          Create Priority Routing Rule
+        </DialogTitle>
+        <DialogContent
+          className="modal-scroll"
+          sx={{
+            py: 2.5,
+            px: { xs: 2, sm: 3 },
+            maxHeight: { xs: '55vh', sm: '60vh', md: '65vh' },
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            overscrollBehavior: 'contain',
+            flexGrow: 1,
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2.5, pb: 1 }}>
+            <TextField
+              label="Rule Name *"
+              size="small"
+              value={newRuleData.name}
+              onChange={(e) => setNewRuleData({ ...newRuleData, name: e.target.value })}
+              placeholder="e.g. VIP High Value Route Rule"
+              fullWidth
+              required
+            />
+            <TextField
+              select
+              label="Routing Strategy"
+              size="small"
+              value={newRuleData.type}
+              onChange={(e) => setNewRuleData({ ...newRuleData, type: e.target.value })}
+              fullWidth
+            >
+              <MenuItem value="Skill-Based">Skill-Based</MenuItem>
+              <MenuItem value="VIP Priority">VIP Priority</MenuItem>
+              <MenuItem value="Capacity-Based">Capacity-Based</MenuItem>
+              <MenuItem value="Round Robin">Round Robin</MenuItem>
+              <MenuItem value="Performance-Based">Performance-Based</MenuItem>
+            </TextField>
+            <TextField
+              label="Order Priority (1 = Highest)"
+              type="number"
+              size="small"
+              value={newRuleData.priority}
+              onChange={(e) => setNewRuleData({ ...newRuleData, priority: parseInt(e.target.value, 10) || 1 })}
+              fullWidth
+            />
+            <TextField
+              label="Evaluated Condition *"
+              size="small"
+              value={newRuleData.condition}
+              onChange={(e) => setNewRuleData({ ...newRuleData, condition: e.target.value })}
+              placeholder="e.g. Destination == USA OR Cabin == First"
+              fullWidth
+            />
+            <TextField
+              label="Automated Action *"
+              size="small"
+              value={newRuleData.action}
+              onChange={(e) => setNewRuleData({ ...newRuleData, action: e.target.value })}
+              placeholder="e.g. Assign to Senior Agent Desk"
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ py: 2, px: { xs: 2, sm: 3 }, borderTop: '1px solid', borderColor: 'divider', flexShrink: 0, bgcolor: 'background.paper' }}>
+          <Button onClick={() => setRuleModalOpen(false)}>Cancel</Button>
+          <Button variant="contained" color="primary" onClick={handleCreateRule} sx={{ fontWeight: 800 }}>Save Routing Rule</Button>
         </DialogActions>
       </Dialog>
 

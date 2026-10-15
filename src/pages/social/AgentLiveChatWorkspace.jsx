@@ -196,8 +196,7 @@ const AgentLiveChatWorkspace = () => {
   const activeSession = sessions.find(s => s.id === activeSessionId);
 
   return (
-    <div className="h-[calc(100dvh-64px)] w-full flex overflow-hidden font-['Inter'] bg-slate-100 dark:bg-slate-900 relative">
-      
+    <div className="w-full h-[calc(100dvh-88px)] mt-4 sm:mt-5 flex overflow-hidden font-['Inter'] bg-white dark:bg-slate-900 rounded-2xl shadow-sm relative">
       {/* 1. Left Sidebar: Conversation List */}
       <div className={`h-full shrink-0 transition-all duration-300
         ${isMobileListOpen 
@@ -289,7 +288,6 @@ const AgentLiveChatWorkspace = () => {
           </>
         )}
       </AnimatePresence>
-
     </div>
   );
 };

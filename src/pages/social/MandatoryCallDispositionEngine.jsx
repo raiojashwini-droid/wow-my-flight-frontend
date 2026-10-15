@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -35,6 +35,7 @@ import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
+import useAuth from '../../hooks/useAuth';
 import { dbService } from '../../services/dbService';
 
 // ==========================================
@@ -55,28 +56,24 @@ const DISPOSITION_CONFIG = [
   { name: 'Complaint', category: 'Escalation', color: '#B91C1C', icon: '👿', action: 'Create complaint case and notify customer support.' }
 ];
 
-const DISPOSITION_LOGS = [
-  { id: 'LOG-771', customer: 'Ambassador Harold Vance', phone: '+1 555-234-8901', agent: 'Sarah Jenkins', disposition: 'Quote Sent', notes: 'Discussed BA-142 First Class seat selection. Dispatched PDF Quote Q-8812.', time: 'Today 10:06 AM', actionTaken: 'Updated Status to Quote Sent' },
-  { id: 'LOG-772', customer: 'Sophia Chen', phone: '+1 415-889-1200', agent: 'Alex Miller', disposition: 'Callback Requested', notes: 'Requested callback after consulting spouse regarding travel dates.', time: 'Today 11:35 AM', actionTaken: 'Scheduled Callback for Aug 21 14:00' }
-];
-
 // ==========================================
 // MAIN COMPONENT
 // ==========================================
 
 export default function MandatoryCallDispositionEngine() {
   const { showAlert } = useAlert();
-  const [logs, setLogs] = useState(DISPOSITION_LOGS);
+  const { currentUser } = useAuth();
+  const [logs, setLogs] = useState([]);
   const [wrapUpOpen, setWrapUpOpen] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
 
   // Wrap-up Form State
-  const [customerName, setCustomerName] = useState('Harold Vance');
-  const [customerPhone, setCustomerPhone] = useState('+1 555-234-8901');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [disposition, setDisposition] = useState('Interested');
   const [notes, setNotes] = useState('');
   const [callbackDateTime, setCallbackDateTime] = useState('');
-  const [bookingValue, setBookingValue] = useState('28500');
+  const [bookingValue, setBookingValue] = useState('');
 
   // Fetch live dispositions on mount
   useEffect(() => {
@@ -84,7 +81,7 @@ export default function MandatoryCallDispositionEngine() {
     const fetchDispositions = async () => {
       try {
         const res = await dbService.getCallDispositions();
-        if (isMounted && res && Array.isArray(res.data) && res.data.length > 0) {
+        if (isMounted && res && Array.isArray(res.data)) {
           setLogs(res.data);
         }
       } catch (e) {
@@ -95,20 +92,32 @@ export default function MandatoryCallDispositionEngine() {
     return () => { isMounted = false; };
   }, []);
 
+  // Compute live real counts for each disposition
+  const dispositionCounts = useMemo(() => {
+    const counts = {};
+    DISPOSITION_CONFIG.forEach(c => {
+      counts[c.name] = logs.filter(l => (l.disposition || '').toLowerCase() === c.name.toLowerCase()).length;
+    });
+    return counts;
+  }, [logs]);
+
   const handleSaveWrapUp = async () => {
-    if (!notes) {
+    if (!notes.trim()) {
       showAlert('⚠️ Please enter mandatory call conversation notes!', 'warning');
       return;
     }
 
     const matchedConfig = DISPOSITION_CONFIG.find(c => c.name === disposition);
     const actionDesc = matchedConfig ? matchedConfig.action : 'Logged to Timeline';
+    const currentAgentName = currentUser?.name || 'CRM Agent';
+    const targetCustomer = customerName.trim() || 'Inbound Caller';
+    const targetPhone = customerPhone.trim() || '+1 (Direct Line)';
 
     try {
       const res = await dbService.saveCallDisposition({
-        customer: customerName || 'Harold Vance',
-        phone: customerPhone || '+1 555-234-8901',
-        agent: 'Sarah Jenkins',
+        customer: targetCustomer,
+        phone: targetPhone,
+        agent: currentAgentName,
         disposition,
         notes,
         actionTaken: actionDesc
@@ -116,31 +125,34 @@ export default function MandatoryCallDispositionEngine() {
 
       const newLog = res && res.log ? res.log : {
         id: `LOG-${Math.floor(100 + Math.random() * 900)}`,
-        customer: customerName,
-        phone: customerPhone,
-        agent: 'Sarah Jenkins',
+        customer: targetCustomer,
+        phone: targetPhone,
+        agent: currentAgentName,
         disposition,
         notes,
         time: 'Just now',
         actionTaken: actionDesc
       };
 
-      setLogs([newLog, ...logs]);
+      setLogs(prev => [newLog, ...prev]);
       setWrapUpOpen(false);
       setNotes('');
+      setCustomerName('');
+      setCustomerPhone('');
+      setBookingValue('');
       showAlert(`✓ Call disposition [${disposition}] saved to live backend! Auto-triggered: ${newLog.actionTaken}`, 'success');
     } catch {
       const fallbackLog = {
         id: `LOG-${Math.floor(100 + Math.random() * 900)}`,
-        customer: customerName,
-        phone: customerPhone,
-        agent: 'Sarah Jenkins',
+        customer: targetCustomer,
+        phone: targetPhone,
+        agent: currentAgentName,
         disposition,
         notes,
         time: 'Just now',
         actionTaken: actionDesc
       };
-      setLogs([fallbackLog, ...logs]);
+      setLogs(prev => [fallbackLog, ...prev]);
       setWrapUpOpen(false);
       setNotes('');
       showAlert(`✓ Call disposition [${disposition}] saved! Auto-triggered: ${fallbackLog.actionTaken}`, 'success');
@@ -148,7 +160,7 @@ export default function MandatoryCallDispositionEngine() {
   };
 
   return (
-    <Box sx={{ pb: 6, minHeight: '100vh' }}>
+    <Box sx={{ pt: { xs: 2.5, sm: 3.5 }, pb: 6, minHeight: '100vh', px: { xs: 1.5, sm: 2.5, md: 3 } }}>
       
       {/* Top Executive Header */}
       <Paper elevation={0} sx={{ p: 2.5, px: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: 'background.paper' }}>
@@ -177,24 +189,12 @@ export default function MandatoryCallDispositionEngine() {
         </Box>
       </Paper>
 
-      {/* 11 DISPOSITION ANALYTICS KPI CARDS */}
+      {/* 11 DISPOSITION ANALYTICS KPI CARDS (100% Dynamic from Live Logs) */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)', lg: 'repeat(6, 1fr)' }, gap: 1.2, mb: 3 }}>
-        {[
-          { label: 'Interested', val: '320', color: '#059669' },
-          { label: 'Quote Sent', val: '280', color: '#2563EB' },
-          { label: 'Payment Pending', val: '140', color: '#059669' },
-          { label: 'Booked', val: '110', color: '#16A34A' },
-          { label: 'Callback Requested', val: '450', color: '#D97706' },
-          { label: 'Busy / Retry', val: '210', color: '#C59B27' },
-          { label: 'No Answer', val: '380', color: '#9CA3AF' },
-          { label: 'Not Interested', val: '150', color: '#6B7280' },
-          { label: 'Wrong Number', val: '45', color: '#DC2626' },
-          { label: 'Escalated', val: '12', color: '#7C3AED' },
-          { label: 'Complaints', val: '8', color: '#B91C1C' }
-        ].map((kpi, i) => (
-          <Paper key={i} elevation={0} sx={{ p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center', position: 'relative', overflow: 'hidden', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', backgroundColor: kpi.color } }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.62rem', display: 'block' }}>{kpi.label}</Typography>
-            <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'text.primary', mt: 0.1 }}>{kpi.val}</Typography>
+        {DISPOSITION_CONFIG.map((c, i) => (
+          <Paper key={i} elevation={0} sx={{ p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', textAlign: 'center', position: 'relative', overflow: 'hidden', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', backgroundColor: c.color } }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.62rem', display: 'block' }}>{c.name}</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'text.primary', mt: 0.1 }}>{dispositionCounts[c.name] || 0}</Typography>
           </Paper>
         ))}
       </Box>
@@ -252,17 +252,30 @@ export default function MandatoryCallDispositionEngine() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {logs.map((l) => (
-                  <TableRow key={l.id} hover>
-                    <TableCell sx={{ fontWeight: 900, fontFamily: 'monospace' }}>{l.id}</TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>{l.customer} ({l.phone})</TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>{l.agent}</TableCell>
-                    <TableCell><Chip label={l.disposition} size="small" color="primary" sx={{ fontWeight: 900 }} /></TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>{l.notes}</TableCell>
-                    <TableCell sx={{ fontWeight: 800, color: 'var(--wd-059669, #059669)' }}>{l.actionTaken}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>{l.time}</TableCell>
+                {logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                        No Call Dispositions Recorded Yet
+                      </Typography>
+                      <Typography variant="caption">
+                        Completed call wrap-ups and automated CRM workflow triggers will appear here in real-time.
+                      </Typography>
+                    </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  logs.map((l) => (
+                    <TableRow key={l.id} hover>
+                      <TableCell sx={{ fontWeight: 900, fontFamily: 'monospace' }}>{l.id}</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>{l.customer} ({l.phone})</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>{l.agent}</TableCell>
+                      <TableCell><Chip label={l.disposition} size="small" color="primary" sx={{ fontWeight: 900 }} /></TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>{l.notes}</TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: 'var(--wd-059669, #059669)' }}>{l.actionTaken}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>{l.time}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -275,11 +288,30 @@ export default function MandatoryCallDispositionEngine() {
           Mandatory Post-Call Wrap-Up & Disposition Screen
         </DialogTitle>
         <DialogContent dividers>
-          <Alert severity="warning" sx={{ mb: 2, fontWeight: 700 }}>
-            Call ended with Ambassador Harold Vance (+1 555-234-8901). Please enter mandatory disposition and call notes to complete wrap-up.
+          <Alert severity="info" sx={{ mb: 2, fontWeight: 700 }}>
+            Post-call wrap-up screen: Enter call notes, disposition, and customer details to trigger automated CRM lifecycle actions.
           </Alert>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+              <TextField
+                label="Customer Name"
+                size="small"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="e.g. John Smith"
+                fullWidth
+              />
+              <TextField
+                label="Customer Phone"
+                size="small"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="e.g. +1 555-0199"
+                fullWidth
+              />
+            </Box>
+
             <TextField select label="Call Disposition *" size="small" value={disposition} onChange={(e) => setDisposition(e.target.value)} fullWidth>
               {DISPOSITION_CONFIG.map((c) => (
                 <MenuItem key={c.name} value={c.name}>{c.icon} {c.name} ({c.category})</MenuItem>
@@ -292,7 +324,7 @@ export default function MandatoryCallDispositionEngine() {
               <TextField type="datetime-local" label="Required Callback Date & Time *" size="small" value={callbackDateTime} onChange={(e) => setCallbackDateTime(e.target.value)} InputLabelProps={{ shrink: true }} fullWidth />
             )}
 
-            <TextField label="Estimated Booking Value ($)" size="small" value={bookingValue} onChange={(e) => setBookingValue(e.target.value)} fullWidth />
+            <TextField label="Estimated Booking Value ($)" size="small" value={bookingValue} onChange={(e) => setBookingValue(e.target.value)} placeholder="e.g. 1500" fullWidth />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
