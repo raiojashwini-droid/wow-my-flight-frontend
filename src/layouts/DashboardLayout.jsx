@@ -392,9 +392,6 @@ export const DashboardLayout = () => {
   };
 
   const menuItems = [
-    // ROADMAP STRATEGY (Super Admin Only)
-    { section: 'ROADMAP STRATEGY', label: 'Priority Roadmap', icon: <MapIcon />, path: '/roadmap', roles: ['super_admin'] },
-
     // PHASE 1 – SALES
     { section: 'PHASE 1 – SALES', label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader', 'flight_expert', 'ticketing_agent'] },
     { section: 'PHASE 1 – SALES', label: 'Leads', icon: <PeopleIcon />, path: '/leads', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
