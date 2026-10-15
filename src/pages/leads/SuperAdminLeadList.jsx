@@ -60,6 +60,8 @@ import AppModal from '../../components/AppModal';
 import PaymentLinkModal from '../../components/PaymentLinkModal';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useTelnyx, CALL_STATE } from '../../contexts/TelnyxContext';
+import { toE164, formatPhoneDisplay } from '../../services/telnyxService';
 import { CABIN_CLASSES, LEAD_LABELS, MOCK_BOOKINGS } from '../../constants/mockData';
 
 import { themeText } from '../../theme/themeColor';
@@ -124,6 +126,17 @@ export const SuperAdminLeadList = () => {
   const queryClient = useQueryClient();
   const { showAlert } = useAlert();
   const { isAdmin, isSuperAdmin, isOperations, isTeamLeader, currentUser } = useAuth();
+  const {
+    callState,
+    callSeconds,
+    isMuted: telnyxMuted,
+    isOnHold: telnyxOnHold,
+    makeCall,
+    hangup,
+    toggleMute,
+    toggleHold,
+    sdkStatus,
+  } = useTelnyx();
 
   const hasCreateLeadPermission = () => {
     if (currentUser?.customPermissions?.enabled) {
@@ -219,10 +232,6 @@ export const SuperAdminLeadList = () => {
 
   // Active Interactive Dialogs for Table Action Buttons
   const [callModalLead, setCallModalLead] = useState(null);
-  const [callDuration, setCallDuration] = useState(0);
-  const [callConnected, setCallConnected] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isOnHold, setIsOnHold] = useState(false);
   const [callDisposition, setCallDisposition] = useState('Interested - Send Quote');
 
   const [whatsappModalLead, setWhatsappModalLead] = useState(null);
@@ -234,25 +243,70 @@ export const SuperAdminLeadList = () => {
 
   const [deleteConfirmLead, setDeleteConfirmLead] = useState(null);
 
-  useEffect(() => {
-    let timer;
-    if (callConnected) {
-      timer = setInterval(() => {
-        setCallDuration((prev) => prev + 1);
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [callConnected]);
-
-  const handleOpenCallModal = (lead) => {
+  const handleOpenCallModal = async (lead) => {
+    if (!lead) return;
     setCallModalLead(lead);
-    setCallDuration(0);
-    setCallConnected(false);
-    setIsMuted(false);
-    setIsOnHold(false);
-    setTimeout(() => {
-      setCallConnected(true);
-    }, 1200);
+    setCallDisposition('Interested - Send Quote');
+    const rawNumber = lead.phone || lead.fullPhone || '';
+    const formatted = toE164(rawNumber);
+    if (!formatted) {
+      showAlert(`Lead ${lead.firstName || ''} does not have a valid phone number.`, 'warning');
+      return;
+    }
+
+    try {
+      await makeCall({
+        toNumber: formatted,
+        toName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Passenger',
+      });
+    } catch (err) {
+      console.error('Failed to initiate Telnyx call:', err);
+      showAlert(`Could not connect call: ${err.message || 'Check microphone or Telnyx connection'}`, 'error');
+    }
+  };
+
+  const handleRedial = async () => {
+    if (!callModalLead) return;
+    const rawNumber = callModalLead.phone || callModalLead.fullPhone || '';
+    const formatted = toE164(rawNumber);
+    if (!formatted) return;
+    try {
+      await makeCall({
+        toNumber: formatted,
+        toName: `${callModalLead.firstName || ''} ${callModalLead.lastName || ''}`.trim() || 'Passenger',
+      });
+    } catch (err) {
+      showAlert(`Call error: ${err.message || 'Error'}`, 'error');
+    }
+  };
+
+  const handleSaveCallActivity = async () => {
+    if (!callModalLead) return;
+    if (callState === CALL_STATE.ON_CALL || callState === CALL_STATE.DIALING || callState === CALL_STATE.RINGING || callState === CALL_STATE.ON_HOLD) {
+      hangup();
+    }
+
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      await fetch(`${backendUrl}/api/telnyx/dispositions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: `${callModalLead.firstName || ''} ${callModalLead.lastName || ''}`.trim() || 'Passenger',
+          phone: callModalLead.phone,
+          agent: currentUser?.name || 'Super Admin',
+          disposition: callDisposition,
+          notes: `WebRTC Call talk duration: ${callSeconds}s. Route: ${callModalLead.origin || ''} ➔ ${callModalLead.destination || ''}`,
+          actionTaken: `Call logged with disposition: ${callDisposition}`
+        })
+      });
+    } catch (e) {
+      console.warn('Could not save disposition to server:', e);
+    }
+
+    showAlert(`✓ Call activity saved for ${callModalLead.firstName} (${callDisposition}, ${callSeconds}s talk time)!`, 'success');
+    setCallModalLead(null);
+    queryClient.invalidateQueries({ queryKey: ['leads'] });
   };
 
   const handleOpenWhatsAppModal = (lead) => {
@@ -1396,7 +1450,12 @@ export const SuperAdminLeadList = () => {
       ════════════════════════════════════════════════════════════════════ */}
       <Dialog
         open={Boolean(callModalLead)}
-        onClose={() => setCallModalLead(null)}
+        onClose={() => {
+          if (callState === CALL_STATE.ON_CALL || callState === CALL_STATE.DIALING || callState === CALL_STATE.RINGING || callState === CALL_STATE.ON_HOLD) {
+            hangup();
+          }
+          setCallModalLead(null);
+        }}
         maxWidth="xs"
         fullWidth
         PaperProps={{ sx: { borderRadius: 3, p: 1, textAlign: 'center' } }}
@@ -1406,14 +1465,26 @@ export const SuperAdminLeadList = () => {
             <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase' }}>
               Telnyx WebRTC Softphone Desk
             </Typography>
-            <IconButton onClick={() => setCallModalLead(null)} size="small">
+            <IconButton onClick={() => {
+              if (callState === CALL_STATE.ON_CALL || callState === CALL_STATE.DIALING || callState === CALL_STATE.RINGING || callState === CALL_STATE.ON_HOLD) {
+                hangup();
+              }
+              setCallModalLead(null);
+            }} size="small">
               <CloseIcon />
             </IconButton>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ py: 2 }}>
           <Box sx={{ my: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${callConnected ? 'bg-green-500/20 text-green-600 animate-pulse' : 'bg-blue-500/20 text-blue-600'}`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
+              callState === CALL_STATE.ON_CALL ? 'bg-green-500/20 text-green-600 animate-pulse shadow-lg shadow-green-500/20' :
+              callState === CALL_STATE.RINGING ? 'bg-sky-500/20 text-sky-600 animate-bounce' :
+              callState === CALL_STATE.DIALING || callState === CALL_STATE.CONNECTING ? 'bg-blue-500/20 text-blue-600 animate-pulse' :
+              callState === CALL_STATE.ON_HOLD ? 'bg-amber-500/20 text-amber-600' :
+              callState === CALL_STATE.ENDED ? 'bg-red-500/20 text-red-600' :
+              'bg-slate-500/20 text-slate-600'
+            }`}>
               <PhoneInTalkIcon sx={{ fontSize: 32 }} />
             </div>
             <Typography variant="h6" sx={{ fontWeight: 900 }}>
@@ -1422,40 +1493,95 @@ export const SuperAdminLeadList = () => {
             <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>
               📞 {callModalLead?.phone}
             </Typography>
-            <Chip
-              label={callConnected ? `Connected • ${Math.floor(callDuration / 60).toString().padStart(2, '0')}:${(callDuration % 60).toString().padStart(2, '0')}` : 'Connecting Line...'}
-              color={callConnected ? 'success' : 'primary'}
-              size="small"
-              sx={{ fontWeight: 800 }}
-            />
+
+            {/* Dynamic Status Chip according to REAL Telnyx WebRTC State */}
+            {callState === CALL_STATE.ON_CALL && (
+              <Chip
+                label={`Connected • ${Math.floor(callSeconds / 60).toString().padStart(2, '0')}:${(callSeconds % 60).toString().padStart(2, '0')}`}
+                color="success"
+                size="small"
+                sx={{ fontWeight: 800 }}
+              />
+            )}
+            {callState === CALL_STATE.RINGING && (
+              <Chip
+                label="Ringing (Waiting for answer)..."
+                color="info"
+                size="small"
+                sx={{ fontWeight: 800 }}
+              />
+            )}
+            {(callState === CALL_STATE.DIALING || callState === CALL_STATE.CONNECTING) && (
+              <Chip
+                label="Dialing Line..."
+                color="primary"
+                size="small"
+                sx={{ fontWeight: 800 }}
+              />
+            )}
+            {callState === CALL_STATE.ON_HOLD && (
+              <Chip
+                label={`On Hold • ${Math.floor(callSeconds / 60).toString().padStart(2, '0')}:${(callSeconds % 60).toString().padStart(2, '0')}`}
+                color="warning"
+                size="small"
+                sx={{ fontWeight: 800 }}
+              />
+            )}
+            {callState === CALL_STATE.ENDED && (
+              <Chip
+                label={`Call Ended • Talk Time: ${callSeconds}s`}
+                color="error"
+                size="small"
+                sx={{ fontWeight: 800 }}
+              />
+            )}
+            {callState === CALL_STATE.IDLE && (
+              <Chip
+                label="Call Ready"
+                size="small"
+                sx={{ fontWeight: 800 }}
+              />
+            )}
+
             <Typography variant="caption" color="text.secondary">
               Route: {[callModalLead?.origin, callModalLead?.destination].filter(Boolean).join(' ➔ ') || 'Not Specified'} • {callModalLead?.cabinClass || 'Economy'}
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, my: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, my: 2 }}>
             <IconButton
-              onClick={() => setIsMuted(!isMuted)}
-              sx={{ bgcolor: isMuted ? 'error.main' : 'action.hover', color: isMuted ? 'white' : 'text.primary' }}
+              onClick={toggleMute}
+              disabled={callState !== CALL_STATE.ON_CALL && callState !== CALL_STATE.ON_HOLD}
+              sx={{ bgcolor: telnyxMuted ? 'error.main' : 'action.hover', color: telnyxMuted ? 'white' : 'text.primary' }}
+              title={telnyxMuted ? 'Unmute Microphone' : 'Mute Microphone'}
             >
-              {isMuted ? <MicOffIcon /> : <MicIcon />}
+              {telnyxMuted ? <MicOffIcon /> : <MicIcon />}
             </IconButton>
             <IconButton
-              onClick={() => setIsOnHold(!isOnHold)}
-              sx={{ bgcolor: isOnHold ? 'warning.main' : 'action.hover', color: isOnHold ? 'white' : 'text.primary' }}
+              onClick={toggleHold}
+              disabled={callState !== CALL_STATE.ON_CALL && callState !== CALL_STATE.ON_HOLD}
+              sx={{ bgcolor: telnyxOnHold ? 'warning.main' : 'action.hover', color: telnyxOnHold ? 'white' : 'text.primary' }}
+              title={telnyxOnHold ? 'Resume Call' : 'Hold Call'}
             >
-              {isOnHold ? <PlayArrowIcon /> : <PauseIcon />}
+              {telnyxOnHold ? <PlayArrowIcon /> : <PauseIcon />}
             </IconButton>
-            <IconButton
-              onClick={() => {
-                showAlert(`Call ended with ${callModalLead?.firstName}. Duration: ${callDuration}s`, 'info');
-                setCallConnected(false);
-                setCallModalLead(null);
-              }}
-              sx={{ bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}
-            >
-              <CallEndIcon />
-            </IconButton>
+            {(callState === CALL_STATE.ON_CALL || callState === CALL_STATE.RINGING || callState === CALL_STATE.DIALING || callState === CALL_STATE.CONNECTING || callState === CALL_STATE.ON_HOLD) ? (
+              <IconButton
+                onClick={hangup}
+                sx={{ bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, width: 44, height: 44 }}
+                title="End Call"
+              >
+                <CallEndIcon />
+              </IconButton>
+            ) : (
+              <IconButton
+                onClick={handleRedial}
+                sx={{ bgcolor: 'success.main', color: 'white', '&:hover': { bgcolor: 'success.dark' }, width: 44, height: 44 }}
+                title="Call Again"
+              >
+                <PhoneIcon />
+              </IconButton>
+            )}
           </Box>
 
           <Divider sx={{ my: 1.5 }} />
@@ -1472,6 +1598,7 @@ export const SuperAdminLeadList = () => {
               <MenuItem value="Voicemail / No Answer">Voicemail / No Answer</MenuItem>
               <MenuItem value="Deal Closed - Won">Deal Closed - Won</MenuItem>
               <MenuItem value="Price Sensitive / Lost">Price Sensitive / Lost</MenuItem>
+              <MenuItem value="Callback Requested">Callback Requested</MenuItem>
             </Select>
           </FormControl>
         </DialogContent>
@@ -1479,10 +1606,7 @@ export const SuperAdminLeadList = () => {
           <Button
             variant="contained"
             fullWidth
-            onClick={() => {
-              showAlert(`✓ Call Log & Disposition (${callDisposition}) saved for ${callModalLead?.firstName}!`, 'success');
-              setCallModalLead(null);
-            }}
+            onClick={handleSaveCallActivity}
           >
             Save Call Activity & Close
           </Button>
