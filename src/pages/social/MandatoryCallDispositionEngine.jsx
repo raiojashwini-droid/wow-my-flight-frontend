@@ -121,7 +121,8 @@ export default function MandatoryCallDispositionEngine() {
       ]);
 
       if (dispRes && Array.isArray(dispRes.data)) {
-        setLogs(dispRes.data);
+        const clean = dispRes.data.filter(l => l.customer !== 'Ambassador Harold Vance' && l.id !== 'LOG-771');
+        setLogs(clean);
       }
       if (Array.isArray(leadsRes)) {
         setLeads(leadsRes);
