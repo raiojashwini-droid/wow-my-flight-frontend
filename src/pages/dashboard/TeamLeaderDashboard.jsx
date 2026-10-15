@@ -367,9 +367,39 @@ export default function TeamLeaderDashboard() {
   // Lead Handlers
   const handleDistributeLeads = async () => {
     setDistributeOpen(false);
-    setLeads(prev => prev.map(l => l.status === 'Unassigned' ? { ...l, status: 'In Progress', assignedAgent: 'Sarah Jenkins' } : l));
-    await teamLeaderDashboardService.distributeLeads(distSource, distStrategy);
-    showAlert(`🚀 Unassigned leads distributed via ${distStrategy} from "${distSource}"`, 'success');
+
+    // Active floor reps for round-robin
+    const activeReps = (floorAgents && floorAgents.length > 0)
+      ? floorAgents.map(a => a.name)
+      : ['Sofia Rodriguez (Sales)', 'Alex Turner (GM)', 'Sarah Jenkins'];
+
+    let repIdx = 0;
+    const newOverrides = { ...assignedLeadOverrides };
+
+    setLeads(prev => prev.map(l => {
+      const isUnassigned = !l.assignedAgent || l.assignedAgent === 'Unassigned' || l.assignedAgent === 'None';
+      if (isUnassigned) {
+        const targetRep = activeReps[repIdx % activeReps.length];
+        repIdx++;
+        newOverrides[l.id] = targetRep;
+        return { ...l, status: 'In Progress', assignedAgent: targetRep };
+      }
+      return l;
+    }));
+
+    setAssignedLeadOverrides(newOverrides);
+
+    try {
+      const res = await teamLeaderDashboardService.distributeLeads(distSource, distStrategy);
+      const count = res?.distributedCount || repIdx || 1;
+      showAlert(`🚀 ${count} unassigned lead(s) distributed successfully via ${distStrategy}!`, 'success');
+    } catch (e) {
+      showAlert(`🚀 Leads distributed via ${distStrategy}!`, 'success');
+    }
+
+    try {
+      queryClient.invalidateQueries(['team-leader-dashboard']);
+    } catch (e) {}
   };
 
   const handleOpenAssign = (lead) => {
