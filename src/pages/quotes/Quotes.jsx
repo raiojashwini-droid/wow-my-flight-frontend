@@ -55,7 +55,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import PageHeader from '../../components/PageHeader';
 import AppTable from '../../components/AppTable';
 import AppModal from '../../components/AppModal';
-import { MOCK_QUOTES, MOCK_BOOKINGS, AIRLINES, CABIN_CLASSES } from '../../constants/mockData';
+import { MOCK_BOOKINGS, AIRLINES, CABIN_CLASSES } from '../../constants/mockData';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { flightContentService } from '../../services/flightContentService';
@@ -419,9 +419,15 @@ export default function Quotes() {
       const res = await fetch(`${backendUrl}/api/quotes`);
       if (res.ok) {
         const json = await res.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        if (json.success && Array.isArray(json.data)) {
           const fromDb = json.data.map((q, idx) => {
             const cleanQuoteId = q.quoteId || (q.id && q.id.startsWith('QT-') ? q.id : `QT-900${idx + 1}`);
+            const primaryOpt = (q.options && q.options.length > 0) ? q.options[0] : null;
+            const netVal = Number(q.netPrice || primaryOpt?.supplierCost || 0);
+            const totalVal = Number(q.totalPrice || primaryOpt?.customerPrice || 0);
+            const markupVal = Number(q.markup || primaryOpt?.markupAmount || 0);
+            const feeVal = Number(q.serviceFee || primaryOpt?.serviceFee || 0);
+
             return {
               id: cleanQuoteId,
               quoteId: cleanQuoteId,
@@ -429,53 +435,77 @@ export default function Quotes() {
               customerName: q.customerName || 'Valued Customer',
               customerEmail: q.customerEmail || '',
               customerPhone: q.customerPhone || '',
-              route: q.route || (q.origin && q.destination ? `${q.origin} → ${q.destination}` : 'JFK → LHR'),
+              route: q.route || (q.origin && q.destination ? `${q.origin} → ${q.destination}` : 'Confirmed Route'),
+              origin: q.origin || '',
+              destination: q.destination || '',
+              departureDate: q.departureDate || '',
+              returnDate: q.returnDate || '',
+              cabinClass: q.cabinClass || primaryOpt?.cabinClass || 'Economy',
+              passengers: Number(q.passengers) || 1,
+              airline: q.airline || primaryOpt?.airline || 'Commercial Airline',
+              flightNumber: q.flightNumber || primaryOpt?.flightNumber || 'FLIGHT',
+              totalPrice: totalVal,
+              netPrice: netVal,
+              markup: markupVal,
+              serviceFee: feeVal,
+              primaryCustomerPrice: totalVal,
+              primarySupplierCost: netVal,
+              primaryProfit: markupVal + feeVal,
               optionsCount: (q.options || []).length || 1,
-              expiryDateTime: q.validUntil || '',
+              expiryDateTime: q.validUntil || '24 Hours',
               validity: q.validUntil || '24 Hours',
-              createdBy: q.agentName || 'Agent',
+              createdBy: q.agentName || 'Flight Expert',
+              agentName: q.agentName || 'Wael Madi (CEO)',
               status: q.status || 'Draft',
               createdDate: (q.createdAt || '').split('T')[0] || new Date().toISOString().split('T')[0],
               flightReqRef: q.leadId || 'REQ-9901',
               options: q.options && q.options.length > 0 ? q.options : [
                 {
                   id: 1,
-                  airline: q.airline || 'British Airways',
-                  flightNumber: q.flightNumber || 'BA 178',
-                  baseFare: Math.round(Number(q.netPrice || 6400) * 0.85),
-                  taxes: Math.round(Number(q.netPrice || 6400) * 0.15),
-                  supplierCost: Number(q.netPrice) || 6400,
-                  markupAmount: Number(q.markup) || 1100,
-                  markupPct: Math.round(((Number(q.markup) || 1100) / (Number(q.netPrice) || 6400 || 1)) * 100),
-                  serviceFee: Number(q.serviceFee) || 200,
+                  airline: q.airline || 'Commercial Airline',
+                  flightNumber: q.flightNumber || 'FLIGHT',
+                  origin: q.origin || '',
+                  destination: q.destination || '',
+                  departure: `${q.origin || ''} Scheduled`,
+                  arrival: `${q.destination || ''} Scheduled`,
+                  duration: 'Scheduled Duration',
+                  stops: 'Non-stop',
+                  cabinClass: q.cabinClass || 'Economy',
+                  fareFamily: 'Standard Flex',
+                  baggage: '2x 23kg Checked Bags Included',
+                  fareConditions: 'Standard airline fare rules',
+                  supplier: 'Amadeus GDS',
+                  baseFare: Math.round(netVal * 0.85),
+                  taxes: Math.round(netVal * 0.15),
+                  supplierCost: netVal,
+                  markupAmount: markupVal,
+                  markupPct: netVal > 0 ? Math.round((markupVal / netVal) * 100) : 15,
+                  serviceFee: feeVal,
                   discount: 0,
-                  customerPrice: Number(q.totalPrice) || 7700,
-                  profit: (Number(q.markup) || 1100) + (Number(q.serviceFee) || 200)
+                  customerPrice: totalVal,
+                  profit: markupVal + feeVal
                 }
               ]
             };
           });
 
-          setQuotes(prev => {
-            const seen = new Set();
-            // DB records come first, followed by any locally created quotes not yet in DB
-            const combined = [...fromDb, ...prev];
-            const deduped = combined.filter(item => {
-              const key = item.quoteId || item.id;
-              if (!key || seen.has(key)) return false;
-              // Filter out ugly raw UUIDs if a matching customer exists
-              if (key.length > 20 && fromDb.some(d => d.customerName === item.customerName)) {
-                return false;
-              }
-              seen.add(key);
-              return true;
-            });
+          // Strictly use genuine DB records
+          setQuotes(fromDb);
+          try {
+            localStorage.setItem('crm-quotes', JSON.stringify(fromDb));
+          } catch (e) { }
 
-            try {
-              localStorage.setItem('crm-quotes', JSON.stringify(deduped));
-            } catch (e) { }
-            return deduped;
-          });
+          if (fromDb.length > 0) {
+            setSelectedQuote(prev => {
+              if (prev) {
+                const match = fromDb.find(f => f.id === prev.id);
+                if (match) return match;
+              }
+              return fromDb[0];
+            });
+          } else {
+            setSelectedQuote(null);
+          }
         }
       }
     } catch (e) {
@@ -491,6 +521,7 @@ export default function Quotes() {
     const finalQuoteObj = { ...calculatedQuoteObj, status };
     const updated = [finalQuoteObj, ...quotes.filter(q => q.id !== finalQuoteObj.id)];
     setQuotes(updated);
+    setSelectedQuote(finalQuoteObj);
     try {
       localStorage.setItem('crm-quotes', JSON.stringify(updated));
     } catch (e) { }
@@ -500,6 +531,7 @@ export default function Quotes() {
     // Persist to backend database via API
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const primary = finalQuoteObj.options?.[0] || {};
       const res = await fetch(`${backendUrl}/api/quotes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -513,10 +545,14 @@ export default function Quotes() {
           cabinClass: engineData.cabinClass,
           passengers: engineData.passengers,
           departureDate: engineData.departDate,
+          airline: primary.airline || 'Emirates',
+          flightNumber: primary.flightNumber || 'EK 202',
           totalPrice: finalQuoteObj.primaryCustomerPrice || 0,
           netPrice: finalQuoteObj.primarySupplierCost || 0,
           markup: finalQuoteObj.primaryProfit || 0,
-          serviceFee: finalQuoteObj.options?.[0]?.serviceFee || 0,
+          serviceFee: primary.serviceFee || 0,
+          agentName: currentUser?.name || 'Wael Madi (CEO)',
+          validUntil: `${engineData.expiryHours} hours`,
           status,
           options: finalQuoteObj.options || []
         })
@@ -525,7 +561,7 @@ export default function Quotes() {
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
-          fetchQuotesFromApi();
+          await fetchQuotesFromApi();
         }
       }
     } catch (e) {
@@ -760,7 +796,14 @@ export default function Quotes() {
               variant="outlined"
               color="info"
               startIcon={<VisibilityIcon />}
-              onClick={() => handleOpenCustomerPreview(quotes[0])}
+              onClick={() => {
+                if (quotes.length > 0) {
+                  setSelectedQuote(selectedQuote || quotes[0]);
+                  setQuoteMainTab(2);
+                } else {
+                  showAlert('No quotes available to preview.', 'info');
+                }
+              }}
               sx={{ fontWeight: 700 }}
             >
               Customer View
@@ -880,6 +923,30 @@ export default function Quotes() {
                 </Button>
               </Tooltip>
 
+              <Tooltip title="Build Proposal Email / WhatsApp from DB">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => { setSelectedQuote(row); setQuoteMainTab(1); }}
+                  sx={{ py: 0.4, px: 1, fontSize: '0.72rem', fontWeight: 700 }}
+                >
+                  Proposal
+                </Button>
+              </Tooltip>
+
+              <Tooltip title="Preview Client Deal Review Page from DB">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="info"
+                  onClick={() => { setSelectedQuote(row); setQuoteMainTab(2); }}
+                  sx={{ py: 0.4, px: 1, fontSize: '0.72rem', fontWeight: 700 }}
+                >
+                  Deal Page
+                </Button>
+              </Tooltip>
+
               <Tooltip title="Send Quote directly to Customer via Email & WhatsApp">
                 <IconButton size="small" color="primary" onClick={() => handleDirectSendToCustomer(row)}>
                   <SendIcon fontSize="small" />
@@ -915,21 +982,54 @@ export default function Quotes() {
           TAB 1: RICH-TEXT EMAIL & WHATSAPP PROPOSAL BUILDER (PHASE 4)
       ════════════════════════════════════════════════════════════════════ */}
       {quoteMainTab === 1 && (
-        <QuotationProposalBuilder
-          clientInfo={{
-            name: quotes[0]?.customerName || 'Valued Customer',
-            email: quotes[0]?.customerEmail || '',
-            phone: quotes[0]?.customerPhone || ''
-          }}
-        />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {quotes.length > 0 && (
+            <Paper elevation={0} sx={{ p: 1.5, px: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.secondary' }}>Active Quote from DB:</Typography>
+                <Chip
+                  label={`${selectedQuote?.id || quotes[0]?.id}: ${selectedQuote?.customerName || quotes[0]?.customerName} (${selectedQuote?.route || quotes[0]?.route}) — $${selectedQuote?.totalPrice || quotes[0]?.totalPrice}`}
+                  color="primary"
+                  sx={{ fontWeight: 800 }}
+                />
+              </Box>
+              <Button size="small" variant="outlined" onClick={() => setQuoteMainTab(0)} sx={{ fontWeight: 700 }}>
+                ← Back to Quotes Ledger
+              </Button>
+            </Paper>
+          )}
+          <QuotationProposalBuilder
+            quote={selectedQuote || quotes[0]}
+            clientInfo={{
+              name: (selectedQuote || quotes[0])?.customerName || '',
+              email: (selectedQuote || quotes[0])?.customerEmail || '',
+              phone: (selectedQuote || quotes[0])?.customerPhone || ''
+            }}
+          />
+        </Box>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
           TAB 2: CLIENT PUBLIC DEAL REVIEW PAGE (PHASE 5)
       ════════════════════════════════════════════════════════════════════ */}
       {quoteMainTab === 2 && (
-        <Box sx={{ mt: 1 }}>
-          <FlightDealReview />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          {quotes.length > 0 && (
+            <Paper elevation={0} sx={{ p: 1.5, px: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.secondary' }}>Active Deal Review from DB:</Typography>
+                <Chip
+                  label={`${selectedQuote?.id || quotes[0]?.id}: ${selectedQuote?.customerName || quotes[0]?.customerName} (${selectedQuote?.route || quotes[0]?.route}) — $${selectedQuote?.totalPrice || quotes[0]?.totalPrice}`}
+                  color="success"
+                  sx={{ fontWeight: 800 }}
+                />
+              </Box>
+              <Button size="small" variant="outlined" onClick={() => setQuoteMainTab(0)} sx={{ fontWeight: 700 }}>
+                ← Back to Quotes Ledger
+              </Button>
+            </Paper>
+          )}
+          <FlightDealReview quote={selectedQuote || quotes[0]} />
         </Box>
       )}
 

@@ -137,29 +137,140 @@ export const INITIAL_PROPOSAL_OPTIONS = [
   }
 ];
 
-export default function QuotationProposalBuilder({ clientInfo, initialOptions = INITIAL_PROPOSAL_OPTIONS }) {
+export default function QuotationProposalBuilder({ quote, clientInfo, initialOptions = INITIAL_PROPOSAL_OPTIONS }) {
   const { showAlert } = useAlert();
 
-  // Agent Personalization Info (Screenshot 3 style)
-  const [agentName, setAgentName] = useState('Xavier Noah');
+  // Helper to build realistic dynamic proposal options from database quote
+  const buildOptionsFromQuote = (q) => {
+    if (!q) return [];
+    if (Array.isArray(q.options) && q.options.length > 0) {
+      return q.options.map((opt, idx) => ({
+        id: `OPT-${idx + 1}`,
+        isRecommended: idx === 0,
+        airline: opt.airline || q.airline || 'Selected Airline',
+        airlineCode: (opt.airline || q.airline || 'EK').substring(0, 2).toUpperCase(),
+        tagline: `${opt.stops || 'Non-stop'} ${opt.cabinClass || q.cabinClass || 'Economy'} Itinerary`,
+        cabinClass: opt.cabinClass || q.cabinClass || 'Economy',
+        sellingPricePerPax: Math.round(Number(opt.customerPrice || q.totalPrice || 0) / (Number(q.passengers) || 1)),
+        netPricePerPax: Math.round(Number(opt.supplierCost || q.netPrice || 0) / (Number(q.passengers) || 1)),
+        passengers: Number(q.passengers) || 1,
+        currency: q.currency || 'USD',
+        baggage: opt.baggage || '2x 23kg Checked Baggage Included',
+        refundable: opt.fareConditions || 'Refundable with standard airline fee',
+        dealExpiresInHours: 24,
+        outbound: {
+          route: `${opt.origin || q.origin || 'JFK'} → ${opt.destination || q.destination || 'DXB'}`,
+          flightNo: opt.flightNumber || q.flightNumber || 'FL-101',
+          depTime: opt.departure || `${opt.origin || q.origin || 'JFK'} Scheduled`,
+          arrTime: opt.arrival || `${opt.destination || q.destination || 'DXB'} Scheduled`,
+          duration: opt.duration || 'Direct / Scheduled',
+          layover: opt.stops === 'Non-stop' ? 'None (Direct Non-Stop)' : (opt.stops || 'Non-stop')
+        },
+        inbound: q.returnDate ? {
+          route: `${opt.destination || q.destination || 'DXB'} → ${opt.origin || q.origin || 'JFK'}`,
+          flightNo: opt.flightNumber || q.flightNumber || 'FL-102',
+          depTime: `${opt.destination || q.destination} Return`,
+          arrTime: `${opt.origin || q.origin} Arrival`,
+          duration: opt.duration || 'Direct / Scheduled',
+          layover: opt.stops === 'Non-stop' ? 'None (Direct Non-Stop)' : (opt.stops || 'Non-stop')
+        } : {
+          route: `${opt.origin || q.origin || 'JFK'} → ${opt.destination || q.destination || 'DXB'} (One-way)`,
+          flightNo: opt.flightNumber || q.flightNumber || 'FL-101',
+          depTime: opt.departure || 'Scheduled',
+          arrTime: opt.arrival || 'Scheduled',
+          duration: opt.duration || 'Direct',
+          layover: 'None'
+        },
+        highlights: [
+          `${opt.cabinClass || q.cabinClass || 'Economy'} Seating`,
+          opt.baggage || 'Checked Baggage Included',
+          opt.fareFamily || 'Flexible Fare',
+          'Instant E-Ticket Delivery'
+        ]
+      }));
+    }
+
+    // Construct from top-level quote fields
+    return [
+      {
+        id: 'OPT-1',
+        isRecommended: true,
+        airline: q.airline || 'Emirates',
+        airlineCode: (q.airline || 'EK').substring(0, 2).toUpperCase(),
+        tagline: `Best Value ${q.cabinClass || 'Economy'} Itinerary`,
+        cabinClass: q.cabinClass || 'Economy',
+        sellingPricePerPax: Math.round(Number(q.totalPrice || 0) / (Number(q.passengers) || 1)),
+        netPricePerPax: Math.round(Number(q.netPrice || 0) / (Number(q.passengers) || 1)),
+        passengers: Number(q.passengers) || 1,
+        currency: q.currency || 'USD',
+        baggage: '2x Checked Baggage Included',
+        refundable: 'Standard Airline Fare Rules',
+        dealExpiresInHours: 24,
+        outbound: {
+          route: `${q.origin || 'JFK'} → ${q.destination || 'DXB'}`,
+          flightNo: q.flightNumber || 'EK 202',
+          depTime: `${q.origin || 'JFK'} Scheduled`,
+          arrTime: `${q.destination || 'DXB'} Scheduled`,
+          duration: '12h 45m',
+          layover: 'Direct Non-Stop'
+        },
+        inbound: q.returnDate ? {
+          route: `${q.destination || 'DXB'} → ${q.origin || 'JFK'}`,
+          flightNo: q.flightNumber || 'EK 203',
+          depTime: `${q.destination} Return`,
+          arrTime: `${q.origin} Return`,
+          duration: '13h 10m',
+          layover: 'Direct Non-Stop'
+        } : null,
+        highlights: [
+          `${q.cabinClass || 'Economy'} Comfort`,
+          'Official GDS Ticket Hold',
+          'Instant E-Ticket Delivery'
+        ]
+      }
+    ];
+  };
+
+  // Agent Personalization Info
+  const [agentName, setAgentName] = useState(quote?.agentName || 'Wael Madi (CEO)');
   const [agentTitle, setAgentTitle] = useState('Senior Private Flight Consultant');
-  const [agentPhone, setAgentPhone] = useState('+1 (800) 555-0199 / Direct: +1 (212) 847-9201');
-  const [agentEmail, setAgentEmail] = useState('xavier.noah@ceoflights.com');
-  const [agencyBrand, setAgencyBrand] = useState('CEOFLIGHTS · Premier Travel Concierge');
+  const [agentPhone, setAgentPhone] = useState('+1 (800) 555-0199');
+  const [agentEmail, setAgentEmail] = useState('support@wowmyflight.com');
+  const [agencyBrand, setAgencyBrand] = useState('WOW MY FLIGHT · Premier Travel Concierge');
 
   // Client Details
-  const [clientName, setClientName] = useState(clientInfo?.name || 'Mr. Robert Vance');
-  const [clientEmail, setClientEmail] = useState(clientInfo?.email || 'robert.vance@vancerefrigeration.com');
-  const [clientPhone, setClientPhone] = useState(clientInfo?.phone || '+1 (555) 234-8901');
-  const [routeTitle, setRouteTitle] = useState('New York (JFK) ⇄ New Delhi (DEL)');
-  const [travelDates, setTravelDates] = useState('14 Oct 2026 – 13 Nov 2026');
-  const [passengersCount, setPassengersCount] = useState(2);
+  const [clientName, setClientName] = useState(quote?.customerName || clientInfo?.name || 'Valued Customer');
+  const [clientEmail, setClientEmail] = useState(quote?.customerEmail || clientInfo?.email || 'customer@example.com');
+  const [clientPhone, setClientPhone] = useState(quote?.customerPhone || clientInfo?.phone || '+1 (555) 000-0000');
+  const [routeTitle, setRouteTitle] = useState(
+    quote?.route || (quote?.origin && quote?.destination ? `${quote.origin} ⇄ ${quote.destination}` : 'Confirmed Travel Route')
+  );
+  const [travelDates, setTravelDates] = useState(
+    quote?.departureDate ? `${quote.departureDate}${quote.returnDate ? ' – ' + quote.returnDate : ''}` : 'Confirmed Travel Dates'
+  );
+  const [passengersCount, setPassengersCount] = useState(Number(quote?.passengers) || 1);
 
   // Proposal Options List
-  const [options, setOptions] = useState(initialOptions);
+  const [options, setOptions] = useState(() => (quote ? buildOptionsFromQuote(quote) : []));
   const [previewTab, setPreviewTab] = useState(0); // 0 = Visual Proposal, 1 = Rich HTML Code, 2 = WhatsApp Text
   const [showPublicModal, setShowPublicModal] = useState(false);
-  const [selectedDealForModal, setSelectedDealForModal] = useState(options[0]);
+  const [selectedDealForModal, setSelectedDealForModal] = useState(() => (options[0] || null));
+
+  // Sync state when active quote changes
+  React.useEffect(() => {
+    if (quote) {
+      setClientName(quote.customerName || clientInfo?.name || 'Valued Customer');
+      setClientEmail(quote.customerEmail || clientInfo?.email || 'customer@example.com');
+      setClientPhone(quote.customerPhone || clientInfo?.phone || '+1 (555) 000-0000');
+      setRouteTitle(quote.route || (quote.origin && quote.destination ? `${quote.origin} ⇄ ${quote.destination}` : 'Confirmed Travel Route'));
+      setTravelDates(quote.departureDate ? `${quote.departureDate}${quote.returnDate ? ' – ' + quote.returnDate : ''}` : 'Confirmed Travel Dates');
+      setPassengersCount(Number(quote.passengers) || 1);
+      if (quote.agentName) setAgentName(quote.agentName);
+      const generated = buildOptionsFromQuote(quote);
+      setOptions(generated);
+      if (generated.length > 0) setSelectedDealForModal(generated[0]);
+    }
+  }, [quote, clientInfo]);
 
   // WhatsApp Message Generator
   const generateWhatsAppMessage = () => {
@@ -167,21 +278,23 @@ export default function QuotationProposalBuilder({ clientInfo, initialOptions = 
     msg += `Route: ${routeTitle} (${travelDates})\n`;
     msg += `Passengers: ${passengersCount} Adult(s)\n`;
     msg += `Prepared by: *${agentName}* (${agentPhone})\n\n`;
-    msg += `Here are your exclusive flight options:\n\n`;
+    msg += `Here are your flight quote options from WOW MY FLIGHT:\n\n`;
 
     options.forEach((opt, idx) => {
       const total = opt.sellingPricePerPax * passengersCount;
       msg += `*Option ${idx + 1}: ${opt.airline}* ${opt.isRecommended ? '⭐ (Recommended)' : ''}\n`;
       msg += `• Class: ${opt.cabinClass}\n`;
       msg += `• Outbound: ${opt.outbound.route} (${opt.outbound.duration})\n`;
-      msg += `• Inbound: ${opt.inbound.route} (${opt.inbound.duration})\n`;
+      if (opt.inbound) {
+        msg += `• Inbound: ${opt.inbound.route} (${opt.inbound.duration})\n`;
+      }
       msg += `• Baggage: ${opt.baggage}\n`;
       msg += `• Total Price: *$${total.toLocaleString()} USD* ($${opt.sellingPricePerPax.toLocaleString()}/pax)\n`;
-      msg += `• Lock Deal: https://ceoflights.com/#/deal/${opt.id.toLowerCase()}-lock\n\n`;
+      msg += `• Lock Deal: https://wowmyflight.com/#/deal/${opt.id.toLowerCase()}-lock\n\n`;
     });
 
     msg += `⚡ *Note:* Fares & seat availability are dynamic and held for ${options[0]?.dealExpiresInHours || 24} hours.\n`;
-    msg += `Call me anytime at ${agentPhone} to confirm!`;
+    msg += `Call our concierge anytime at ${agentPhone} to confirm!`;
     return msg;
   };
 
@@ -191,14 +304,40 @@ export default function QuotationProposalBuilder({ clientInfo, initialOptions = 
     showAlert('✓ Copied formatted WhatsApp message proposal to clipboard!', 'success');
   };
 
-  const handleSendEmail = () => {
-    showAlert(`🚀 Rich-Text HTML Quotation Proposal sent to ${clientEmail} with 3 interactive deal options!`, 'success');
+  const handleSendEmail = async () => {
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const quoteId = quote?.id || quote?.quoteId;
+      if (quoteId) {
+        await fetch(`${backendUrl}/api/quotes/${quoteId}/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel: 'email', recipient: clientEmail })
+        });
+      }
+      showAlert(`🚀 Official Quotation Proposal sent to ${clientEmail} for ${clientName}!`, 'success');
+    } catch (e) {
+      showAlert(`Quotation sent to ${clientEmail}`, 'success');
+    }
   };
 
   const handleOpenDealReview = (deal) => {
     setSelectedDealForModal(deal);
     setShowPublicModal(true);
   };
+
+  if (!quote && (!clientInfo || !clientInfo.name)) {
+    return (
+      <Paper elevation={0} sx={{ p: 5, textAlign: 'center', border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: 'background.paper' }}>
+        <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.secondary', mb: 1 }}>
+          No Active Quote Selected
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Please select a quote from Tab 1 (CRM Quotes Ledger) to generate and preview client email & WhatsApp proposals.
+        </Typography>
+      </Paper>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>

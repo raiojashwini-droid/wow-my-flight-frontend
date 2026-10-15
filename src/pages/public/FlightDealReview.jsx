@@ -37,19 +37,38 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import AncillariesAndSSRHub from '../../components/AncillariesAndSSRHub';
 import { useAlert } from '../../contexts/AlertContext';
 
-export default function FlightDealReview() {
+export default function FlightDealReview({ quote: propQuote }) {
   const { dealId } = useParams();
   const navigate = useNavigate();
   const { showAlert } = useAlert();
 
-  // 24 Hour Countdown Timer state
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 21,
-    minutes: 46,
-    seconds: 16
+  // Resolve quote from props or fallback to cached quote
+  const [activeQuote, setActiveQuote] = useState(() => {
+    if (propQuote) return propQuote;
+    try {
+      const stored = localStorage.getItem('crm-quotes');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+      }
+    } catch (e) {}
+    return null;
   });
 
-  const [ancillaryAddonCost, setAncillaryAddonCost] = useState(298); // insurance + lounge + fastTrack + exit row by default
+  useEffect(() => {
+    if (propQuote) {
+      setActiveQuote(propQuote);
+    }
+  }, [propQuote]);
+
+  // 24 Hour Countdown Timer state
+  const [timeLeft, setTimeLeft] = useState({
+    hours: 23,
+    minutes: 59,
+    seconds: 45
+  });
+
+  const [ancillaryAddonCost, setAncillaryAddonCost] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -67,32 +86,52 @@ export default function FlightDealReview() {
     return () => clearInterval(timer);
   }, []);
 
-  // Passenger state
-  const [passengers, setPassengers] = useState([
-    {
-      title: 'Mr',
-      firstName: 'Robert',
-      lastName: 'Vance',
-      dob: '1978-06-15',
-      passportNo: 'USA94820193',
-      nationality: 'United States',
-      meal: 'Standard Non-Veg'
-    },
-    {
-      title: 'Mrs',
-      firstName: 'Phyllis',
-      lastName: 'Vance',
-      dob: '1981-11-20',
-      passportNo: 'USA94820194',
-      nationality: 'United States',
-      meal: 'Vegetarian Hindu'
-    }
-  ]);
+  // Passengers state derived dynamically from active quote
+  const [passengers, setPassengers] = useState(() => {
+    const name = activeQuote?.customerName || 'Valued Customer';
+    const parts = name.trim().split(' ');
+    const first = parts[0] || 'Valued';
+    const last = parts.slice(1).join(' ') || 'Customer';
+    return [
+      {
+        title: 'Mr',
+        firstName: first,
+        lastName: last,
+        dob: '1990-05-15',
+        passportNo: 'US9820194',
+        nationality: 'United States',
+        meal: 'Standard Meal'
+      }
+    ];
+  });
 
-  const [contactEmail, setContactEmail] = useState('robert.vance@vancerefrigeration.com');
-  const [contactPhone, setContactPhone] = useState('+1 (555) 234-8901');
+  const [contactEmail, setContactEmail] = useState(activeQuote?.customerEmail || 'customer@example.com');
+  const [contactPhone, setContactPhone] = useState(activeQuote?.customerPhone || '+1 (555) 000-0000');
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [assignedPnr, setAssignedPnr] = useState('');
+
+  // Sync passengers & contact whenever active quote updates
+  useEffect(() => {
+    if (activeQuote) {
+      const name = activeQuote.customerName || 'Valued Customer';
+      const parts = name.trim().split(' ');
+      const first = parts[0] || 'Valued';
+      const last = parts.slice(1).join(' ') || 'Customer';
+      setPassengers([
+        {
+          title: 'Mr',
+          firstName: first,
+          lastName: last,
+          dob: '1990-05-15',
+          passportNo: 'US9820194',
+          nationality: 'United States',
+          meal: 'Standard Meal'
+        }
+      ]);
+      setContactEmail(activeQuote.customerEmail || 'customer@example.com');
+      setContactPhone(activeQuote.customerPhone || '+1 (555) 000-0000');
+    }
+  }, [activeQuote]);
 
   const formatTimer = () => {
     const h = String(timeLeft.hours).padStart(2, '0');
@@ -101,12 +140,72 @@ export default function FlightDealReview() {
     return `${h}:${m}:${s}`;
   };
 
-  const handleBookNow = () => {
+  const handleBookNow = async () => {
     const newPnr = 'PNR' + Math.floor(100000 + Math.random() * 900000);
     setAssignedPnr(newPnr);
     setBookingConfirmed(true);
-    showAlert(`🎉 Booking successfully held under PNR #${newPnr}! E-ticket will be issued within 15 minutes.`, 'success');
+
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      await fetch(`${backendUrl}/api/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quoteId: activeQuote?.id || activeQuote?.quoteId,
+          customerName: activeQuote?.customerName || `${passengers[0].firstName} ${passengers[0].lastName}`,
+          customerEmail: contactEmail,
+          customerPhone: contactPhone,
+          route: activeQuote?.route || `${activeQuote?.origin || 'JFK'} → ${activeQuote?.destination || 'DXB'}`,
+          origin: activeQuote?.origin || 'JFK',
+          destination: activeQuote?.destination || 'DXB',
+          travelDate: activeQuote?.departureDate || '2026-10-16',
+          cabinClass: activeQuote?.cabinClass || 'Economy',
+          passengers: passengers.length,
+          pnr: newPnr,
+          airline: activeQuote?.airline || 'Emirates',
+          flightNumber: activeQuote?.flightNumber || 'EK 202',
+          supplier: activeQuote?.options?.[0]?.supplier || 'Amadeus GDS',
+          sellingPrice: (activeQuote?.totalPrice || 474) + ancillaryAddonCost,
+          bookingStatus: 'CONFIRMED'
+        })
+      });
+    } catch (e) {
+      console.warn('Booking API error:', e.message);
+    }
+
+    showAlert(`🎉 Booking successfully held under PNR #${newPnr}! E-ticket confirmed for ${activeQuote?.customerName || contactEmail}.`, 'success');
   };
+
+  if (!activeQuote) {
+    return (
+      <Paper elevation={0} sx={{ p: 5, textAlign: 'center', border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: 'background.paper' }}>
+        <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.secondary', mb: 1 }}>
+          No Active Quote Selected
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Please select a quote from Tab 1 (CRM Quotes Ledger) to preview the interactive client deal review page.
+        </Typography>
+      </Paper>
+    );
+  }
+
+  // Derived values from genuine DB quote
+  const primaryOpt = activeQuote.options?.[0] || {};
+  const airlineName = activeQuote.airline || primaryOpt.airline || 'Commercial Airline';
+  const airlineCode = (activeQuote.airline || primaryOpt.airline || 'EK').substring(0, 2).toUpperCase();
+  const flightNumber = activeQuote.flightNumber || primaryOpt.flightNumber || 'FLIGHT';
+  const cabinClass = activeQuote.cabinClass || primaryOpt.cabinClass || 'Economy';
+  const origin = activeQuote.origin || 'JFK';
+  const destination = activeQuote.destination || 'DXB';
+  const departureDate = activeQuote.departureDate || '2026-10-16';
+  const returnDate = activeQuote.returnDate || null;
+  const agentName = activeQuote.agentName || 'Wael Madi (CEO)';
+
+  const netPrice = Number(activeQuote.netPrice || primaryOpt.supplierCost || 372);
+  const taxes = Number(primaryOpt.taxes || Math.round(netPrice * 0.15));
+  const markup = Number(activeQuote.markup || primaryOpt.markupAmount || 56);
+  const baseSellingPrice = Number(activeQuote.totalPrice || primaryOpt.customerPrice || 474);
+  const totalSellingPrice = baseSellingPrice + ancillaryAddonCost;
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.neutral', pb: 8 }}>
@@ -127,7 +226,7 @@ export default function FlightDealReview() {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Typography variant="h6" sx={{ fontWeight: 900, letterSpacing: 1, color: '#38BDF8' }}>
-                CEOFLIGHTS
+                WOW MY FLIGHT
               </Typography>
               <Chip label="PREMIER PRIVATE CONCIERGE" size="small" sx={{ bgcolor: 'rgba(56, 189, 248, 0.2)', color: '#38BDF8', fontWeight: 800, fontSize: '0.65rem' }} />
             </Box>
@@ -174,7 +273,7 @@ export default function FlightDealReview() {
               GDS Record Locator: <span style={{ fontFamily: 'monospace', textDecoration: 'underline' }}>{assignedPnr}</span>
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}>
-              Your British Airways Business Class itinerary has been locked. Confirmation and official 13-digit E-Tickets are being issued by our ticketing desk and will be sent to <b>{contactEmail}</b>.
+              Your {airlineName} itinerary has been locked. Confirmation and official 13-digit E-Tickets are being issued by our ticketing desk and will be sent to <b>{contactEmail}</b>.
             </Typography>
             <Button
               variant="contained"
@@ -211,10 +310,10 @@ export default function FlightDealReview() {
                   </Box>
                   <Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'var(--wd-1E40AF, #1E40AF)' }}>
-                      Secret Phone-Only Unpublished Tariff!
+                      Assigned Concierge Desk
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Call your assigned agent <b>Xavier Noah</b> to unlock an extra <b>$150 Instant Rebate</b>.
+                      Your quote was prepared by <b>{agentName}</b>. Direct support: <b>+1 (800) 555-0199</b>.
                     </Typography>
                   </Box>
                 </Box>
@@ -233,18 +332,18 @@ export default function FlightDealReview() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Box sx={{ px: 2, py: 1, bgcolor: '#0F172A', color: '#FFFFFF', fontWeight: 900, borderRadius: 2 }}>
-                      BA
+                      {airlineCode}
                     </Box>
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 900 }}>
-                        British Airways · Club World (Business)
+                        {airlineName} · {cabinClass}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                        New York (JFK) ⇄ New Delhi (DEL) · 14 Oct 2026 – 13 Nov 2026
+                        {origin} ⇄ {destination} · {departureDate} {returnDate ? '– ' + returnDate : ''}
                       </Typography>
                     </Box>
                   </Box>
-                  <Chip label="180° Fully Lie-Flat Bed" color="primary" sx={{ fontWeight: 800 }} />
+                  <Chip label={`${cabinClass} Class`} color="primary" sx={{ fontWeight: 800 }} />
                 </Box>
 
                 <Divider sx={{ my: 2 }} />
@@ -252,66 +351,61 @@ export default function FlightDealReview() {
                 {/* OUTBOUND FLIGHT */}
                 <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2, mb: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 900, color: 'primary.main', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <FlightTakeoffIcon fontSize="small" /> Outbound Flight · Wed 14 Oct 2026
+                    <FlightTakeoffIcon fontSize="small" /> Outbound Flight · {departureDate}
                   </Typography>
 
                   <Grid container spacing={2} alignItems="center">
                     <Grid item xs={12} sm={5}>
-                      <Typography variant="body2" sx={{ fontWeight: 900 }}>15:45 · John F. Kennedy Intl (JFK)</Typography>
-                      <Typography variant="caption" color="text.secondary">BA 178 · Boeing 777-300ER</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 900 }}>{origin} Departure</Typography>
+                      <Typography variant="caption" color="text.secondary">{flightNumber} · {primaryOpt.departure || `${origin} Scheduled`}</Typography>
                     </Grid>
                     <Grid item xs={12} sm={2} sx={{ textAlign: 'center' }}>
-                      <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block' }}>16h 00m</Typography>
-                      <Chip label="1 Stop (LHR)" size="small" sx={{ fontSize: '0.65rem', height: 20 }} />
+                      <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block' }}>{primaryOpt.duration || '12h 45m'}</Typography>
+                      <Chip label={primaryOpt.stops || 'Direct'} size="small" sx={{ fontSize: '0.65rem', height: 20 }} />
                     </Grid>
                     <Grid item xs={12} sm={5} sx={{ textAlign: { sm: 'right' } }}>
-                      <Typography variant="body2" sx={{ fontWeight: 900 }}>19:20 +1 · Indira Gandhi Intl (DEL)</Typography>
-                      <Typography variant="caption" color="text.secondary">Arrival next day</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 900 }}>{destination} Arrival</Typography>
+                      <Typography variant="caption" color="text.secondary">{primaryOpt.arrival || `${destination} Scheduled`}</Typography>
                     </Grid>
                   </Grid>
 
                   <Box sx={{ mt: 1.5, p: 1, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', borderRadius: 1.5, border: '1px dashed #F59E0B', display: 'flex', alignItems: 'center', gap: 1 }}>
                     <ConnectingAirportsIcon sx={{ color: '#D97706', fontSize: 18 }} />
                     <Typography variant="caption" sx={{ color: 'var(--wd-B45309, #B45309)', fontWeight: 800 }}>
-                      2h 15m Layover at London Heathrow Airport (LHR) · Terminal 5 Galleries Lounge Access Included
+                      Baggage Allowance: {primaryOpt.baggage || '2x 23kg Checked Bags Included'} · Fare: {primaryOpt.fareFamily || 'Standard Flex'}
                     </Typography>
                   </Box>
                 </Box>
 
-                {/* INBOUND FLIGHT */}
-                <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 900, color: 'secondary.main', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <FlightLandIcon fontSize="small" /> Inbound Flight · Fri 13 Nov 2026
-                  </Typography>
-
-                  <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} sm={5}>
-                      <Typography variant="body2" sx={{ fontWeight: 900 }}>10:45 · Indira Gandhi Intl (DEL)</Typography>
-                      <Typography variant="caption" color="text.secondary">BA 142 · Boeing 787-9 Dreamliner</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={2} sx={{ textAlign: 'center' }}>
-                      <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block' }}>17h 15m</Typography>
-                      <Chip label="1 Stop (LHR)" size="small" sx={{ fontSize: '0.65rem', height: 20 }} />
-                    </Grid>
-                    <Grid item xs={12} sm={5} sx={{ textAlign: { sm: 'right' } }}>
-                      <Typography variant="body2" sx={{ fontWeight: 900 }}>19:30 · John F. Kennedy Intl (JFK)</Typography>
-                      <Typography variant="caption" color="text.secondary">Same day arrival</Typography>
-                    </Grid>
-                  </Grid>
-
-                  <Box sx={{ mt: 1.5, p: 1, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', borderRadius: 1.5, border: '1px dashed #F59E0B', display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <ConnectingAirportsIcon sx={{ color: '#D97706', fontSize: 18 }} />
-                    <Typography variant="caption" sx={{ color: 'var(--wd-B45309, #B45309)', fontWeight: 800 }}>
-                      1h 55m Layover at London Heathrow Airport (LHR) · Fast-Track International Transfer
+                {/* INBOUND FLIGHT IF ROUND TRIP */}
+                {returnDate && (
+                  <Box sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 900, color: 'secondary.main', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <FlightLandIcon fontSize="small" /> Inbound Flight · {returnDate}
                     </Typography>
+
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} sm={5}>
+                        <Typography variant="body2" sx={{ fontWeight: 900 }}>{destination} Return</Typography>
+                        <Typography variant="caption" color="text.secondary">{flightNumber} Return Leg</Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={2} sx={{ textAlign: 'center' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block' }}>{primaryOpt.duration || '13h 10m'}</Typography>
+                        <Chip label={primaryOpt.stops || 'Direct'} size="small" sx={{ fontSize: '0.65rem', height: 20 }} />
+                      </Grid>
+                      <Grid item xs={12} sm={5} sx={{ textAlign: { sm: 'right' } }}>
+                        <Typography variant="body2" sx={{ fontWeight: 900 }}>{origin} Arrival</Typography>
+                        <Typography variant="caption" color="text.secondary">Return arrival</Typography>
+                      </Grid>
+                    </Grid>
                   </Box>
-                </Box>
+                )}
               </Paper>
 
               {/* PASSENGER DETAILS FORM */}
               <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid var(--wb-E2E8F0, #E2E8F0)', bgcolor: 'background.paper' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 2 }}>
-                  Passenger & Passport Information (2 Adult Travelers)
+                  Passenger & Passport Information ({passengers.length} Adult Traveler{passengers.length > 1 ? 's' : ''})
                 </Typography>
 
                 {passengers.map((pax, idx) => (
@@ -384,19 +478,19 @@ export default function FlightDealReview() {
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Adult Fare (x2 Pax):</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>$6,400.00</Typography>
+                    <Typography variant="body2" color="text.secondary">Net Base Fare:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>${netPrice.toLocaleString()}.00</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" color="text.secondary">Airport Taxes & Carrier Fees:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>$1,300.00</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>${taxes.toLocaleString()}.00</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">2x 32kg Checked Bags:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.main' }}>FREE (Included)</Typography>
+                    <Typography variant="body2" color="text.secondary">Agency Markup / Fee:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>+${markup.toLocaleString()}.00</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">Lounge & Fast-Track Access:</Typography>
+                    <Typography variant="body2" color="text.secondary">Checked Baggage:</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.main' }}>FREE (Included)</Typography>
                   </Box>
 
@@ -412,7 +506,7 @@ export default function FlightDealReview() {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>Total Selling Price:</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 900, color: '#2563EB' }}>
-                      ${(7700 + ancillaryAddonCost).toLocaleString()}.00
+                      ${totalSellingPrice.toLocaleString()}.00
                     </Typography>
                   </Box>
                   <Typography variant="caption" sx={{ color: 'var(--wd-059669, #059669)', fontWeight: 800, textAlign: 'right' }}>

@@ -845,10 +845,8 @@ export const dbService = {
     try {
       const remote = await apiFetch('/api/quotes');
       if (remote && remote.success && Array.isArray(remote.data)) {
-        if (remote.data.length > 0) {
-          localStorage.setItem('crm-quotes', JSON.stringify(remote.data));
-          return remote.data;
-        }
+        localStorage.setItem('crm-quotes', JSON.stringify(remote.data));
+        return remote.data;
       }
     } catch (e) { }
 
