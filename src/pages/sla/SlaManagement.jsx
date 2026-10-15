@@ -246,46 +246,61 @@ export default function SlaManagement() {
               key={kpi.id}
               elevation={0}
               sx={{
-                p: 2,
-                borderRadius: 2.5,
+                py: 1.2,
+                px: 1.5,
+                borderRadius: 2,
                 border: '1px solid',
                 borderColor: 'divider',
+                borderLeft: '3px solid',
+                borderLeftColor: kpi.color,
                 bgcolor: 'background.paper',
-                position: 'relative',
-                overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
-                justify: 'space-between',
-                transition: 'all 0.25s ease',
+                justifyContent: 'space-between',
+                minHeight: 82,
+                transition: 'all 0.18s ease',
                 '&:hover': {
-                  transform: 'translateY(-3px)',
-                  borderColor: kpi.color,
-                  boxShadow: theme.palette.mode === 'dark' ? '0 6px 20px rgba(0,0,0,0.5)' : '0 6px 20px rgba(0,0,0,0.06)'
-                },
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '4px',
-                  height: '100%',
-                  backgroundColor: kpi.color
+                  transform: 'translateY(-2px)',
+                  boxShadow: theme.palette.mode === 'dark' ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.05)'
                 }
               }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.68rem' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 0.8, mb: 0.5 }}>
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary" 
+                  sx={{ 
+                    fontWeight: 800, 
+                    textTransform: 'uppercase', 
+                    fontSize: '0.64rem',
+                    letterSpacing: '0.02em',
+                    lineHeight: 1.2
+                  }}
+                >
                   {kpi.title}
                 </Typography>
-                <Box sx={{ p: 0.8, borderRadius: 2, bgcolor: alpha(kpi.color, 0.12), color: kpi.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Box 
+                  sx={{ 
+                    width: 26, 
+                    height: 26, 
+                    borderRadius: 1.5, 
+                    bgcolor: alpha(kpi.color, 0.12), 
+                    color: kpi.color, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    '& .MuiSvgIcon-root': { fontSize: '0.95rem' }
+                  }}
+                >
                   {kpi.icon}
                 </Box>
               </Box>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif' }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', lineHeight: 1.1 }}>
                   {kpi.value}
                 </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: kpi.color, fontSize: '0.72rem' }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: kpi.color, fontSize: '0.65rem', display: 'block', mt: 0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {kpi.change}
                 </Typography>
               </Box>

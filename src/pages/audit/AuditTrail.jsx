@@ -161,52 +161,72 @@ export default function AuditTrail() {
       </Paper>
 
       {/* 6 REAL-TIME AUDIT KPI CARDS */}
-      <Box sx={{ mb: 3.5 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' }, gap: 1.5 }}>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' }, gap: 1.2 }}>
           {kpis.map((kpi) => (
             <Paper
               key={kpi.id}
               elevation={0}
               sx={{
-                p: 2,
-                borderRadius: 2.5,
+                py: 1.2,
+                px: 1.5,
+                borderRadius: 2,
                 border: '1px solid',
                 borderColor: 'divider',
+                borderLeft: '3px solid',
+                borderLeftColor: kpi.border || kpi.color,
                 bgcolor: 'background.paper',
-                position: 'relative',
-                overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                transition: 'all 0.2s',
+                minHeight: 82,
+                transition: 'all 0.18s ease',
                 '&:hover': {
                   transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
-                },
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '4px',
-                  height: '100%',
-                  backgroundColor: kpi.border
+                  boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.05)'
                 }
               }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.62rem' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 0.8, mb: 0.5 }}>
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary" 
+                  sx={{ 
+                    fontWeight: 800, 
+                    textTransform: 'uppercase', 
+                    fontSize: '0.62rem',
+                    letterSpacing: '0.02em',
+                    lineHeight: 1.2,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}
+                >
                   {kpi.title}
                 </Typography>
-                <Box sx={{ p: 0.5, borderRadius: 1.5, bgcolor: `${kpi.color}15`, color: kpi.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Box 
+                  sx={{ 
+                    width: 26, 
+                    height: 26, 
+                    borderRadius: 1.5, 
+                    bgcolor: `${kpi.color}15`, 
+                    color: kpi.color, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    '& .MuiSvgIcon-root': { fontSize: '0.95rem' }
+                  }}
+                >
                   {kpi.icon}
                 </Box>
               </Box>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif' }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem', lineHeight: 1.1 }}>
                   {kpi.value}
                 </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: kpi.border, fontSize: '0.62rem' }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: kpi.border, fontSize: '0.62rem', display: 'block', mt: 0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {kpi.change}
                 </Typography>
               </Box>

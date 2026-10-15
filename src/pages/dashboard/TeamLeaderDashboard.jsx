@@ -652,38 +652,40 @@ export default function TeamLeaderDashboard() {
               key={kpi.id}
               elevation={0}
               sx={{
-                p: 2,
-                borderRadius: 2.5,
+                py: 1.2,
+                px: 1.5,
+                borderRadius: 2,
                 border: '1px solid',
                 borderColor: 'divider',
                 bgcolor: 'background.paper',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                transition: 'transform 0.2s, box-shadow 0.2s',
+                minHeight: 82,
+                transition: 'transform 0.18s, box-shadow 0.18s',
                 '&:hover': {
                   transform: 'translateY(-2px)',
-                  boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.06)'
+                  boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.05)'
                 }
               }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.68rem' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 0.8, mb: 0.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.64rem', letterSpacing: '0.02em', lineHeight: 1.2 }}>
                   {kpi.title}
                 </Typography>
-                <Box sx={{ p: 0.8, borderRadius: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'action.hover' : kpi.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Box sx={{ width: 26, height: 26, borderRadius: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'action.hover' : kpi.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, '& .MuiSvgIcon-root': { fontSize: '0.95rem' } }}>
                   {kpi.icon}
                 </Box>
               </Box>
               <Box>
-                <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif' }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, color: 'text.primary', fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', lineHeight: 1.1 }}>
                   {kpi.value}
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
                   {kpi.isUp ? (
-                    <TrendingUpIcon sx={{ fontSize: 14, color: 'success.main' }} />
+                    <TrendingUpIcon sx={{ fontSize: 13, color: 'success.main' }} />
                   ) : (
-                    <TrendingDownIcon sx={{ fontSize: 14, color: 'error.main' }} />
+                    <TrendingDownIcon sx={{ fontSize: 13, color: 'error.main' }} />
                   )}
                   <Typography variant="caption" sx={{ fontWeight: 700, color: kpi.isUp ? 'success.main' : 'error.main', fontSize: '0.65rem' }}>
                     {kpi.change}
