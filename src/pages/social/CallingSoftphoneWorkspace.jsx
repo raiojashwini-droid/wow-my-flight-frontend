@@ -103,6 +103,7 @@ export default function CallingSoftphoneWorkspace() {
   const [selectedFromNumber, setSelectedFromNumber] = useState('');
   const [dialNumber, setDialNumber] = useState('');
   const [loading, setLoading] = useState(false);
+  const activeCallIdRef = useRef(null);
 
   // Real Data Store
   const [callHistory, setCallHistory] = useState([]);
@@ -350,8 +351,10 @@ export default function CallingSoftphoneWorkspace() {
       localStorage.setItem(LAST_DIALED_KEY, JSON.stringify(lastEntry));
 
       // Save call to local timeline store for immediate tracking
+      const callId = `call_${Date.now()}`;
+      activeCallIdRef.current = callId;
       const newCallEntry = {
-        id: `call_${Date.now()}`,
+        id: callId,
         channel: 'Call',
         direction: 'outbound',
         customer: 'Outbound Customer',
@@ -381,12 +384,49 @@ export default function CallingSoftphoneWorkspace() {
   };
 
   const handleEndCall = () => {
+    const finalSeconds = Math.max(1, webrtcCallSeconds || 0);
+    const targetCallId = activeCallIdRef.current;
+
     try {
+      // 1. Update the local timeline storage entry with real talk duration
+      const savedTimeline = localStorage.getItem(TIMELINE_STORAGE_KEY);
+      if (savedTimeline) {
+        const list = JSON.parse(savedTimeline);
+        const updatedList = list.map((item) => {
+          if (item.id === targetCallId || (!targetCallId && item.to === dialNumber && (!item.durationSeconds || item.durationSeconds === 0))) {
+            return {
+              ...item,
+              durationSeconds: finalSeconds,
+              status: 'completed',
+            };
+          }
+          return item;
+        });
+        localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(updatedList));
+      }
+
+      // 2. Update the LAST_DIALED_KEY entry
+      const savedLast = localStorage.getItem(LAST_DIALED_KEY);
+      if (savedLast) {
+        try {
+          const parsedLast = JSON.parse(savedLast);
+          localStorage.setItem(
+            LAST_DIALED_KEY,
+            JSON.stringify({
+              ...parsedLast,
+              durationSeconds: finalSeconds,
+              status: 'completed',
+            })
+          );
+        } catch (e) {}
+      }
+
       webrtcHangup();
     } catch (e) {
       console.warn('Hangup action error:', e.message);
     }
-    showAlert('🔴 Call ended', 'info');
+    showAlert(`🔴 Call ended (${formatCallDuration(finalSeconds)} talk duration logged)`, 'info');
+    activeCallIdRef.current = null;
     loadCalls();
   };
 
