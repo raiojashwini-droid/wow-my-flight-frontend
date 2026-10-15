@@ -8,6 +8,8 @@ import Typography from '@mui/material/Typography';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Button from '@mui/material/Button';
+import Avatar from '@mui/material/Avatar';
+import DualClock from '../../components/DualClock';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -177,11 +179,118 @@ export const SuperAdminRefundCommissionHub = () => {
   const agentPerformance = getAgentPerformance();
 
   return (
-    <Box>
-      <PageHeader
-        title="Refund & Commission Hub"
-        subtitle="Manage consultant commission percentages, track payouts, request service refunds, and audit visa rejections."
-      />
+    <Box sx={{ pb: 6, minHeight: '100vh', width: '100%' }}>
+      {/* Top Finance Command Header Card */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: { xs: 2.2, sm: 2.8, md: 3 }, 
+          mb: 3.5, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          borderRadius: 3.5, 
+          bgcolor: 'background.paper',
+          boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: { xs: 'column', lg: 'row' },
+          alignItems: { xs: 'stretch', lg: 'center' },
+          justifyContent: 'space-between',
+          gap: { xs: 2.2, lg: 3 }
+        }}
+      >
+        {/* Left Side: FIN Avatar & Identity */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.2, minWidth: 0 }}>
+          <Avatar 
+            sx={{ 
+              width: { xs: 46, sm: 50 }, 
+              height: { xs: 46, sm: 50 }, 
+              fontWeight: 900, 
+              fontSize: '1.1rem',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #9333EA 100%)',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 14px rgba(147,51,234,0.3)',
+              flexShrink: 0
+            }}
+          >
+            FIN
+          </Avatar>
+          <Box sx={{ minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexWrap: 'wrap', mb: 0.6 }}>
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  fontWeight: 800, 
+                  color: 'text.primary', 
+                  fontFamily: 'Outfit, sans-serif', 
+                  fontSize: { xs: '1.2rem', sm: '1.4rem' }, 
+                  letterSpacing: '-0.01em' 
+                }}
+              >
+                Refund & Commission Hub
+              </Typography>
+              <Chip 
+                label="PHASE 3: FINANCE & COMMISSIONS" 
+                size="small" 
+                sx={{ 
+                  fontWeight: 800, 
+                  fontSize: '0.68rem', 
+                  height: 22,
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(124, 58, 237, 0.2)' : '#F5F3FF',
+                  color: '#7C3AED',
+                  border: '1px solid',
+                  borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(124, 58, 237, 0.4)' : '#DDD6FE'
+                }} 
+              />
+              <Chip
+                icon={
+                  <Box 
+                    sx={{ 
+                      width: 8, 
+                      height: 8, 
+                      borderRadius: '50%', 
+                      bgcolor: '#10B981', 
+                      ml: 1,
+                      boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.25)' 
+                    }} 
+                  />
+                }
+                label="LIVE MARGIN MATRIX" 
+                size="small"
+                sx={{ 
+                  fontWeight: 800, 
+                  fontSize: '0.68rem', 
+                  height: 22,
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#F0FDF4',
+                  color: '#047857',
+                  border: '1px solid',
+                  borderColor: '#86EFAC',
+                  '& .MuiChip-icon': { ml: '6px', mr: '-2px' }
+                }}
+              />
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: '0.8rem', sm: '0.86rem' } }}>
+              Manage consultant commission percentages, track payouts, request service refunds, and audit visa rejections.
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Right Side: Clocks */}
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: { xs: 'flex-start', lg: 'flex-end' },
+            flexWrap: 'wrap', 
+            gap: 1.5,
+            pt: { xs: 1.8, lg: 0 },
+            borderTop: { xs: '1px solid', lg: 'none' },
+            borderColor: 'divider',
+            flexShrink: 0
+          }}
+        >
+          <DualClock client={{ timezone: 'America/New_York', label: 'EST' }} />
+        </Box>
+      </Paper>
 
       <Tabs
         value={tabValue}

@@ -1211,7 +1211,7 @@ export const DashboardLayout = () => {
       {/* Main Content Area */}
       <Box
         component="main"
-        className="flex-grow h-full overflow-y-auto overflow-x-hidden flex flex-col box-border min-w-0 w-full pt-[56px] sm:pt-[64px] px-2 sm:px-3 md:px-4 pb-4"
+        className="flex-grow h-full overflow-y-auto overflow-x-hidden flex flex-col box-border min-w-0 w-full pt-[72px] sm:pt-[82px] md:pt-[88px] px-3 sm:px-4 md:px-6 pb-6"
         sx={{
           backgroundColor: 'background.default',
           // Critical: prevent any child from blowing out the container
