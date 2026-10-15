@@ -1214,7 +1214,6 @@ export const DashboardLayout = () => {
         className="flex-grow h-full overflow-y-auto overflow-x-hidden flex flex-col box-border min-w-0 w-full"
         sx={{
           backgroundColor: 'background.default',
-          // Critical: prevent any child from blowing out the container
           minWidth: 0,
           maxWidth: '100%',
           pt: { xs: '76px', sm: '86px', md: '88px' },
