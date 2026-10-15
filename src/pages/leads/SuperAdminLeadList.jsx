@@ -289,7 +289,8 @@ export const SuperAdminLeadList = () => {
     mutationFn: dbService.createLead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      showAlert('✈️ New Flight Lead created successfully!', 'success');
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      showAlert('✈️ New Flight Lead created & synced to Customer 360!', 'success');
       setAddModalOpen(false);
       reset();
     }

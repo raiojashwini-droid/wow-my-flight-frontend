@@ -361,6 +361,48 @@ export const dbService = {
     return leads.find(l => l.id === id);
   },
   createLead: async (lead) => {
+    // 1. Auto-sync to Customer 360 (Clients) so the customer immediately appears in Customer Directory
+    try {
+      const clientPayload = {
+        firstName: lead.firstName || 'Traveler',
+        lastName: lead.lastName || '',
+        email: lead.email || '',
+        phone: lead.phone || '',
+        city: lead.city || '',
+        country: lead.country || lead.nationality || '',
+        nationality: lead.country || lead.nationality || '',
+        preferredCabinClass: lead.cabinClass || (lead.serviceId ? lead.serviceId.charAt(0).toUpperCase() + lead.serviceId.slice(1) : 'Economy'),
+        tier: 'Standard',
+        totalSpent: 0,
+        status: 'Active'
+      };
+
+      // Create client via API (non-blocking)
+      apiFetch('/api/clients', {
+        method: 'POST',
+        body: JSON.stringify(clientPayload)
+      }).catch(() => {});
+
+      // Immediate local sync so Customer 360 reflects the new traveler right away
+      const cachedClients = loadState('crm-clients', []);
+      const exists = cachedClients.some(c =>
+        (c.email && lead.email && c.email.toLowerCase() === lead.email.toLowerCase()) ||
+        (c.phone && lead.phone && c.phone === lead.phone)
+      );
+      if (!exists) {
+        const autoClient = enrichClientData({
+          id: 'CL-' + Math.floor(1000 + Math.random() * 9000),
+          onboardingDate: new Date().toISOString(),
+          ...clientPayload
+        });
+        persistClientMeta(autoClient);
+        cachedClients.unshift(autoClient);
+        saveState('crm-clients', cachedClients);
+      }
+    } catch (syncErr) {
+      console.warn('[dbService] Auto client sync warning:', syncErr);
+    }
+
     try {
       const res = await apiFetch('/api/leads', {
         method: 'POST',
