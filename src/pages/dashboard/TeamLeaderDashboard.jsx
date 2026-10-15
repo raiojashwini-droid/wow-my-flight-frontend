@@ -708,33 +708,142 @@ export default function TeamLeaderDashboard() {
       {/* Activity Feed Bar */}
       <AgentActivityFeed agents={floorAgents} />
 
-      {/* DASHBOARD MODULE TABS */}
-      <Paper elevation={0} sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'background.paper' }}>
-        <Tabs
-          value={currentTab}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            px: 2,
-            '& .MuiTab-root': {
-              fontWeight: 800,
-              fontSize: '0.78rem',
-              py: 1.8,
-              minHeight: 48,
-              textTransform: 'none'
-            }
+      {/* DASHBOARD MODULE NAVIGATION (NO SCROLL - ALL 8 MODULES VISIBLE) */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 1.2, 
+          mb: 3, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          borderRadius: 3, 
+          bgcolor: 'background.paper',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.02)'
+        }}
+      >
+        <Box 
+          sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { 
+              xs: 'repeat(2, 1fr)', 
+              sm: 'repeat(4, 1fr)', 
+              md: 'repeat(4, 1fr)', 
+              xl: 'repeat(8, 1fr)' 
+            }, 
+            gap: 1 
           }}
         >
-          <Tab label="1. Overview & Live Floor" icon={<HeadsetIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="2. Agent Performance Table" icon={<PeopleIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="3. Lead Management & Assignment" icon={<AssignmentIcon fontSize="small" />} iconPosition="start" />
-          <Tab label={`4. Discount Approvals (${pendingApprovals.length})`} icon={<MonetizationOnIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="5. Escalation Center" icon={<WarningAmberIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="6. Coaching & QA Tracker" icon={<SchoolIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="7. Pending Payments" icon={<PaymentIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="8. Team Analytics" icon={<BarChartIcon fontSize="small" />} iconPosition="start" />
-        </Tabs>
+          {[
+            { id: 0, label: '1. Overview & Floor', icon: <HeadsetIcon sx={{ fontSize: '1.05rem' }} /> },
+            { id: 1, label: '2. Agent Performance', icon: <PeopleIcon sx={{ fontSize: '1.05rem' }} /> },
+            { id: 2, label: '3. Lead Assignment', icon: <AssignmentIcon sx={{ fontSize: '1.05rem' }} /> },
+            { 
+              id: 3, 
+              label: '4. Discount Approvals', 
+              badge: pendingApprovals.length, 
+              badgeColor: pendingApprovals.length > 0 ? '#F59E0B' : undefined,
+              icon: <MonetizationOnIcon sx={{ fontSize: '1.05rem' }} /> 
+            },
+            { 
+              id: 4, 
+              label: '5. Escalation Center', 
+              badge: escalations.filter(e => e.status !== 'Resolved').length,
+              badgeColor: escalations.filter(e => e.status !== 'Resolved').length > 0 ? '#EF4444' : undefined,
+              icon: <WarningAmberIcon sx={{ fontSize: '1.05rem' }} /> 
+            },
+            { id: 5, label: '6. Coaching & QA', icon: <SchoolIcon sx={{ fontSize: '1.05rem' }} /> },
+            { 
+              id: 6, 
+              label: '7. Pending Payments', 
+              badge: pendingPayments.length, 
+              badgeColor: pendingPayments.length > 0 ? '#3B82F6' : undefined,
+              icon: <PaymentIcon sx={{ fontSize: '1.05rem' }} /> 
+            },
+            { id: 7, label: '8. Team Analytics', icon: <BarChartIcon sx={{ fontSize: '1.05rem' }} /> },
+          ].map((tab) => {
+            const isActive = currentTab === tab.id;
+            return (
+              <Box
+                key={tab.id}
+                component="button"
+                onClick={() => setCurrentTab(tab.id)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 0.8,
+                  py: 1.1,
+                  px: 1.4,
+                  minHeight: 46,
+                  border: '1px solid',
+                  borderColor: isActive ? 'primary.main' : 'divider',
+                  borderRadius: 2.2,
+                  bgcolor: isActive 
+                    ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main' 
+                    : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
+                  color: isActive ? '#FFFFFF' : 'text.primary',
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease-in-out',
+                  outline: 'none',
+                  textAlign: 'left',
+                  boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.22)' : 'none',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    bgcolor: isActive 
+                      ? 'primary.dark' 
+                      : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#EFF6FF',
+                    color: isActive ? '#FFFFFF' : 'primary.main'
+                  }
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, minWidth: 0, overflow: 'hidden' }}>
+                  <Box 
+                    sx={{ 
+                      color: isActive ? '#FFFFFF' : 'primary.main', 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      flexShrink: 0
+                    }}
+                  >
+                    {tab.icon}
+                  </Box>
+                  <Typography 
+                    variant="body2" 
+                    noWrap
+                    sx={{ 
+                      fontWeight: isActive ? 800 : 700, 
+                      fontSize: { xs: '0.72rem', sm: '0.76rem', md: '0.8rem' },
+                      color: 'inherit',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {tab.label}
+                  </Typography>
+                </Box>
+                {tab.badge !== undefined && (
+                  <Chip 
+                    label={tab.badge} 
+                    size="small" 
+                    sx={{ 
+                      height: 20, 
+                      minWidth: 20, 
+                      px: 0.5, 
+                      fontWeight: 900, 
+                      fontSize: '0.65rem',
+                      bgcolor: isActive 
+                        ? 'rgba(255,255,255,0.25)' 
+                        : (tab.badgeColor || (theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#E2E8F0')),
+                      color: isActive ? '#FFFFFF' : (tab.badgeColor ? '#FFFFFF' : 'text.secondary'),
+                      borderRadius: '10px',
+                      flexShrink: 0
+                    }} 
+                  />
+                )}
+              </Box>
+            );
+          })}
+        </Box>
       </Paper>
 
       {/* ========================================================= */}
