@@ -376,16 +376,15 @@ export default function TeamLeaderDashboard() {
     let repIdx = 0;
     const newOverrides = { ...assignedLeadOverrides };
 
-    setLeads(prev => prev.map(l => {
+    leads.forEach(l => {
       const isUnassigned = !l.assignedAgent || l.assignedAgent === 'Unassigned' || l.assignedAgent === 'None';
       if (isUnassigned) {
         const targetRep = activeReps[repIdx % activeReps.length];
         repIdx++;
         newOverrides[l.id] = targetRep;
-        return { ...l, status: 'In Progress', assignedAgent: targetRep };
+        dbService.assignAgent(l.id, targetRep).catch(() => {});
       }
-      return l;
-    }));
+    });
 
     setAssignedLeadOverrides(newOverrides);
 
@@ -398,6 +397,7 @@ export default function TeamLeaderDashboard() {
     }
 
     try {
+      queryClient.invalidateQueries(['leads']);
       queryClient.invalidateQueries(['team-leader-dashboard']);
     } catch (e) {}
   };
