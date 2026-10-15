@@ -374,9 +374,7 @@ class FlightContentService {
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
-          if (json.data.length > 0) {
-            localStorage.setItem('crm-bookings', JSON.stringify(json.data));
-          }
+          localStorage.setItem('crm-bookings', JSON.stringify(json.data));
           return json.data;
         }
       }
