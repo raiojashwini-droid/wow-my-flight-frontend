@@ -393,11 +393,17 @@ export const SuperAdminDocumentVerificationDashboard = () => {
     setDocuments([newDoc, ...documents]);
     try {
       const existingLocal = JSON.parse(localStorage.getItem('wmf_qa_uploaded_docs') || '[]');
-      localStorage.setItem('wmf_qa_uploaded_docs', JSON.stringify([newDoc, ...existingLocal]));
+      const updated = [newDoc, ...existingLocal.filter(d => d.id !== newDoc.id)].slice(0, 5);
+      localStorage.setItem('wmf_qa_uploaded_docs', JSON.stringify(updated));
     } catch (err) {
       console.warn('LocalStorage save failed:', err);
     }
-    await qaService.uploadDocument(newDoc);
+    const { fileData, ...docMetadata } = newDoc;
+    try {
+      await qaService.uploadDocument(docMetadata);
+    } catch (err) {
+      console.warn('Cloud sync note:', err);
+    }
     showAlert(`📄 Document ${newId} (${newDocForm.type}) uploaded successfully!`, 'success');
     setSelectedFile(null);
     setSelectedFileDataUrl(null);
