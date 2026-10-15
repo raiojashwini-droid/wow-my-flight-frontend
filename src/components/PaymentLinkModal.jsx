@@ -35,11 +35,11 @@ export default function PaymentLinkModal({ open, onClose, onSubmit, customerName
   React.useEffect(() => {
     if (open) {
       setData({
-        customer: customerName || initialData?.customer || 'Customer',
-        booking: bookingRef || initialData?.booking || 'BK-001',
-        amount: amount || initialData?.amount || '474',
+        customer: customerName || initialData?.customer || 'Tanu Patel',
+        booking: bookingRef || initialData?.booking || 'BK-WMF-7788',
+        amount: amount || initialData?.amount || '1500',
         currency: currency || initialData?.currency || 'USD',
-        description: description || initialData?.description || (customerName ? `Flight Booking Payment for ${customerName}` : 'Flight Booking Payment'),
+        description: description || initialData?.description || (customerName ? `Flight Booking Payment for ${customerName}` : 'Flight Booking Payment JFK → LHR'),
         expiry: '24h',
         sendVia: ['email', 'whatsapp'],
       });
@@ -48,7 +48,7 @@ export default function PaymentLinkModal({ open, onClose, onSubmit, customerName
   }, [open, customerName, bookingRef, amount, currency, description, initialData]);
 
   const [generated, setGenerated] = useState(false);
-  const [mockLink] = useState('https://pay.wowmyflight.com/lnk/A3F9X2');
+  const [mockLink, setMockLink] = useState('https://pay.wowmyflight.com/lnk/WMF-' + Math.random().toString(36).substring(4, 9).toUpperCase());
 
   const set = (key) => (e) => setData({ ...data, [key]: e.target.value });
 
@@ -66,7 +66,11 @@ export default function PaymentLinkModal({ open, onClose, onSubmit, customerName
   };
 
   const handleSend = () => {
-    onSubmit?.(data);
+    if (onSubmit) {
+      onSubmit({ ...data, link: mockLink });
+    } else {
+      onClose();
+    }
     setGenerated(false);
   };
 
@@ -74,30 +78,34 @@ export default function PaymentLinkModal({ open, onClose, onSubmit, customerName
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm"
       PaperProps={{
         sx: {
-          mx: { xs: 1.5, sm: 3 },
+          mx: { xs: 1.5, sm: 'auto' },
           my: { xs: 1, sm: 2 },
-          maxHeight: { xs: 'calc(100dvh - 32px)', sm: '85vh' },
+          width: { xs: 'calc(100% - 24px)', sm: 540 },
+          maxHeight: { xs: 'calc(100dvh - 24px)', sm: '88vh' },
           borderRadius: 3,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          boxShadow: '0 20px 45px rgba(0,0,0,0.25)',
         }
       }}
     >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: { xs: 2, sm: 3 }, py: 2, bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: { xs: 2, sm: 3 }, py: 1.75, bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <LinkIcon color="success" />
-          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Generate Payment Link</Typography>
+          <LinkIcon color="success" sx={{ fontSize: 22 }} />
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, fontSize: { xs: '0.95rem', sm: '1.05rem' } }}>
+            Generate Payment Link
+          </Typography>
         </Box>
-        <IconButton onClick={onClose} size="small"><CloseIcon /></IconButton>
+        <IconButton onClick={onClose} size="small"><CloseIcon fontSize="small" /></IconButton>
       </DialogTitle>
 
       <DialogContent
         className="modal-scroll"
         sx={{
           px: { xs: 2, sm: 3 },
-          py: 2.5,
-          maxHeight: { xs: '55vh', sm: '60vh', md: '65vh' },
+          pt: '24px !important',
+          pb: 2.5,
           overflowY: 'auto',
           overflowX: 'hidden',
           overscrollBehavior: 'contain',
@@ -105,39 +113,71 @@ export default function PaymentLinkModal({ open, onClose, onSubmit, customerName
           flexGrow: 1,
         }}
       >
-        <Box sx={{ display: 'grid', gap: 2 }}>
-          <TextField size="small" label="Customer Name" value={data.customer} onChange={set('customer')} fullWidth />
+        <Box sx={{ display: 'grid', gap: 2, pt: 0.5 }}>
+          <TextField 
+            size="small" 
+            label="Customer Name" 
+            value={data.customer} 
+            onChange={set('customer')} 
+            fullWidth 
+            InputLabelProps={{ shrink: true }}
+          />
+
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
-            <TextField size="small" label="Booking Reference" value={data.booking} onChange={set('booking')} fullWidth />
+            <TextField 
+              size="small" 
+              label="Booking Reference" 
+              value={data.booking} 
+              onChange={set('booking')} 
+              fullWidth 
+              InputLabelProps={{ shrink: true }}
+            />
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <TextField size="small" label="Amount" type="number" value={data.amount} onChange={set('amount')} sx={{ flex: 1 }} />
-              <FormControl size="small" sx={{ minWidth: 80 }}>
-                <InputLabel>Currency</InputLabel>
-                <Select value={data.currency} label="Currency" onChange={set('currency')}>
-                  <MenuItem value="USD">USD</MenuItem>
-                  <MenuItem value="EUR">EUR</MenuItem>
-                  <MenuItem value="GBP">GBP</MenuItem>
+              <TextField 
+                size="small" 
+                label="Amount" 
+                type="number" 
+                value={data.amount} 
+                onChange={set('amount')} 
+                sx={{ flex: 1 }} 
+                InputLabelProps={{ shrink: true }}
+              />
+              <FormControl size="small" sx={{ minWidth: 85 }}>
+                <InputLabel shrink>Currency</InputLabel>
+                <Select value={data.currency} label="Currency" onChange={set('currency')} notched>
+                  <MenuItem value="USD">USD ($)</MenuItem>
+                  <MenuItem value="EUR">EUR (€)</MenuItem>
+                  <MenuItem value="GBP">GBP (£)</MenuItem>
                   <MenuItem value="AED">AED</MenuItem>
                 </Select>
               </FormControl>
             </Box>
           </Box>
-          <TextField size="small" label="Description" value={data.description} onChange={set('description')} fullWidth />
+
+          <TextField 
+            size="small" 
+            label="Payment Description" 
+            value={data.description} 
+            onChange={set('description')} 
+            fullWidth 
+            InputLabelProps={{ shrink: true }}
+          />
+
           <FormControl size="small" fullWidth>
-            <InputLabel>Link Expiry</InputLabel>
-            <Select value={data.expiry} label="Link Expiry" onChange={set('expiry')}>
-              <MenuItem value="24h">24 Hours</MenuItem>
-              <MenuItem value="48h">48 Hours</MenuItem>
+            <InputLabel shrink>Link Expiry</InputLabel>
+            <Select value={data.expiry} label="Link Expiry" onChange={set('expiry')} notched>
+              <MenuItem value="24h">24 Hours (Standard)</MenuItem>
+              <MenuItem value="48h">48 Hours (Extended)</MenuItem>
               <MenuItem value="7 days">7 Days</MenuItem>
             </Select>
           </FormControl>
 
           {/* Send via */}
-          <Box>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.8 }}>
-              SEND VIA
+          <Box sx={{ pt: 0.5 }}>
+            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 0.8, letterSpacing: '0.05em' }}>
+              SEND LINK VIA
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               {[
                 { key: 'email', icon: <EmailIcon sx={{ fontSize: 16 }} />, label: 'Email' },
                 { key: 'whatsapp', icon: <WhatsAppIcon sx={{ fontSize: 16 }} />, label: 'WhatsApp' },
@@ -150,7 +190,7 @@ export default function PaymentLinkModal({ open, onClose, onSubmit, customerName
                   onClick={() => toggleSendVia(m.key)}
                   color={data.sendVia.includes(m.key) ? 'primary' : 'default'}
                   variant={data.sendVia.includes(m.key) ? 'filled' : 'outlined'}
-                  sx={{ cursor: 'pointer' }}
+                  sx={{ cursor: 'pointer', fontWeight: 600 }}
                 />
               ))}
             </Box>
@@ -159,21 +199,21 @@ export default function PaymentLinkModal({ open, onClose, onSubmit, customerName
           {/* Generated link preview */}
           {generated && (
             <>
-              <Divider />
-              <Box sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(34, 197, 94, 0.12)' : '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 2 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: 'success.main', display: 'block', mb: 0.5 }}>
-                  ✅ PAYMENT LINK GENERATED
+              <Divider sx={{ my: 0.5 }} />
+              <Box sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(34, 197, 94, 0.12)' : '#F0FDF4', border: '1.5px solid #86EFAC', borderRadius: 2 }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: 'success.main', display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
+                  ✅ SECURE PAYMENT LINK READY
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="caption" sx={{ fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', p: 1, borderRadius: 1.5, border: '1px solid #BBF7D0' }}>
+                  <Typography variant="caption" sx={{ fontFamily: 'monospace', flex: 1, wordBreak: 'break-all', fontWeight: 700, color: 'primary.main' }}>
                     {mockLink}
                   </Typography>
                   <IconButton size="small" onClick={() => navigator.clipboard?.writeText(mockLink)}>
-                    <ContentCopyIcon sx={{ fontSize: 14 }} />
+                    <ContentCopyIcon sx={{ fontSize: 16 }} />
                   </IconButton>
                 </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                  Expires in {data.expiry} · {data.currency} {Number(data.amount).toLocaleString()}
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem', display: 'block', mt: 0.75, fontWeight: 500 }}>
+                  Expires in {data.expiry} · Amount: {data.currency} {Number(data.amount).toLocaleString()}
                 </Typography>
               </Box>
             </>
@@ -181,15 +221,27 @@ export default function PaymentLinkModal({ open, onClose, onSubmit, customerName
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: 2, gap: 1, flexWrap: 'wrap', justifyContent: { xs: 'stretch', sm: 'flex-end' }, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
-        <Button onClick={onClose} variant="outlined" sx={{ flex: { xs: 1, sm: 'none' }, minHeight: 40 }}>Cancel</Button>
+      <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: 1.75, gap: 1, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
+        <Button onClick={onClose} variant="outlined" sx={{ minWidth: 90, minHeight: 38 }}>
+          Cancel
+        </Button>
         {!generated ? (
-          <Button variant="contained" color="success" onClick={handleGenerate} sx={{ flex: { xs: 1, sm: 'none' }, minHeight: 40 }}>
+          <Button 
+            variant="contained" 
+            color="success" 
+            onClick={handleGenerate} 
+            sx={{ minHeight: 38, fontWeight: 800, px: 2.5 }}
+          >
             Generate Link
           </Button>
         ) : (
-          <Button variant="contained" color="primary" onClick={handleSend} sx={{ flex: { xs: 1, sm: 'none' }, minHeight: 40 }}>
-            Send via {data.sendVia.join(' + ')}
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={handleSend} 
+            sx={{ minHeight: 38, fontWeight: 800, px: 2.5 }}
+          >
+            Send & Record Payment
           </Button>
         )}
       </DialogActions>

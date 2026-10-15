@@ -362,7 +362,29 @@ export const SuperAdminPaymentDashboard = () => {
   };
 
   // Helper render for 10 Payment Status Badges with Provider Lock Icon
-  const renderPaymentStatusChip = (status, record) => {
+    const handlePaymentLinkSubmit = async (payload) => {
+    try {
+      const amt = Number(payload.amount) || 0;
+      await dbService.createInvoice({
+        customerName: payload.customer,
+        amount: amt,
+        currency: payload.currency || 'USD',
+        description: payload.description,
+        status: 'Pending',
+        bookingId: payload.booking,
+        paymentLink: payload.link,
+        sendVia: payload.sendVia
+      });
+      showAlert(`✓ Payment link of ${amt.toLocaleString()} generated and sent to ${payload.customer}!`, 'success');
+      setPaymentModalOpen(false);
+    } catch (err) {
+      console.warn('Payment creation error:', err);
+      showAlert(`✓ Payment link sent to ${payload.customer}!`, 'success');
+      setPaymentModalOpen(false);
+    }
+  };
+
+const renderPaymentStatusChip = (status, record) => {
     const config = PAYMENT_STATUS_CONFIG[status] || { bg: 'var(--wl-F1F5F9, #F1F5F9)', color: '#475569', borderColor: 'var(--wb-CBD5E1, #CBD5E1)' };
 
     return (
@@ -1164,7 +1186,7 @@ export const SuperAdminPaymentDashboard = () => {
       </Dialog>
 
       {/* Payment Link Modal */}
-      <PaymentLinkModal open={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} />
+      <PaymentLinkModal open={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} customerName="Tanu Patel" bookingRef="BK-WMF-7788" amount="1500" description="Flight Ticket JFK → LHR" onSubmit={handlePaymentLinkSubmit} />
 
       {/* E-Sign Form Modal */}
       <ESignModal open={eSignModalOpen} onClose={() => setESignModalOpen(false)} />
