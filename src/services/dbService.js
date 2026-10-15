@@ -1964,6 +1964,11 @@ export const dbService = {
       method: 'POST',
       body: JSON.stringify(data)
     });
+  },
+  deleteCallDisposition: async (id) => {
+    return await apiFetch(`/api/telnyx/dispositions/${id}`, {
+      method: 'DELETE'
+    });
   }
 };
 
