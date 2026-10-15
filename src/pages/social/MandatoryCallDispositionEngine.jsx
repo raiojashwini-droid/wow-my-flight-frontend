@@ -653,8 +653,8 @@ export default function MandatoryCallDispositionEngine() {
                           />
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600, color: 'text.secondary', maxWidth: 300 }}>
-                          <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'text.primary', mb: 0.3 }}>
-                            {l.notes}
+                          <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 600, color: l.notes ? 'text.primary' : 'text.disabled', mb: 0.3 }}>
+                            {l.notes || '--'}
                           </Typography>
                           {l.bookingValue && (
                             <Chip
