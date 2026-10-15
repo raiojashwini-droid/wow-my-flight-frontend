@@ -708,7 +708,7 @@ export default function TeamLeaderDashboard() {
       {/* Activity Feed Bar */}
       <AgentActivityFeed agents={floorAgents} />
 
-      {/* DASHBOARD MODULE NAVIGATION (NO SCROLL - ALL 8 MODULES VISIBLE) */}
+      {/* DASHBOARD MODULE NAVIGATION (2 NEAT ROWS OF 4 - NO CUTOFF) */}
       <Box 
         sx={{ 
           display: 'grid', 
@@ -716,9 +716,10 @@ export default function TeamLeaderDashboard() {
             xs: 'repeat(2, 1fr)', 
             sm: 'repeat(4, 1fr)', 
             md: 'repeat(4, 1fr)', 
-            xl: 'repeat(8, 1fr)' 
+            lg: 'repeat(4, 1fr)',
+            xl: 'repeat(4, 1fr)' 
           }, 
-          gap: 1.2,
+          gap: 1.5,
           mb: 3.5
         }}
       >

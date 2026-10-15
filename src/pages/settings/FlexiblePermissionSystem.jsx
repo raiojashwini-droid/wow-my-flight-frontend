@@ -330,7 +330,7 @@ export default function FlexiblePermissionSystem() {
         </Box>
       </Paper>
 
-      {/* ─── 2. NAVIGATION TABS (NO-SCROLL SEGMENTED MATRIX) ─── */}
+      {/* ─── 2. NAVIGATION TABS (2 NEAT ROWS - NO CUTOFF) ─── */}
       <Box 
         sx={{ 
           display: 'grid', 
@@ -338,7 +338,8 @@ export default function FlexiblePermissionSystem() {
             xs: 'repeat(1, 1fr)', 
             sm: 'repeat(2, 1fr)', 
             md: 'repeat(3, 1fr)', 
-            lg: 'repeat(5, 1fr)' 
+            lg: 'repeat(3, 1fr)',
+            xl: 'repeat(3, 1fr)' 
           }, 
           gap: 1.5,
           mb: 3.5

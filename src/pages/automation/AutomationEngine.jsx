@@ -875,7 +875,7 @@ export default function AutomationEngine() {
         </Box>
       </Box>
 
-      {/* ─── 3. NAVIGATION TABS (NO-SCROLL SEGMENTED MATRIX) ─── */}
+      {/* ─── 3. NAVIGATION TABS (2 NEAT ROWS OF 3 - NO CUTOFF) ─── */}
       <Box 
         sx={{ 
           display: 'grid', 
@@ -883,9 +883,10 @@ export default function AutomationEngine() {
             xs: 'repeat(1, 1fr)', 
             sm: 'repeat(2, 1fr)', 
             md: 'repeat(3, 1fr)', 
-            xl: 'repeat(6, 1fr)' 
+            lg: 'repeat(3, 1fr)',
+            xl: 'repeat(3, 1fr)' 
           }, 
-          gap: 1.2,
+          gap: 1.5,
           mb: 3.5
         }}
       >
