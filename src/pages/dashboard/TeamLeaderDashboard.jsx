@@ -198,15 +198,15 @@ export default function TeamLeaderDashboard() {
   const leads = useMemo(() => {
     const list = dbLeads.length > 0 ? dbLeads.map(l => ({
       id: l.id || `LD-${l._id || Math.floor(1000 + Math.random() * 9000)}`,
-      customerName: l.name || l.customerName || 'Inbound Passenger',
-      destination: l.route || (l.origin && l.destination ? `${l.origin} → ${l.destination}` : 'DEL → LHR'),
-      travelDate: l.travelDate || l.departureDate || '2026-10-20',
-      priority: l.priority || 'High',
+      customerName: l.customerName || l.name || (l.firstName ? `${l.firstName} ${l.lastName || ''}`.trim() : 'Inbound Passenger'),
+      destination: l.destination && l.origin ? `${l.origin} → ${l.destination}` : (l.destination || l.route || 'Flight Inquiry'),
+      travelDate: l.travelDate || l.departureDate || (l.createdAt ? String(l.createdAt).substring(0, 10) : '2026-10-20'),
+      priority: l.priority || (l.budget && l.budget > 5000 ? 'VIP' : 'Normal'),
       assignedAgent: assignedLeadOverrides[l.id] || l.assignedAgentName || (l.assignedConsultantId ? 'Sarah Jenkins' : 'Unassigned'),
       status: l.status || 'New Lead',
       source: l.source || 'Website Organic',
-      pax: l.pax || l.passengers || 2
-    })) : INITIAL_LEADS;
+      pax: l.pax || l.passengers || 1
+    })) : [];
 
     return list.map(l => assignedLeadOverrides[l.id] ? { ...l, assignedAgent: assignedLeadOverrides[l.id], status: 'In Progress' } : l);
   }, [dbLeads, assignedLeadOverrides]);
@@ -218,14 +218,14 @@ export default function TeamLeaderDashboard() {
         id: a.id || `AGT-0${idx + 1}`,
         name: a.name || `Specialist ${idx + 1}`,
         role: a.role ? a.role.toUpperCase() : 'Flight Specialist',
-        assignedLeads: 12 + idx * 8,
-        activeBookings: 4 + idx * 2,
-        revenue: 28000 + idx * 6000,
-        conversion: 24.5 + idx * 1.2,
-        callsCompleted: 140 + idx * 25,
-        talkTime: `${12 + idx}h 30m`,
-        pendingFollowups: 2 + idx,
-        qaScore: 92 + (idx % 6),
+        assignedLeads: 0,
+        activeBookings: 0,
+        revenue: 0,
+        conversion: 0.0,
+        callsCompleted: 0,
+        talkTime: '0h 00m',
+        pendingFollowups: 0,
+        qaScore: 100,
         slaStatus: 'On Track',
         badge: idx === 0 ? 'Top Performer' : 'Consistent',
         status: idx % 3 === 0 ? 'ON CALL' : idx % 3 === 1 ? 'AVAILABLE' : 'WRAP UP'
@@ -239,11 +239,11 @@ export default function TeamLeaderDashboard() {
       id: a.id,
       name: a.name,
       status: a.status,
-      timeOnStatus: `${0 + (i + 1) * 3}:15 min`,
-      currentLead: i % 2 === 0 ? 'Michael C. (JFK → LHR)' : 'Ready for Inbound',
-      todayCalls: 22 + i * 4,
-      todayBookings: 1 + i,
-      followupsDue: i + 1,
+      timeOnStatus: 'Active',
+      currentLead: 'Ready for Next Inbound',
+      todayCalls: 0,
+      todayBookings: 0,
+      followupsDue: 0,
       qaPct: a.qaScore,
       color: a.status === 'ON CALL' ? 'success' : a.status === 'AVAILABLE' ? 'info' : 'warning'
     }));
@@ -254,14 +254,14 @@ export default function TeamLeaderDashboard() {
     if (dbPayments.length > 0) {
       return dbPayments.map((p, idx) => ({
         id: p.id || `PAY-${800 + idx}`,
-        customer: p.clientName || p.customer || 'Passenger',
-        bookingId: p.bookingId || `BK-${10230 + idx}`,
-        totalAmount: Number(p.amount) || 2500,
-        paidAmount: p.status === 'Paid' ? (Number(p.amount) || 2500) : 0,
-        pendingAmount: p.status === 'Paid' ? 0 : (Number(p.amount) || 2500),
+        customer: p.customerName || p.clientName || p.customer || 'Passenger',
+        bookingId: p.invoiceNumber || p.bookingId || `BK-${10230 + idx}`,
+        totalAmount: Number(p.amount) || 0,
+        paidAmount: p.status === 'Paid' ? (Number(p.amount) || 0) : 0,
+        pendingAmount: p.status === 'Paid' ? 0 : (Number(p.amount) || 0),
         dueDate: p.dueDate || '2026-10-25',
         status: p.status === 'Paid' ? 'Paid' : 'Pending',
-        agent: 'Sarah Jenkins'
+        agent: 'Unassigned'
       }));
     }
     return INITIAL_PENDING_PAYMENTS;
@@ -269,25 +269,30 @@ export default function TeamLeaderDashboard() {
 
   // Dynamic 11 KPIs computed from live database
   const dynamicKpis = useMemo(() => {
-    const totalRevenueVal = dbPayments
-      .filter(p => (p.status || '').toLowerCase() === 'paid')
-      .reduce((s, p) => s + (Number(p.amount) || Number(p.total) || 0), 0) || 342850;
+    const paidPayments = dbPayments.filter(p => {
+      const st = (p.status || '').toLowerCase();
+      return st === 'paid' || st === 'completed' || st === 'payment confirmed';
+    });
+    const totalRevenueVal = paidPayments.reduce((s, p) => s + (Number(p.amount) || Number(p.total) || 0), 0);
 
-    const totalLeadsCount = dbLeads.length || 48;
-    const totalBookingsCount = dbBookings.length || 5;
+    const totalLeadsCount = dbLeads.length;
+    const totalBookingsCount = dbBookings.length;
+    const conversionRate = totalLeadsCount > 0 ? ((totalBookingsCount / totalLeadsCount) * 100).toFixed(1) : '0.0';
+    const revPerAgent = dbAgents.length > 0 ? Math.round(totalRevenueVal / dbAgents.length) : 0;
+    const bookPerAgent = dbAgents.length > 0 ? (totalBookingsCount / dbAgents.length).toFixed(1) : '0.0';
 
     return [
       { id: 'leads', title: 'Team Leads', value: `${totalLeadsCount}`, change: 'Live PostgreSQL Inbound', isUp: true, icon: <PeopleIcon sx={{ color: '#3F51B5' }} />, color: '#E8EAF6' },
       { id: 'bookings', title: 'Team Bookings', value: `${totalBookingsCount}`, change: 'Confirmed Active PNRs', isUp: true, icon: <AirplaneTicketIcon sx={{ color: 'var(--wd-059669, #059669)' }} />, color: '#ECFDF5' },
       { id: 'revenue', title: 'Team Revenue', value: `$${totalRevenueVal.toLocaleString()}`, change: 'Settled Ticket Volume', isUp: true, icon: <MonetizationOnIcon sx={{ color: '#C59B27' }} />, color: '#FFFBEB' },
-      { id: 'conversion', title: 'Conversion Rate', value: `${((totalBookingsCount / (totalLeadsCount || 1)) * 100).toFixed(1)}%`, change: 'Booking Ratio', isUp: true, icon: <TrendingUpIcon sx={{ color: '#2563EB' }} />, color: '#EFF6FF' },
-      { id: 'calls', title: 'Total Calls', value: '184', change: 'Live Floor Telephony', isUp: true, icon: <PhoneInTalkIcon sx={{ color: '#7C3AED' }} />, color: '#F5F3FF' },
-      { id: 'talktime', title: 'Total Talk Time', value: '42h 15m', change: 'Active Line Hours', isUp: true, icon: <AccessTimeIcon sx={{ color: '#D97706' }} />, color: '#FEF3C7' },
-      { id: 'followups', title: 'Pending Follow-ups', value: '8', change: 'Due Today', isUp: false, icon: <HourglassEmptyIcon sx={{ color: '#DC2626' }} />, color: '#FEF2F2' },
-      { id: 'sla', title: 'SLA Compliance', value: '98.2%', change: '< 5m First Response', isUp: true, icon: <SpeedIcon sx={{ color: 'var(--wd-059669, #059669)' }} />, color: '#ECFDF5' },
-      { id: 'qa', title: 'Booking QA Score', value: '96.5%', change: 'GDS Issuance Verified', isUp: true, icon: <VerifiedIcon sx={{ color: '#2563EB' }} />, color: '#EFF6FF' },
-      { id: 'revPerAgent', title: 'Revenue per Agent', value: `$${Math.round(totalRevenueVal / (dbAgents.length || 3)).toLocaleString()}`, change: 'Avg per Rep', isUp: true, icon: <BarChartIcon sx={{ color: '#3F51B5' }} />, color: '#E8EAF6' },
-      { id: 'bookPerAgent', title: 'Bookings per Agent', value: `${(totalBookingsCount / (dbAgents.length || 3)).toFixed(1)}`, change: 'Deals Closed/Rep', isUp: true, icon: <AssignmentIcon sx={{ color: '#C59B27' }} />, color: '#FFFBEB' }
+      { id: 'conversion', title: 'Conversion Rate', value: `${conversionRate}%`, change: 'Booking Ratio', isUp: true, icon: <TrendingUpIcon sx={{ color: '#2563EB' }} />, color: '#EFF6FF' },
+      { id: 'calls', title: 'Total Calls', value: '0', change: 'Live Floor Telephony', isUp: true, icon: <PhoneInTalkIcon sx={{ color: '#7C3AED' }} />, color: '#F5F3FF' },
+      { id: 'talktime', title: 'Total Talk Time', value: '0h 00m', change: 'Active Line Hours', isUp: true, icon: <AccessTimeIcon sx={{ color: '#D97706' }} />, color: '#FEF3C7' },
+      { id: 'followups', title: 'Pending Follow-ups', value: '0', change: 'Live follow-ups', isUp: false, icon: <HourglassEmptyIcon sx={{ color: '#DC2626' }} />, color: '#FEF2F2' },
+      { id: 'sla', title: 'SLA Compliance', value: '100%', change: '< 5m First Response', isUp: true, icon: <SpeedIcon sx={{ color: 'var(--wd-059669, #059669)' }} />, color: '#ECFDF5' },
+      { id: 'qa', title: 'Booking QA Score', value: '100%', change: 'GDS Issuance Verified', isUp: true, icon: <VerifiedIcon sx={{ color: '#2563EB' }} />, color: '#EFF6FF' },
+      { id: 'revPerAgent', title: 'Revenue per Agent', value: `$${revPerAgent.toLocaleString()}`, change: 'Avg per Rep', isUp: true, icon: <BarChartIcon sx={{ color: '#3F51B5' }} />, color: '#E8EAF6' },
+      { id: 'bookPerAgent', title: 'Bookings per Agent', value: `${bookPerAgent}`, change: 'Deals Closed/Rep', isUp: true, icon: <AssignmentIcon sx={{ color: '#C59B27' }} />, color: '#FFFBEB' }
     ];
   }, [dbLeads, dbBookings, dbPayments, dbAgents]);
 
@@ -320,24 +325,14 @@ export default function TeamLeaderDashboard() {
   const [selectedEscalation, setSelectedEscalation] = useState(null);
   const [escalationResolutionNote, setEscalationResolutionNote] = useState('');
 
-  // Fetch live Team Leader Dashboard data from backend API (/api/team-leader-dashboard)
+  // Fetch live operational states (approvals, escalations, coaching) from backend
   React.useEffect(() => {
     let isMounted = true;
     teamLeaderDashboardService.getData().then(data => {
       if (!isMounted || !data) return;
-      if (Array.isArray(data.kpis) && data.kpis.length > 0) {
-        setKpis(prev => prev.map(k => {
-          const match = data.kpis.find(dk => dk.id === k.id);
-          return match ? { ...k, value: match.value, change: match.change || k.change } : k;
-        }));
-      }
-      if (Array.isArray(data.agents)) setAgents(data.agents);
-      if (Array.isArray(data.floorAgents)) setFloorAgents(data.floorAgents);
-      if (Array.isArray(data.leads)) setLeads(data.leads);
       if (Array.isArray(data.approvals)) setApprovals(data.approvals);
       if (Array.isArray(data.escalations)) setEscalations(data.escalations);
       if (Array.isArray(data.coachingList)) setCoachingList(data.coachingList);
-      if (Array.isArray(data.pendingPayments)) setPendingPayments(data.pendingPayments);
     }).catch(err => console.warn('Team Leader Dashboard API load warning:', err.message));
     return () => { isMounted = false; };
   }, []);

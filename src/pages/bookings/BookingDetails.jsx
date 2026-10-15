@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -6,6 +6,7 @@ import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
+import CircularProgress from '@mui/material/CircularProgress';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -50,6 +51,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
+import { dbService } from '../../services/dbService';
 
 
 // ==========================================
@@ -232,9 +234,70 @@ export default function BookingDetails() {
   const navigate = useNavigate();
   const { showAlert } = useAlert();
   const [currentTab, setCurrentTab] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   // States
-  const [booking, setBooking] = useState(CENTRAL_BOOKING_RECORD);
+  const [booking, setBooking] = useState(() => ({
+    ...CENTRAL_BOOKING_RECORD,
+    id: id || CENTRAL_BOOKING_RECORD.id
+  }));
+
+  // ─── LIVE POSTGRESQL BOOKING FETCH ───
+  useEffect(() => {
+    let isMounted = true;
+    const loadBookingData = async () => {
+      setLoading(true);
+      try {
+        const bookingsList = await dbService.getBookings();
+        if (isMounted && Array.isArray(bookingsList)) {
+          const found = bookingsList.find(b => 
+            String(b.id) === String(id) || 
+            String(b.bookingId) === String(id) || 
+            (b.pnr && String(b.pnr).toLowerCase() === String(id).toLowerCase())
+          );
+          if (found) {
+            setBooking(prev => ({
+              ...prev,
+              id: found.bookingId || found.id,
+              status: (found.ticketStatus || found.status || 'CONFIRMED').toUpperCase(),
+              type: found.cabinClass ? `${found.cabinClass} Class` : prev.type,
+              travelDate: found.date || found.departureDate || prev.travelDate,
+              createdDate: found.createdAt ? new Date(found.createdAt).toLocaleDateString() : prev.createdDate,
+              agent: found.issuingAgent || prev.agent,
+              customer: {
+                ...prev.customer,
+                name: found.passenger || found.customerName || found.name || prev.customer.name,
+                email: found.customerEmail || prev.customer.email,
+                phone: found.customerPhone || prev.customer.phone
+              },
+              flight: {
+                ...prev.flight,
+                pnr: found.pnr || prev.flight.pnr,
+                eTicket: found.ticketNumber || prev.flight.eTicket,
+                origin: found.origin || prev.flight.origin,
+                destination: found.destination || prev.flight.destination,
+                route: found.route || `${found.origin || 'DEL'} → ${found.destination || 'LHR'}`,
+                totalFare: found.fare || found.amount || prev.flight.totalFare
+              },
+              realtime4Q: {
+                ...prev.realtime4Q,
+                operational: {
+                  ...prev.realtime4Q.operational,
+                  status: (found.ticketStatus || 'CONFIRMED').toUpperCase()
+                }
+              }
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn('[BookingDetails] Live load warning:', err.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    loadBookingData();
+    return () => { isMounted = false; };
+  }, [id]);
 
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);

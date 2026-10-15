@@ -563,7 +563,7 @@ export const AppRoutes = () => {
           path="/leads"
           element={
             <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
-              <LeadManagementSuite />
+              <SuperAdminLeadList />
             </ProtectedRoute>
           }
         />
