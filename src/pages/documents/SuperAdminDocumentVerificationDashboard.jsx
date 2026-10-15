@@ -48,7 +48,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { themeText } from '../../theme/themeColor';
 import { dbService } from '../../services/dbService';
 import { qaService } from '../../services/phase3Service';
-import { getRealisticDocumentVisual } from './documentVisualTemplates';
+import { getRealisticDocumentVisual, getRealisticDocumentSvgString, renderSvgToDataUrl } from './documentVisualTemplates';
 // ─── SPECIFICATION CONSTANTS ───
 export const DOC_TYPES = [
   { type: 'Passport', purpose: 'Identity + travel eligibility', icon: <BadgeIcon sx={{ color: '#2563EB' }} />, color: '#2563EB', bg: 'var(--wl-EFF6FF, #EFF6FF)' },
@@ -225,7 +225,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
     }
   };
 
-  const handleDownloadDocumentPdf = (doc) => {
+  const handleDownloadDocumentPdf = async (doc) => {
     if (!doc) return;
 
     // If user uploaded a real file (Image, PDF, Doc), download that EXACT original file!
@@ -244,147 +244,122 @@ export const SuperAdminDocumentVerificationDashboard = () => {
       }
     }
     try {
+      const docTypeLower = (doc.type || doc.category || doc.fileName || '').toLowerCase();
+      const isLandscape = docTypeLower.includes('ticket') || docTypeLower.includes('itinerary');
+
       const pdf = new jsPDF({
-        orientation: 'portrait',
+        orientation: isLandscape ? 'landscape' : 'portrait',
         unit: 'mm',
         format: 'a4'
       });
 
-      // Top Primary Header Banner
-      pdf.setFillColor(37, 99, 235);
-      pdf.rect(0, 0, 210, 28, 'F');
+      // Convert our authentic SVG document visual to high-res image
+      const svgString = getRealisticDocumentSvgString(doc);
+      const imgDataUrl = await renderSvgToDataUrl(svgString, 900, 600);
 
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(16);
-      pdf.text('WOW MY FLIGHT CRM', 15, 12);
+      if (!isLandscape) {
+        // Top Primary Header Banner
+        pdf.setFillColor(15, 23, 42);
+        pdf.rect(0, 0, 210, 20, 'F');
 
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(9);
-      pdf.text('OFFICIAL PASSENGER TRAVEL DOCUMENT ARCHIVE', 15, 19);
-      pdf.text('SECURE CLOUD STORAGE · SHA-256 VERIFIED', 15, 24);
-
-      // Document Type in top right
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(String(doc.type || 'DOCUMENT').toUpperCase(), 195, 16, { align: 'right' });
-
-      // Document Summary Card
-      pdf.setDrawColor(226, 232, 240);
-      pdf.setFillColor(248, 250, 252);
-      pdf.roundedRect(15, 36, 180, 24, 3, 3, 'FD');
-
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFontSize(11);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(`Document Ref: ${doc.id || 'DOC-001'}`, 20, 44);
-
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(71, 85, 105);
-      pdf.text(`File: ${doc.fileName || 'document.pdf'}   |   Size: ${doc.fileSize || '1.8 MB'}   |   Uploaded: ${doc.uploadDate || '2026-10-15'}`, 20, 52);
-
-      // Status Badge
-      const isVerified = (doc.status || '').toLowerCase() === 'verified';
-      if (isVerified) {
-        pdf.setFillColor(16, 185, 129);
         pdf.setTextColor(255, 255, 255);
-      } else {
-        pdf.setFillColor(245, 158, 11);
-        pdf.setTextColor(255, 255, 255);
-      }
-      pdf.roundedRect(155, 41, 34, 8, 2, 2, 'F');
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(String(doc.status || 'UPLOADED').toUpperCase(), 172, 46.5, { align: 'center' });
-
-      // Section: Passenger & Booking Details Table
-      pdf.setFontSize(11);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(30, 41, 59);
-      pdf.text('PASSENGER & BOOKING VERIFICATION SPECIFICATIONS', 15, 72);
-
-      pdf.setDrawColor(203, 213, 225);
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(15, 76, 180, 80, 'D');
-
-      const details = [
-        ['Passenger Full Name', doc.customerName || 'Traveler'],
-        ['Customer Email', doc.customerEmail || 'client@wowmyflight.com'],
-        ['Booking Reference', doc.bookingRef || 'BK-101'],
-        ['Sabre / Amadeus PNR', doc.pnr || 'WMF-99'],
-        ['Document Classification', doc.type || 'Passport'],
-        ['Document Expiry Date', doc.expiryDate || '2031-10-15'],
-        ['Verified By Authority', doc.verifiedBy || 'Super Admin (CEO)'],
-        ['Security Checksum', 'SHA-256: 4f8b2c1e7a9d3... (AWS S3 Encrypted)']
-      ];
-
-      details.forEach(([label, value], idx) => {
-        const y = 84 + idx * 9;
-        if (idx % 2 === 0) {
-          pdf.setFillColor(248, 250, 252);
-          pdf.rect(15, y - 5.5, 180, 9, 'F');
-        }
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(9);
-        pdf.setTextColor(71, 85, 105);
-        pdf.text(label, 20, y);
+        pdf.setFontSize(12);
+        pdf.text('WOW MY FLIGHT CRM · SECURE PASSENGER DOCUMENT VAULT', 15, 11);
 
         pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        pdf.text(`OFFICIAL CERTIFIED TRAVEL ARCHIVE · ${doc.fileName}`, 15, 16);
+        pdf.text(`STATUS: ${(doc.status || 'VERIFIED').toUpperCase()}`, 195, 13, { align: 'right' });
+
+        // Embed the REALISTIC SCANNED DOCUMENT (Schengen Visa Sticker / Passport Bio Page)
+        if (imgDataUrl) {
+          pdf.addImage(imgDataUrl, 'JPEG', 15, 26, 180, 122);
+        }
+
+        // Section: Verification Specifications below the real document
+        pdf.setFillColor(248, 250, 252);
+        pdf.setDrawColor(203, 213, 225);
+        pdf.roundedRect(15, 154, 180, 68, 2, 2, 'FD');
+
         pdf.setTextColor(15, 23, 42);
-        pdf.text(String(value), 80, y);
-      });
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(10);
+        pdf.text('PASSENGER & BOOKING VERIFICATION SPECIFICATIONS', 22, 163);
 
-      // Section: QA Verification Notes Box
-      pdf.setFontSize(11);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(30, 41, 59);
-      pdf.text('QA COMPLIANCE NOTES & AUDIT TRAIL', 15, 170);
+        const details = [
+          ['Passenger Full Name', doc.customerName || 'Traveler'],
+          ['Customer Email', doc.customerEmail || 'client@wowmyflight.com'],
+          ['Booking Reference', doc.bookingRef || 'BK-101'],
+          ['Sabre / Amadeus PNR', doc.pnr || 'WMF-99'],
+          ['Document Classification', doc.type || doc.category || 'Visa'],
+          ['Document Expiry Date', doc.expiryDate || '2031-10-15'],
+          ['Verified By Authority', doc.verifiedBy || 'Super Admin (QA Lead)'],
+          ['Security Checksum', 'SHA-256: 4f8b2c1e7a9d3... (AWS S3 Encrypted)']
+        ];
 
-      pdf.setDrawColor(203, 213, 225);
-      pdf.setFillColor(248, 250, 252);
-      pdf.roundedRect(15, 174, 180, 32, 2, 2, 'FD');
+        details.forEach(([label, value], idx) => {
+          const y = 171 + idx * 6;
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(8);
+          pdf.setTextColor(71, 85, 105);
+          pdf.text(label + ':', 22, y);
 
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(9);
-      pdf.setTextColor(51, 65, 85);
-      const notesText = doc.notes || 'Verified against traveler registry. Passport valid > 6 months for international travel.';
-      pdf.text(pdf.splitTextToSize(`Notes: "${notesText}"`, 170), 20, 182);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(15, 23, 42);
+          pdf.text(String(value), 75, y);
+        });
 
-      // Section: Official Seal
-      pdf.setDrawColor(37, 99, 235);
-      pdf.setLineWidth(0.8);
-      pdf.roundedRect(130, 215, 65, 28, 3, 3, 'D');
+        // Section: Official Seal
+        pdf.setDrawColor(37, 99, 235);
+        pdf.setLineWidth(0.8);
+        pdf.roundedRect(130, 226, 65, 26, 3, 3, 'D');
 
-      pdf.setTextColor(37, 99, 235);
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('WOWMYFLIGHT QA VAULT', 162.5, 223, { align: 'center' });
-      pdf.setFontSize(7.5);
-      pdf.text('DIGITALLY CERTIFIED & VERIFIED', 162.5, 229, { align: 'center' });
-      pdf.text(new Date().toISOString().split('T')[0], 162.5, 235, { align: 'center' });
+        pdf.setTextColor(37, 99, 235);
+        pdf.setFontSize(8.5);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('WOWMYFLIGHT QA VAULT', 162.5, 234, { align: 'center' });
+        pdf.setFontSize(7);
+        pdf.text('DIGITALLY CERTIFIED & VERIFIED', 162.5, 240, { align: 'center' });
+        pdf.text(new Date().toISOString().split('T')[0], 162.5, 246, { align: 'center' });
 
-      // Footer
-      pdf.setDrawColor(226, 232, 240);
-      pdf.line(15, 275, 195, 275);
+        // Footer
+        pdf.setDrawColor(226, 232, 240);
+        pdf.line(15, 275, 195, 275);
 
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(148, 163, 184);
-      pdf.text('Confidential - For authorized travel agency operations only. WowMyFlight Travel CRM.', 15, 282);
-      pdf.text(`Downloaded: ${new Date().toLocaleString()}`, 195, 282, { align: 'right' });
+        pdf.setFontSize(7.5);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(148, 163, 184);
+        pdf.text('Confidential - For authorized travel agency operations only. WowMyFlight Travel CRM.', 15, 282);
+        pdf.text(`Downloaded: ${new Date().toLocaleString()}`, 195, 282, { align: 'right' });
+      } else {
+        // Landscape A4 for E-Tickets
+        pdf.setFillColor(15, 23, 42);
+        pdf.rect(0, 0, 297, 18, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(12);
+        pdf.text('WOW MY FLIGHT CRM · ELECTRONIC FLIGHT TICKET & ITINERARY', 15, 11);
+        pdf.text(`FILE: ${doc.fileName}`, 282, 11, { align: 'right' });
+
+        if (imgDataUrl) {
+          pdf.addImage(imgDataUrl, 'JPEG', 15, 24, 267, 165);
+        }
+      }
 
       const safeFilename = (doc.fileName || `${doc.customerName || 'document'}_${doc.type || 'file'}`).replace(/[/\\?%*:|"<>]/g, '_');
       const filename = safeFilename.endsWith('.pdf') ? safeFilename : `${safeFilename}.pdf`;
 
       pdf.save(filename);
-      showAlert(`✓ Successfully downloaded ${filename}!`, 'success');
+      showAlert(`✓ Successfully downloaded real certified ${doc.type || 'document'}: ${filename}!`, 'success');
+      return;
     } catch (err) {
       console.error('PDF generation error:', err);
       showAlert(`Download failed: ${err.message}`, 'error');
     }
   };
 
+      
   const handleUpdateStatus = async (docId, newStatus) => {
     setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status: newStatus, verifiedBy: 'Super Admin (CEO)' } : d));
     if (selectedDoc && selectedDoc.id === docId) {
