@@ -419,7 +419,7 @@ export default function MandatoryCallDispositionEngine() {
       </Box>
 
       {/* ── Disposition Category Breakdown Chips ────────────────────────── */}
-      <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 1, mb: 3 }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
         {DISPOSITION_CONFIG.map((c) => (
           <Paper
             key={c.name}
@@ -613,8 +613,24 @@ export default function MandatoryCallDispositionEngine() {
                             }}
                           />
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600, color: 'text.secondary', maxWidth: 280 }}>
-                          {l.notes}
+                        <TableCell sx={{ fontWeight: 600, color: 'text.secondary', maxWidth: 300 }}>
+                          <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'text.primary', mb: 0.3 }}>
+                            {l.notes}
+                          </Typography>
+                          {l.bookingValue && (
+                            <Chip
+                              label={`💰 Deal Value: $${Number(l.bookingValue).toLocaleString()}`}
+                              size="small"
+                              sx={{ mr: 0.8, mt: 0.4, height: 20, fontSize: '0.68rem', fontWeight: 800, bgcolor: '#DCFCE7', color: '#166534' }}
+                            />
+                          )}
+                          {l.callbackDateTime && (
+                            <Chip
+                              label={`⏰ Callback: ${new Date(l.callbackDateTime).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`}
+                              size="small"
+                              sx={{ mt: 0.4, height: 20, fontSize: '0.68rem', fontWeight: 800, bgcolor: '#FEF3C7', color: '#92400E' }}
+                            />
+                          )}
                         </TableCell>
                         <TableCell sx={{ fontWeight: 800, color: '#059669', maxWidth: 220 }}>
                           {l.actionTaken || 'CRM Status Updated'}
