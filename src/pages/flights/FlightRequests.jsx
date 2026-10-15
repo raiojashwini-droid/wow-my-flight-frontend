@@ -25,6 +25,9 @@ import AppModal from '../../components/AppModal';
 import GDSTerminalModal from '../../components/GDSTerminalModal';
 import MultiGdsFlightSearch from '../../components/MultiGdsFlightSearch';
 import { useAlert } from '../../contexts/AlertContext';
+import CircularProgress from '@mui/material/CircularProgress';
+import { useQuery } from '@tanstack/react-query';
+import { dbService } from '../../services/dbService';
 
 export const DEMO_ALL_FLIGHT_REQUESTS = [
   {
@@ -120,9 +123,71 @@ export default function FlightRequests() {
   const [selectedReq, setSelectedReq] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
+  // ─── LIVE POSTGRESQL FLIGHT REQUESTS & QUOTES ───
+  const { data: dbQuotes = [], isLoading: quotesLoading } = useQuery({
+    queryKey: ['flight-requests-quotes'],
+    queryFn: dbService.getQuotes,
+    refetchInterval: 15000,
+  });
+
+  const { data: dbLeads = [] } = useQuery({
+    queryKey: ['flight-requests-leads'],
+    queryFn: dbService.getLeads,
+    refetchInterval: 20000,
+  });
+
+  // Dynamic requests transformed from real database quotes & leads
+  const allRequests = useMemo(() => {
+    const list = [];
+
+    // Map real quotes
+    (dbQuotes || []).forEach((q, idx) => {
+      list.push({
+        id: q.quoteId || q.id || `REQ-QT-${100 + idx}`,
+        customerName: q.customerName || 'Flight Client',
+        route: `${q.origin || 'JFK'} → ${q.destination || 'LHR'}`,
+        origin: q.origin || 'JFK',
+        destination: q.destination || 'LHR',
+        region: (q.origin?.startsWith('L') || q.destination?.startsWith('L')) ? 'Europe' : 'Americas',
+        travelDate: q.departureDate || '2026-10-25',
+        dateDisplay: q.departureDate ? q.departureDate.slice(5) : '25OCT',
+        cabinClass: q.cabinClass || 'Business',
+        passengers: q.passengers || 2,
+        salesAgent: q.agentName || 'Sara J.',
+        status: (q.status === 'Sent' || q.status === 'Draft') ? 'New' : (q.status === 'Accepted' ? 'In Progress' : (q.status === 'Booked' ? 'Completed' : 'New')),
+        priority: (q.totalPrice > 4000) ? 'Urgent' : 'Normal',
+        notes: q.notes || `Direct flight request for ${q.customerName || 'client'}. Total Quote: $${q.totalPrice || 0}`
+      });
+    });
+
+    // Map real leads that have origin/destination
+    (dbLeads || []).forEach((ld, idx) => {
+      if (ld.origin && ld.destination) {
+        list.push({
+          id: `REQ-LD-${String(ld.id).slice(0, 6)}`,
+          customerName: `${ld.firstName || ''} ${ld.lastName || ''}`.trim() || 'Inquiry',
+          route: `${ld.origin} → ${ld.destination}`,
+          origin: ld.origin,
+          destination: ld.destination,
+          region: ld.origin?.startsWith('D') ? 'Middle East' : 'Americas',
+          travelDate: ld.travelDate || '2026-11-01',
+          dateDisplay: ld.travelDate ? String(ld.travelDate).slice(5) : '01NOV',
+          cabinClass: ld.serviceId?.includes('business') ? 'Business' : 'Economy',
+          passengers: ld.passengers || 1,
+          salesAgent: ld.assignedAgent?.name || 'Unassigned',
+          status: ld.status === 'New Lead' ? 'New' : 'In Progress',
+          priority: (ld.budget && ld.budget > 5000) ? 'Urgent' : 'Normal',
+          notes: ld.notes || 'Inbound customer flight request via CRM lead intake.'
+        });
+      }
+    });
+
+    return list.length > 0 ? list : DEMO_ALL_FLIGHT_REQUESTS;
+  }, [dbQuotes, dbLeads]);
+
   // Filtered dataset calculation
   const filteredData = useMemo(() => {
-    return DEMO_ALL_FLIGHT_REQUESTS.filter(r => {
+    return allRequests.filter(r => {
       const q = search.toLowerCase();
       const matchSearch =
         r.id.toLowerCase().includes(q) ||
@@ -147,7 +212,7 @@ export default function FlightRequests() {
 
       return matchSearch && matchStatus && matchCabin && matchRegion && matchPriority && matchDate;
     });
-  }, [search, statusFilter, cabinFilter, regionFilter, priorityFilter, dateFilter]);
+  }, [allRequests, search, statusFilter, cabinFilter, regionFilter, priorityFilter, dateFilter]);
 
   const handleOpenRequest = (row) => {
     setSelectedReq(row);

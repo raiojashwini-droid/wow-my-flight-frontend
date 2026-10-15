@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -25,6 +25,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ScheduleChange from '../../components/ScheduleChange';
 import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
+import { dbService } from '../../services/dbService';
 
 export const INITIAL_PNRS = [
   {
@@ -188,6 +189,47 @@ export default function PNRTracking() {
   const { showAlert } = useAlert();
 
   const [pnrList, setPnrList] = useState(INITIAL_PNRS);
+
+  // ─── LIVE POSTGRESQL PNR SYNCHRONIZATION ───
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveBookings = async () => {
+      try {
+        const bookings = await dbService.getBookings();
+        if (isMounted && Array.isArray(bookings) && bookings.length > 0) {
+          const livePnrs = bookings.map((b, idx) => ({
+            pnr: b.pnr || `GDS${String(idx + 1).padStart(3, '0')}`,
+            customer: b.passenger || b.customerName || b.name || 'Passenger',
+            route: b.route || `${b.origin || 'DEL'} → ${b.destination || 'LHR'}`,
+            date: b.date || b.departureDate || '25 Oct',
+            status: b.ticketStatus || 'Ticketed',
+            tone: b.ticketStatus === 'Ticketed' ? 'success' : (b.isTtlUrgent ? 'error' : 'info'),
+            category: b.ticketStatus === 'Ticketed' ? 'confirmed' : (b.isTtlUrgent ? 'alerts' : 'all'),
+            type: b.ticketStatus === 'Ticketed' ? 'confirmed' : 'changed',
+            ago: 'Live DB',
+            airline: b.airlineCode ? `${b.airlineCode} Flight ${b.flightNumber || ''}` : (b.supplier || 'GDS Airline'),
+            depTime: '10:00',
+            arrTime: '18:00',
+            cabin: b.cabinClass || 'Economy',
+            ticketStatus: b.ticketStatus || 'Ready to Issue',
+            trackingStatus: b.isTtlUrgent ? 'Urgent Alert: TTL Pending' : 'Active Tracking (GDS Link)',
+            original: `${b.origin || 'DEL'} → ${b.destination || 'LHR'} | Departure: ${b.date || '2026-10-25'}`,
+            updated: null,
+            needsAction: Boolean(b.isTtlUrgent || b.ticketStatus === 'Ready to Issue'),
+            history: [
+              { time: 'Live DB', text: `Real booking ${b.bookingId || b.id} tracked with PNR ${b.pnr}. Ticket status: ${b.ticketStatus}` }
+            ]
+          }));
+          setPnrList(livePnrs);
+        }
+      } catch (err) {
+        console.warn('[PNRTracking] Live booking load warning:', err.message);
+      }
+    };
+    fetchLiveBookings();
+    return () => { isMounted = false; };
+  }, []);
+
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState('all');
 

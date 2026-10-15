@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -45,6 +45,7 @@ import HistoryIcon from '@mui/icons-material/History';
 
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
+import { dbService } from '../../services/dbService';
 
 // ==========================================
 // MOCK DATASETS
@@ -166,6 +167,86 @@ export default function CentralNotificationCenter() {
   // States
   const [feed, setFeed] = useState(INITIAL_NOTIFICATION_FEED);
   const [deliveryLogs, setDeliveryLogs] = useState(MULTI_CHANNEL_DELIVERY_DATA);
+
+  // ─── LIVE POSTGRESQL NOTIFICATION SYNC ───
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveNotifications = async () => {
+      try {
+        const [bookings, leads, calls] = await Promise.all([
+          dbService.getBookings().catch(() => []),
+          dbService.getLeads().catch(() => []),
+          dbService.getCallLogs().catch(() => [])
+        ]);
+
+        if (isMounted) {
+          const liveFeed = [];
+
+          // Live Bookings Alerts
+          (bookings || []).forEach((b) => {
+            liveFeed.push({
+              id: `NOTIF-BK-${String(b.bookingId || b.id).slice(-4)}`,
+              category: 'Ticketing',
+              title: b.ticketStatus === 'Ready to Issue' ? 'Ticket Ready to Issue' : 'Booking Active',
+              description: `Booking ${b.bookingId || b.id} (${b.route || 'DEL → LHR'}) for ${b.passenger || 'Passenger'}. Status: ${b.ticketStatus}`,
+              refId: b.bookingId || b.id,
+              customer: b.passenger || b.customerName || 'Passenger',
+              time: b.createdAt ? new Date(b.createdAt).toLocaleTimeString() : 'Recent',
+              priority: b.isTtlUrgent ? 'Critical' : 'Normal',
+              priorityColor: b.isTtlUrgent ? '#DC2626' : '#2563EB',
+              read: false,
+              channels: ['In-App', 'Email', 'WhatsApp'],
+              icon: <AirplaneTicketIcon sx={{ color: b.isTtlUrgent ? '#DC2626' : '#2563EB' }} />
+            });
+          });
+
+          // Live Leads Alerts
+          (leads || []).forEach((ld) => {
+            liveFeed.push({
+              id: `NOTIF-LD-${String(ld.id).slice(-4)}`,
+              category: 'Lead',
+              title: ld.status === 'New Lead' ? 'New Customer Inquiry' : 'Lead Updated',
+              description: `Flight request for ${ld.firstName || ''} ${ld.lastName || ''} (${ld.origin || 'DEL'} → ${ld.destination || 'JFK'}).`,
+              refId: ld.id,
+              customer: `${ld.firstName || ''} ${ld.lastName || ''}`.trim() || 'Customer',
+              time: ld.createdAt ? new Date(ld.createdAt).toLocaleTimeString() : 'Recent',
+              priority: (ld.budget && ld.budget > 5000) ? 'Critical' : 'High',
+              priorityColor: (ld.budget && ld.budget > 5000) ? '#DC2626' : '#D97706',
+              read: false,
+              channels: ['In-App', 'Email'],
+              icon: <PeopleAltIcon sx={{ color: (ld.budget && ld.budget > 5000) ? '#DC2626' : '#D97706' }} />
+            });
+          });
+
+          // Live Calls Alerts
+          (calls || []).forEach((c) => {
+            liveFeed.push({
+              id: `NOTIF-CALL-${String(c.id).slice(-4)}`,
+              category: 'Telephony',
+              title: `Call ${c.direction === 'inbound' ? 'Received' : 'Completed'}`,
+              description: `Duration: ${c.durationSeconds || 0}s with ${c.toNumber || c.fromNumber}.`,
+              refId: c.callControlId || c.id,
+              customer: c.toNumber || c.fromNumber || 'Caller',
+              time: c.createdAt ? new Date(c.createdAt).toLocaleTimeString() : 'Recent',
+              priority: 'Normal',
+              priorityColor: '#10B981',
+              read: true,
+              channels: ['In-App'],
+              icon: <CheckCircleIcon sx={{ color: '#10B981' }} />
+            });
+          });
+
+          if (liveFeed.length > 0) {
+            setFeed(liveFeed);
+          }
+        }
+      } catch (err) {
+        console.warn('[CentralNotificationCenter] Live sync error:', err.message);
+      }
+    };
+    fetchLiveNotifications();
+    return () => { isMounted = false; };
+  }, []);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
