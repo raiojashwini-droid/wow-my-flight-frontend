@@ -761,10 +761,8 @@ export const dbService = {
     try {
       const remote = await apiFetch('/api/payments');
       if (remote && remote.success && Array.isArray(remote.data)) {
-        if (remote.data.length > 0) {
-          localStorage.setItem('crm-payments', JSON.stringify(remote.data));
-          return remote.data;
-        }
+        localStorage.setItem('crm-payments', JSON.stringify(remote.data));
+        return remote.data;
       }
     } catch (e) {
       console.warn('[dbService] getPayments API warning:', e.message);
@@ -1478,7 +1476,7 @@ export const dbService = {
   getCommissionsReport: async () => {
     try {
       const res = await apiFetch('/api/finance/commissions/report');
-      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+      if (res && res.success && Array.isArray(res.data)) {
         return res.data;
       }
     } catch (e) {}
