@@ -293,6 +293,7 @@ export const SuperAdminLeadList = () => {
       showAlert('✈️ New Flight Lead created & synced to Customer 360!', 'success');
       setAddModalOpen(false);
       reset();
+      setSelectedLabels([]);
     }
   });
 
@@ -629,11 +630,39 @@ export const SuperAdminLeadList = () => {
       id: 'assignedConsultant',
       label: 'Assigned',
       render: (row) => {
-        const agent = agents.find((c) => c.id === row.assignedConsultantId);
-        return agent ? (
-          <Typography variant="caption" sx={{ fontWeight: 700 }}>{agent.name.split(' ')[0]}</Typography>
-        ) : (
-          <Chip size="small" label="Unassigned" color="default" sx={{ fontSize: '0.62rem', height: 18 }} />
+        const currentAgentId = row.assignedConsultantId || row.assignedAgentId || '';
+        return (
+          <FormControl size="small" sx={{ m: 0, minWidth: 125 }} onClick={(e) => e.stopPropagation()}>
+            <Select
+              value={currentAgentId}
+              onChange={(e) => {
+                e.stopPropagation();
+                const agentId = e.target.value;
+                assignAgentMutation.mutate({ leadId: row.id, agentId });
+              }}
+              displayEmpty
+              size="small"
+              sx={{
+                fontSize: '0.73rem',
+                height: 26,
+                minWidth: 125,
+                bgcolor: currentAgentId ? 'rgba(37, 99, 235, 0.08)' : 'background.paper',
+                fontWeight: currentAgentId ? 700 : 500,
+                color: currentAgentId ? 'primary.main' : 'text.secondary',
+                borderRadius: 1.5,
+                '& .MuiSelect-select': { py: 0.3, px: 1 }
+              }}
+            >
+              <MenuItem value="" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                <em>Unassigned</em>
+              </MenuItem>
+              {agents.map((ag) => (
+                <MenuItem key={ag.id} value={ag.id} sx={{ fontSize: '0.75rem' }}>
+                  {ag.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         );
       }
     }
@@ -976,6 +1005,24 @@ export const SuperAdminLeadList = () => {
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Source:</Typography>
                   <Typography variant="caption" sx={{ fontWeight: 600 }}>{selectedLead.source || '—'}</Typography>
 
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Assigned To:</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip
+                      size="small"
+                      label={agents.find(a => a.id === selectedLead.assignedConsultantId || a.id === selectedLead.assignedAgentId)?.name || 'Unassigned'}
+                      color={(selectedLead.assignedConsultantId || selectedLead.assignedAgentId) ? 'primary' : 'default'}
+                      sx={{ fontWeight: 700, fontSize: '0.68rem', height: 22 }}
+                    />
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleOpenAssignModal(selectedLead)}
+                      sx={{ fontSize: '0.68rem', py: 0.2, px: 1, minWidth: 0, textTransform: 'none' }}
+                    >
+                      Assign / Change
+                    </Button>
+                  </Box>
+
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Priority:</Typography>
                   <Box>
                     <Chip
@@ -1100,12 +1147,12 @@ export const SuperAdminLeadList = () => {
       {/* ─── 3. ADD NEW LEAD MODAL (FULL TRAVEL CRM SPEC) ─── */}
       <AppModal
         open={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
+        onClose={() => { setAddModalOpen(false); setSelectedLabels([]); }}
         title="Add New Passenger Flight Lead"
         maxWidth="md"
         actions={
           <>
-            <Button onClick={() => setAddModalOpen(false)} variant="outlined">
+            <Button onClick={() => { setAddModalOpen(false); setSelectedLabels([]); }} variant="outlined">
               Cancel
             </Button>
             <Button

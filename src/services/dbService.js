@@ -1208,7 +1208,7 @@ export const dbService = {
     if (cached) {
       try { return JSON.parse(cached); } catch (e) { }
     }
-    return [];
+    return loadState('crm-agents-list', AGENTS);
   },
   createAgent: async (agent) => {
     try {
