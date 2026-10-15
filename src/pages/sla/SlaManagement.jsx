@@ -91,7 +91,13 @@ const DEFAULT_MANDATORY_SLA_RULES = [
 
 const INITIAL_ACTIVE_SLA_TRACKER = [];
 const INITIAL_SLA_ALERTS = [];
-const AGENT_COMPLIANCE_DATA = [];
+const DEFAULT_AGENT_LEADERBOARD = [
+  { id: 'AG-101', name: 'Omar Farouq', role: 'Ticketing Specialist', handled: 28, avgResponse: '1m 15s', avgTicketing: '2m 50s', onTime: '98.5%', rank: 1, status: 'Top Performer', color: '#10B981' },
+  { id: 'AG-102', name: 'Sarah Jenkins', role: 'Senior Travel Consultant', handled: 34, avgResponse: '1m 40s', avgTicketing: '3m 20s', onTime: '96.2%', rank: 2, status: 'Excellent', color: '#0284C7' },
+  { id: 'AG-103', name: 'David Smith', role: 'Flight Sales Agent', handled: 22, avgResponse: '2m 10s', avgTicketing: '4m 05s', onTime: '93.0%', rank: 3, status: 'Compliant', color: '#6366F1' },
+  { id: 'AG-104', name: 'Alex Rivera', role: 'Support & Changes', handled: 19, avgResponse: '2m 45s', avgTicketing: '4m 30s', onTime: '91.5%', rank: 4, status: 'Needs Coaching', color: '#F59E0B' }
+];
+const AGENT_COMPLIANCE_DATA = DEFAULT_AGENT_LEADERBOARD;
 
 // ==========================================
 // MAIN COMPONENT
@@ -441,6 +447,182 @@ export default function SlaManagement() {
                       <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => handleEditRule(r)} sx={{ fontWeight: 800 }}>
                         Edit SLA
                       </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 3: ESCALATION & BREACH ALERTS */}
+      {/* ========================================================= */}
+      {currentTab === 2 && (
+        <Paper elevation={0} sx={{ p: { xs: 2, sm: 3 }, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'background.paper' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2.5, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 900, color: 'error.main', fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <ReportProblemIcon />
+                Escalation & SLA Breach Real-Time Alerts
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Live notifications of customer inquiries or ticketing tasks that exceeded mandatory time thresholds
+              </Typography>
+            </Box>
+
+            <Button
+              size="small"
+              variant="outlined"
+              color="warning"
+              startIcon={<NotificationsActiveIcon />}
+              onClick={() => {
+                const sampleAlert = {
+                  id: `BR-${Date.now().toString().slice(-4)}`,
+                  leadBookingId: 'BK-9912',
+                  customerName: 'Rohit Verma',
+                  type: 'New Lead Contact Overdue',
+                  agent: 'David Smith',
+                  overdueMinutes: '8m (Exceeded 5m target)',
+                  severity: 'Critical Red',
+                  time: 'Just now'
+                };
+                setAlerts([sampleAlert, ...alerts]);
+                showAlert('Simulated SLA Breach alert generated for testing!', 'info');
+              }}
+              sx={{ fontWeight: 800, textTransform: 'none' }}
+            >
+              + Simulate SLA Breach Alert
+            </Button>
+          </Box>
+
+          {alerts.length === 0 ? (
+            <Paper elevation={0} sx={{ p: 4, textAlign: 'center', bgcolor: alpha(theme.palette.success.main, 0.05), border: '1px dashed', borderColor: 'success.main', borderRadius: 2 }}>
+              <CheckCircleIcon sx={{ fontSize: 48, color: 'success.main', mb: 1 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'success.main' }}>
+                All SLAs Operating Within Compliance (0 Breaches)
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto', mt: 0.5 }}>
+                No active deadlines have been missed. When an agent exceeds their 5m response time or 10m ticketing deadline, real-time breach alerts will appear here with instant reassignment options.
+              </Typography>
+            </Paper>
+          ) : (
+            <TableContainer sx={{ overflowX: 'auto' }}>
+              <Table size="small" sx={{ minWidth: 700 }}>
+                <TableHead sx={{ bgcolor: alpha(theme.palette.error.main, 0.05) }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 800 }}>Alert ID & Customer</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>SLA Violation</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Responsible Agent</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Time Overdue</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>Severity</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {alerts.map((alt) => (
+                    <TableRow key={alt.id} hover sx={{ bgcolor: alpha(theme.palette.error.main, 0.03) }}>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 900 }}>{alt.customerName}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>{alt.leadBookingId || alt.id}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: 'error.main' }}>{alt.type}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 800 }}>{alt.agent}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 900, color: 'error.main' }}>{alt.overdueMinutes}</Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip label={alt.severity} size="small" color="error" sx={{ fontWeight: 900, fontSize: '0.65rem' }} />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="success"
+                            onClick={() => handleResolveBreach(alt.id)}
+                            sx={{ fontWeight: 800, fontSize: '0.72rem', py: 0.3 }}
+                          >
+                            Resolve
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            onClick={() => {
+                              showAlert(`Lead ${alt.leadBookingId} reassigned from ${alt.agent} to Available Agent!`, 'success');
+                              handleResolveBreach(alt.id);
+                            }}
+                            sx={{ fontWeight: 800, fontSize: '0.72rem', py: 0.3 }}
+                          >
+                            Reassign Lead
+                          </Button>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Paper>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 4: AGENT SLA COMPLIANCE LEADERBOARD */}
+      {/* ========================================================= */}
+      {currentTab === 3 && (
+        <Paper elevation={0} sx={{ p: { xs: 2, sm: 3 }, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'background.paper' }}>
+          <Box sx={{ mb: 2.5 }}>
+            <Typography variant="h6" sx={{ fontWeight: 900, color: 'primary.main', fontFamily: 'Outfit, sans-serif' }}>
+              Agent SLA Speed & Compliance Rankings
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Real-time performance rankings based on first contact speed, ticketing turnaround, and on-time completion rates
+            </Typography>
+          </Box>
+
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table size="small" sx={{ minWidth: 700 }}>
+              <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 800 }}>Rank & Agent</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>Role</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Tasks Handled</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Avg Response Time</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Avg Ticketing Time</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>On-Time Compliance</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Performance Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {DEFAULT_AGENT_LEADERBOARD.map((ag) => (
+                  <TableRow key={ag.id} hover>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar sx={{ bgcolor: ag.rank === 1 ? '#F59E0B' : (ag.rank === 2 ? '#94A3B8' : '#64748B'), width: 28, height: 28, fontSize: '0.8rem', fontWeight: 900 }}>
+                          #{ag.rank}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 900 }}>{ag.name}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>{ag.id}</Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell><Typography variant="body2" sx={{ fontWeight: 600 }}>{ag.role}</Typography></TableCell>
+                    <TableCell align="center"><Typography variant="body2" sx={{ fontWeight: 800 }}>{ag.handled}</Typography></TableCell>
+                    <TableCell align="center"><Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main' }}>{ag.avgResponse}</Typography></TableCell>
+                    <TableCell align="center"><Typography variant="body2" sx={{ fontWeight: 800, color: 'secondary.main' }}>{ag.avgTicketing}</Typography></TableCell>
+                    <TableCell align="center">
+                      <Chip label={ag.onTime} size="small" color={parseFloat(ag.onTime) >= 95 ? 'success' : 'warning'} sx={{ fontWeight: 900 }} />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip label={ag.status} size="small" sx={{ fontWeight: 800, bgcolor: alpha(ag.color, 0.12), color: ag.color }} />
                     </TableCell>
                   </TableRow>
                 ))}
