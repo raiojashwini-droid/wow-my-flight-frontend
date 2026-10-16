@@ -1168,58 +1168,262 @@ export const dbService = {
     return id;
   },
 
-  // SETTINGS
+  // SETTINGS (Connected to Backend API & Persistent Storage)
   getSettings: async () => {
-    await delay(50);
+    const res = await apiFetch('/api/settings/general');
+    if (res && res.success && res.data) {
+      saveState('crm-settings-general', res.data);
+      return res.data;
+    }
     return loadState('crm-settings-general', {
-      companyName: 'WowMyFlight Air Concierge',
-      phone: '+1 (800) 555-0199',
+      companyName: 'Wow My Flight Travel Agency Inc.',
+      brandTagline: 'Luxury Aviation & Worldwide Flight Booking Portal',
+      phone: '+1 (833) 395-5554',
       email: 'support@wowmyflight.com',
+      bookingEmail: 'bookings@wowmyflight.com',
       address: 'One World Trade Center, Suite 8500, New York, NY 10007, USA',
-      vatRate: 5,
-      autoAssignConsultant: true
+      vatRate: 7.5,
+      vatId: 'EIN-US-92-4819201',
+      currency: 'USD',
+      currencySymbol: '$',
+      website: 'https://wowmyflight.com',
+      incorporationDate: '2020-03-15',
+      autoAssignConsultant: true,
+      recordingStorage: 'cloud'
     });
   },
   updateSettings: async (settings) => {
-    await delay();
     saveState('crm-settings-general', settings);
+    const res = await apiFetch('/api/settings/general', {
+      method: 'PUT',
+      body: JSON.stringify(settings)
+    });
+    if (res && res.success && res.data) {
+      saveState('crm-settings-general', res.data);
+      return res.data;
+    }
     return settings;
   },
   getServices: async () => {
-    await delay();
-    return loadState('crm-services', SERVICES);
+    const res = await apiFetch('/api/settings/services');
+    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+      saveState('crm-services', res.data);
+      return res.data;
+    }
+    const defaultServices = [
+      { id: 'srv_eco', name: 'Economy Class', category: 'Economy', basePrice: 550, active: true },
+      { id: 'srv_prem', name: 'Premium Economy', category: 'Economy', basePrice: 950, active: true },
+      { id: 'srv_biz', name: 'Business Class', category: 'Business', basePrice: 3200, active: true },
+      { id: 'srv_first', name: 'First Class & Suites', category: 'First', basePrice: 7500, active: true },
+      { id: 'srv_charter', name: 'Private Jet Charter', category: 'Charter', basePrice: 22000, active: true },
+      { id: 'srv_vip_concierge', name: 'VIP Airport Fast-Track & Lounge Escort', category: 'Concierge', basePrice: 350, active: true }
+    ];
+    return loadState('crm-services', defaultServices);
   },
   updateServices: async (services) => {
-    await delay();
     saveState('crm-services', services);
+    const res = await apiFetch('/api/settings/services', {
+      method: 'PUT',
+      body: JSON.stringify(services)
+    });
+    if (res && res.success && res.data) {
+      saveState('crm-services', res.data);
+      return res.data;
+    }
     return services;
   },
+  addService: async (service) => {
+    const res = await apiFetch('/api/settings/services', {
+      method: 'POST',
+      body: JSON.stringify(service)
+    });
+    const current = await dbService.getServices();
+    const updated = [...current, res?.data || service];
+    saveState('crm-services', updated);
+    return res?.data || service;
+  },
   getPackages: async () => {
-    await delay();
-    return loadState('crm-packages', PACKAGES);
+    const res = await apiFetch('/api/settings/packages');
+    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+      saveState('crm-packages', res.data);
+      return res.data;
+    }
+    const defaultPackages = [
+      {
+        id: 'flight_saver',
+        name: 'Flight Only Saver',
+        price: 550,
+        description: 'Instant GDS airfare booking with competitive markup, e-ticket issuance, and automated 24/7 flight schedule tracking.',
+        includes: [
+          'GDS Fare Search (Travelopro / Sabre / Amadeus)',
+          'Instant PNR & Official Airline E-Ticket PDF',
+          'Flight Status & Schedule Change Alerts',
+          'Seat Selection & Online Check-In Guidance',
+          'WhatsApp & Email Notification Alerts',
+          'Dedicated Ticketing Helpdesk'
+        ]
+      },
+      {
+        id: 'travel_bundle',
+        name: 'Full Travel & Flight Package',
+        price: 1250,
+        description: 'Complete end-to-end holiday and business travel package with flight, 4-star hotel vouchers, and private airport transfers.',
+        includes: [
+          'Round-Trip Flights with Baggage Included (2x 23kg)',
+          'Partner Hotel Booking Vouchers (4★ / 5★)',
+          'Private Airport Chauffeur Transfer',
+          'Comprehensive Travel & Medical Insurance',
+          'Priority Boarding & Airport Lounge Pass',
+          'Dedicated Travel Concierge Agent'
+        ]
+      },
+      {
+        id: 'executive_vip',
+        name: 'Executive Business Class VIP Concierge',
+        price: 3450,
+        description: 'Ultra-premium corporate travel package for C-level executives, featuring flatbed business class and meet-and-greet airport service.',
+        includes: [
+          'Lie-flat Business Class Cabin Guarantee',
+          'Fast-Track Security Clearance & VIP Lounge Access',
+          'Dedicated 24/7 Personal Flight Broker',
+          'Flexible Date Changes & Free Refund Protection',
+          'Excess Baggage Allowance (3x 32kg)',
+          'Executive Chauffeur Sedan Pickup & Dropoff'
+        ]
+      },
+      {
+        id: 'jet_charter',
+        name: 'Private Jet & Luxury Charter',
+        price: 18500,
+        description: 'Exclusive private charter solutions for VIP families, diplomatic delegations, and high-net-worth individuals.',
+        includes: [
+          'Private Jet Terminal (FBO) Access with Zero Waiting',
+          'Custom Flight Schedule & Departure Times',
+          'Gourmet In-Flight Dining & Champagne Service',
+          'Pet In Cabin Accompaniment',
+          'Bespoke Ground Limousine Fleet',
+          'Discreet High-Security Flight Protocol'
+        ]
+      }
+    ];
+    return loadState('crm-packages', defaultPackages);
   },
   updatePackages: async (packages) => {
-    await delay();
     saveState('crm-packages', packages);
+    const res = await apiFetch('/api/settings/packages', {
+      method: 'PUT',
+      body: JSON.stringify(packages)
+    });
+    if (res && res.success && res.data) {
+      saveState('crm-packages', res.data);
+      return res.data;
+    }
     return packages;
   },
   getEmailTemplates: async () => {
-    await delay();
+    const res = await apiFetch('/api/settings/templates');
+    if (res && res.success && res.data?.emails) {
+      saveState('crm-email-templates', res.data.emails);
+      return res.data.emails;
+    }
     return loadState('crm-email-templates', EMAIL_TEMPLATES);
   },
   updateEmailTemplates: async (templates) => {
-    await delay();
     saveState('crm-email-templates', templates);
+    const whatsapps = await dbService.getWhatsappTemplates();
+    await apiFetch('/api/settings/templates', {
+      method: 'PUT',
+      body: JSON.stringify({ emails: templates, whatsapps })
+    });
     return templates;
   },
   getWhatsappTemplates: async () => {
-    await delay();
+    const res = await apiFetch('/api/settings/templates');
+    if (res && res.success && res.data?.whatsapps) {
+      saveState('crm-whatsapp-templates', res.data.whatsapps);
+      return res.data.whatsapps;
+    }
     return loadState('crm-whatsapp-templates', WHATSAPP_TEMPLATES);
   },
   updateWhatsappTemplates: async (templates) => {
-    await delay();
     saveState('crm-whatsapp-templates', templates);
+    const emails = await dbService.getEmailTemplates();
+    await apiFetch('/api/settings/templates', {
+      method: 'PUT',
+      body: JSON.stringify({ emails, whatsapps: templates })
+    });
     return templates;
+  },
+  getChannelSettings: async () => {
+    const res = await apiFetch('/api/settings/channels');
+    if (res && res.success && res.data) {
+      saveState('crm-channel-settings', res.data);
+      return res.data;
+    }
+    return loadState('crm-channel-settings', {
+      primaryPhone: '+1 (833) 395-5554',
+      secondaryPhone: '+1 (850) 332-9680',
+      whatsappSales: '+1 (833) 395-5554',
+      whatsappSupport: '+1 (850) 332-9680',
+      facebookPage1: 'https://facebook.com/WowMyFlight',
+      facebookPage2: 'https://facebook.com/WowMyFlightVIP',
+      instagramAccount1: '@wowmyflight',
+      instagramAccount2: '@wowmyflight_deals'
+    });
+  },
+  updateChannelSettings: async (channels) => {
+    saveState('crm-channel-settings', channels);
+    const res = await apiFetch('/api/settings/channels', {
+      method: 'PUT',
+      body: JSON.stringify(channels)
+    });
+    if (res && res.success && res.data) {
+      saveState('crm-channel-settings', res.data);
+      return res.data;
+    }
+    return channels;
+  },
+  getStripeSettings: async () => {
+    const res = await apiFetch('/api/settings/stripe');
+    if (res && res.success && res.data) {
+      saveState('crm-stripe-settings', res.data);
+      return res.data;
+    }
+    return loadState('crm-stripe-settings', {
+      mode: 'live',
+      primaryAccount: {
+        id: 'stripe_primary',
+        label: 'Primary Stripe Account (USD Global)',
+        publishableKey: 'pk_live_51P...WMF_USD',
+        secretKeyMasked: 'sk_live_51P...9921',
+        status: 'Active',
+        currency: 'USD',
+        lastUsed: 'Today at 3:45 PM',
+        volume: '$184,520'
+      },
+      secondaryAccount: {
+        id: 'stripe_secondary',
+        label: 'Secondary Stripe Account (Backup / International)',
+        publishableKey: 'pk_live_51P...WMF_INTL',
+        secretKeyMasked: 'sk_live_51P...3384',
+        status: 'Standby',
+        currency: 'USD',
+        lastUsed: 'Yesterday at 6:10 PM',
+        volume: '$42,300'
+      }
+    });
+  },
+  updateStripeSettings: async (stripe) => {
+    saveState('crm-stripe-settings', stripe);
+    const res = await apiFetch('/api/settings/stripe', {
+      method: 'PUT',
+      body: JSON.stringify(stripe)
+    });
+    if (res && res.success && res.data) {
+      saveState('crm-stripe-settings', res.data);
+      return res.data;
+    }
+    return stripe;
   },
 
   // SOCIAL CHAT INBOX
@@ -2026,6 +2230,11 @@ export const dbService = {
     return await apiFetch('/api/leads/distribution/rules', {
       method: 'POST',
       body: JSON.stringify(data)
+    });
+  },
+  deleteRoutingRule: async (id) => {
+    return await apiFetch(`/api/leads/distribution/rules/${id}`, {
+      method: 'DELETE'
     });
   },
   reassignLeadRoute: async (data) => {

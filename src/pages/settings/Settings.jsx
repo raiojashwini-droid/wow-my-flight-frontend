@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dbService } from '../../services/dbService';
 import Box from '@mui/material/Box';
-
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -29,22 +28,21 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import CircularProgress from '@mui/material/CircularProgress';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 
 // Icons
 import BusinessIcon from '@mui/icons-material/Business';
-import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+import FlightIcon from '@mui/icons-material/Flight';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
 import MessageIcon from '@mui/icons-material/Message';
-import BadgeIcon from '@mui/icons-material/Badge';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -60,7 +58,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import InstagramIcon from '@mui/icons-material/Instagram';
-import FlightIcon from '@mui/icons-material/Flight';
+import CloudDoneIcon from '@mui/icons-material/CloudDone';
 
 // Components & Services
 import PageHeader from '../../components/PageHeader';
@@ -70,13 +68,14 @@ import { useAlert } from '../../contexts/AlertContext';
 // General Form Schema
 const generalSchema = yup.object().shape({
   companyName: yup.string().required('Company legal name is required'),
-  phone: yup.string().required('WhatsApp phone is required'),
+  phone: yup.string().required('Support hotline phone is required'),
   email: yup.string().email('Invalid email').required('Client support email is required'),
   address: yup.string().required('Headquarters address is required'),
-  vatRate: yup.number().typeError('Must be a number').min(0).max(100).required('VAT percentage is required'),
-  vatId: yup.string().required('VAT/Tax ID is required'),
+  vatRate: yup.number().typeError('Must be a number').min(0).max(100).required('Tax/Fee percentage is required'),
+  vatId: yup.string().required('Tax ID / EIN is required'),
   website: yup.string().url('Must be a valid URL (starting with http/https)').required('Website link is required'),
-  incorporationDate: yup.string().required('Incorporation Date is required') });
+  incorporationDate: yup.string().required('Incorporation Date is required')
+});
 
 const fieldStyle = {
   '& .MuiOutlinedInput-root': {
@@ -90,22 +89,30 @@ const fieldStyle = {
     '&:hover': {
       backgroundColor: 'var(--ww-w85, rgba(244, 246, 249, 0.85))',
       '& .MuiOutlinedInput-notchedOutline': {
-        borderColor: 'primary.light' } },
+        borderColor: 'primary.light'
+      }
+    },
     '&.Mui-focused': {
       backgroundColor: 'background.paper',
       '& .MuiOutlinedInput-notchedOutline': {
         borderWidth: '2px',
-        borderColor: 'secondary.main' } } },
+        borderColor: 'secondary.main'
+      }
+    }
+  },
   '& .MuiInputLabel-root': {
     fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '0.85rem',
     fontWeight: 600,
     color: 'text.secondary',
     '&.Mui-focused': {
-      color: 'secondary.main' } },
+      color: 'secondary.main'
+    }
+  },
   '& .MuiFormHelperText-root': {
     fontFamily: "'Plus Jakarta Sans', sans-serif",
-    fontSize: '0.75rem' }
+    fontSize: '0.75rem'
+  }
 };
 
 export const Settings = () => {
@@ -114,92 +121,153 @@ export const Settings = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // React Query Fetchers
-  const { data: generalSettings = {} } = useQuery({
+  // ─────────────────────────────────────────────────────────────────────────────
+  // REACT QUERY FETCHERS (Connected to Backend API with persistent storage)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const { data: generalSettings = {}, isLoading: isLoadingGeneral } = useQuery({
     queryKey: ['settings-general'],
-    queryFn: dbService.getSettings });
+    queryFn: dbService.getSettings
+  });
 
-  const { data: services = [] } = useQuery({
+  const { data: services = [], isLoading: isLoadingServices } = useQuery({
     queryKey: ['services'],
-    queryFn: dbService.getServices });
+    queryFn: dbService.getServices
+  });
 
-  const { data: packages = [] } = useQuery({
+  const { data: packages = [], isLoading: isLoadingPackages } = useQuery({
     queryKey: ['packages'],
-    queryFn: dbService.getPackages });
+    queryFn: dbService.getPackages
+  });
 
   const { data: emailTemplates = [] } = useQuery({
     queryKey: ['emailTemplates'],
-    queryFn: dbService.getEmailTemplates });
+    queryFn: dbService.getEmailTemplates
+  });
 
   const { data: whatsappTemplates = [] } = useQuery({
     queryKey: ['whatsappTemplates'],
-    queryFn: dbService.getWhatsappTemplates });
+    queryFn: dbService.getWhatsappTemplates
+  });
 
-  const { data: consultants = [] } = useQuery({
-    queryKey: ['agents'],
-    queryFn: dbService.getAgents });
+  const { data: channelSettings = {} } = useQuery({
+    queryKey: ['settings-channels'],
+    queryFn: dbService.getChannelSettings
+  });
+
+  const { data: stripeSettings = {} } = useQuery({
+    queryKey: ['settings-stripe'],
+    queryFn: dbService.getStripeSettings
+  });
+
+  const { data: routingRules = [], isLoading: isLoadingRules } = useQuery({
+    queryKey: ['routing-rules'],
+    queryFn: dbService.getRoutingRules
+  });
 
   const [recordingStorage, setRecordingStorage] = useState('cloud');
 
-  // Mutations
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MUTATIONS (Syncing to Backend & DB)
+  // ─────────────────────────────────────────────────────────────────────────────
   const updateGeneralSettingsMutation = useMutation({
     mutationFn: dbService.updateSettings,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings-general'] }) });
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings-general'] })
+  });
 
   const updateServicesMutation = useMutation({
     mutationFn: dbService.updateServices,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['services'] }) });
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['services'] })
+  });
+
+  const addServiceMutation = useMutation({
+    mutationFn: dbService.addService,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['services'] })
+  });
 
   const updatePackagesMutation = useMutation({
     mutationFn: dbService.updatePackages,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['packages'] }) });
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['packages'] })
+  });
 
   const updateEmailTemplatesMutation = useMutation({
     mutationFn: dbService.updateEmailTemplates,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['emailTemplates'] }) });
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['emailTemplates'] })
+  });
 
   const updateWhatsappTemplatesMutation = useMutation({
     mutationFn: dbService.updateWhatsappTemplates,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['whatsappTemplates'] }) });
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['whatsappTemplates'] })
+  });
+
+  const updateChannelsMutation = useMutation({
+    mutationFn: dbService.updateChannelSettings,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings-channels'] })
+  });
+
+  const updateStripeMutation = useMutation({
+    mutationFn: dbService.updateStripeSettings,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings-stripe'] })
+  });
+
+  const updateRoutingRuleMutation = useMutation({
+    mutationFn: ({ id, data }) => dbService.updateRoutingRule(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['routing-rules'] })
+  });
+
+  const createRoutingRuleMutation = useMutation({
+    mutationFn: dbService.createRoutingRule,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['routing-rules'] })
+  });
+
+  const deleteRoutingRuleMutation = useMutation({
+    mutationFn: dbService.deleteRoutingRule,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['routing-rules'] })
+  });
 
   const handleToggleStorage = (e) => {
     const value = e.target.checked ? 'nas' : 'cloud';
     setRecordingStorage(value);
     updateGeneralSettingsMutation.mutate({ ...generalSettings, recordingStorage: value });
-    showAlert(`Storage mode set to ${value === 'nas' ? 'Local PC / NAS Auto-Download' : 'AWS S3 Cloud'}`, 'success');
+    showAlert(`Storage mode updated to ${value === 'nas' ? 'Local PC / NAS Auto-Download' : 'AWS S3 Cloud'} (Saved to Server)`, 'success');
   };
 
-  // Form Setup
+  // ─────────────────────────────────────────────────────────────────────────────
+  // TAB 0: GENERAL FORM SETUP
+  // ─────────────────────────────────────────────────────────────────────────────
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-    watch } = useForm({
+    watch
+  } = useForm({
     resolver: yupResolver(generalSchema),
     defaultValues: {
-      companyName: 'AAA Business Consultancy LLC',
-      phone: '+971 50 955 4142',
-      email: 'info@aaabusinessconsultancy.com',
-      address: 'Business Village, Block B, 4th Floor, Office F09, Deira, Dubai, UAE',
-      vatRate: 5,
-      vatId: 'VAT-AE-2026-9932',
-      website: 'https://aaabusinessconsultancy.com',
-      incorporationDate: '2018-05-12',
-      autoAssignConsultant: true } });
+      companyName: 'Wow My Flight Travel Agency Inc.',
+      phone: '+1 (833) 395-5554',
+      email: 'support@wowmyflight.com',
+      address: 'One World Trade Center, Suite 8500, New York, NY 10007, USA',
+      vatRate: 7.5,
+      vatId: 'EIN-US-92-4819201',
+      website: 'https://wowmyflight.com',
+      incorporationDate: '2020-03-15',
+      autoAssignConsultant: true
+    }
+  });
 
   useEffect(() => {
     if (generalSettings && Object.keys(generalSettings).length > 0) {
       reset({
-        companyName: generalSettings.companyName || '',
-        phone: generalSettings.phone || '',
-        email: generalSettings.email || '',
-        address: generalSettings.address || '',
-        vatRate: generalSettings.vatRate || 5,
-        vatId: generalSettings.vatId || 'VAT-AE-2026-9932',
-        website: generalSettings.website || 'https://aaabusinessconsultancy.com',
-        incorporationDate: generalSettings.incorporationDate || '2018-05-12',
-        autoAssignConsultant: generalSettings.autoAssignConsultant ?? true });
+        companyName: generalSettings.companyName || 'Wow My Flight Travel Agency Inc.',
+        phone: generalSettings.phone || '+1 (833) 395-5554',
+        email: generalSettings.email || 'support@wowmyflight.com',
+        address: generalSettings.address || 'One World Trade Center, Suite 8500, New York, NY 10007, USA',
+        vatRate: generalSettings.vatRate ?? 7.5,
+        vatId: generalSettings.vatId || 'EIN-US-92-4819201',
+        website: generalSettings.website || 'https://wowmyflight.com',
+        incorporationDate: generalSettings.incorporationDate || '2020-03-15',
+        autoAssignConsultant: generalSettings.autoAssignConsultant ?? true
+      });
       setRecordingStorage(generalSettings.recordingStorage || 'cloud');
     }
   }, [generalSettings, reset]);
@@ -207,33 +275,34 @@ export const Settings = () => {
   const handleGeneralSubmit = (data) => {
     updateGeneralSettingsMutation.mutate(data);
     setIsEditModalOpen(false);
-    showAlert('General corporate settings saved successfully', 'success');
+    showAlert('Corporate profile & billing settings saved to server', 'success');
   };
 
   const handleOpenEditModal = () => {
     reset({
-      companyName: generalSettings.companyName || '',
-      phone: generalSettings.phone || '',
-      email: generalSettings.email || '',
-      address: generalSettings.address || '',
-      vatRate: generalSettings.vatRate || 5,
-      vatId: generalSettings.vatId || 'VAT-AE-2026-9932',
-      website: generalSettings.website || 'https://aaabusinessconsultancy.com',
-      incorporationDate: generalSettings.incorporationDate || '2018-05-12',
+      companyName: generalSettings.companyName || 'Wow My Flight Travel Agency Inc.',
+      phone: generalSettings.phone || '+1 (833) 395-5554',
+      email: generalSettings.email || 'support@wowmyflight.com',
+      address: generalSettings.address || 'One World Trade Center, Suite 8500, New York, NY 10007, USA',
+      vatRate: generalSettings.vatRate ?? 7.5,
+      vatId: generalSettings.vatId || 'EIN-US-92-4819201',
+      website: generalSettings.website || 'https://wowmyflight.com',
+      incorporationDate: generalSettings.incorporationDate || '2020-03-15',
       autoAssignConsultant: generalSettings.autoAssignConsultant ?? true
     });
     setIsEditModalOpen(true);
   };
 
-  // Tab 1: Visa Services inline editor states
+  // ─────────────────────────────────────────────────────────────────────────────
+  // TAB 1: FLIGHT SERVICES & CABIN PRICING
+  // ─────────────────────────────────────────────────────────────────────────────
   const [editingServiceId, setEditingServiceId] = useState(null);
   const [editServiceName, setEditServiceName] = useState('');
   const [editServiceCategory, setEditServiceCategory] = useState('');
   const [editServicePrice, setEditServicePrice] = useState('');
 
-  // Add Visa Pathway state
   const [newServiceName, setNewServiceName] = useState('');
-  const [newServiceCategory, setNewServiceCategory] = useState('Residency');
+  const [newServiceCategory, setNewServiceCategory] = useState('Economy');
   const [newServicePrice, setNewServicePrice] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -246,7 +315,7 @@ export const Settings = () => {
 
   const handleSaveService = (id) => {
     if (!editServiceName.trim() || !editServicePrice) {
-      showAlert('Service name and price are required', 'error');
+      showAlert('Flight service name and base price are required', 'error');
       return;
     }
     const updated = services.map((s) =>
@@ -254,7 +323,7 @@ export const Settings = () => {
     );
     updateServicesMutation.mutate(updated);
     setEditingServiceId(null);
-    showAlert('Visa service pathway pricing saved', 'success');
+    showAlert('Flight service tier updated and saved to server', 'success');
   };
 
   const handleToggleService = (id) => {
@@ -262,12 +331,12 @@ export const Settings = () => {
       s.id === id ? { ...s, active: s.active === undefined ? false : !s.active } : s
     );
     updateServicesMutation.mutate(updated);
-    showAlert('Visa pathway status toggled', 'info');
+    showAlert('Flight service visibility toggled', 'info');
   };
 
   const handleAddService = () => {
     if (!newServiceName.trim() || !newServicePrice) {
-      showAlert('Pathway name and price are required', 'error');
+      showAlert('Flight service name and price are required', 'error');
       return;
     }
     const newService = {
@@ -275,15 +344,18 @@ export const Settings = () => {
       name: newServiceName,
       category: newServiceCategory,
       basePrice: Number(newServicePrice) || 0,
-      active: true };
-    updateServicesMutation.mutate([...services, newService]);
+      active: true
+    };
+    addServiceMutation.mutate(newService);
     setNewServiceName('');
     setNewServicePrice('');
     setShowAddForm(false);
-    showAlert('New Spain residency pathway added', 'success');
+    showAlert('New flight service tier created on server', 'success');
   };
 
-  // Tab 2: Packages deliverables states
+  // ─────────────────────────────────────────────────────────────────────────────
+  // TAB 2: PACKAGES & DELIVERABLES
+  // ─────────────────────────────────────────────────────────────────────────────
   const [selectedPkgToEdit, setSelectedPkgToEdit] = useState(null);
   const [isPkgModalOpen, setIsPkgModalOpen] = useState(false);
   const [editPkgPrice, setEditPkgPrice] = useState(0);
@@ -309,7 +381,7 @@ export const Settings = () => {
     );
     updatePackagesMutation.mutate(updated);
     setIsPkgModalOpen(false);
-    showAlert(`${selectedPkgToEdit.name} updated successfully`, 'success');
+    showAlert(`${selectedPkgToEdit.name} package updated and saved to server`, 'success');
   };
 
   const handleAddModalDeliverable = () => {
@@ -327,14 +399,14 @@ export const Settings = () => {
     setEditPkgIncludes(editPkgIncludes.filter((item) => item !== itemToDelete));
   };
 
-  // Tab 3: Template Studio State
+  // ─────────────────────────────────────────────────────────────────────────────
+  // TAB 3: NOTIFICATION TEMPLATES
+  // ─────────────────────────────────────────────────────────────────────────────
   const [activeTemplate, setActiveTemplate] = useState({ type: 'email', id: 'et1' });
   const textareaRef = React.useRef(null);
-
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [editTemplateSubject, setEditTemplateSubject] = useState('');
   const [editTemplateBody, setEditTemplateBody] = useState('');
-
 
   const handleSaveTemplateModal = () => {
     if (activeTemplate.type === 'email') {
@@ -342,13 +414,13 @@ export const Settings = () => {
         et.id === activeTemplate.id ? { ...et, subject: editTemplateSubject, body: editTemplateBody } : et
       );
       updateEmailTemplatesMutation.mutate(updated);
-      showAlert('Email template saved successfully', 'success');
+      showAlert('Email template saved to server', 'success');
     } else {
       const updated = whatsappTemplates.map((wt) =>
         wt.id === activeTemplate.id ? { ...wt, body: editTemplateBody } : wt
       );
       updateWhatsappTemplatesMutation.mutate(updated);
-      showAlert('WhatsApp template saved successfully', 'success');
+      showAlert('WhatsApp template saved to server', 'success');
     }
     setIsTemplateModalOpen(false);
   };
@@ -376,27 +448,172 @@ export const Settings = () => {
     if (!bodyText) return '';
     return bodyText
       .replace(/{clientName}/g, 'Marcus Vance')
-      .replace(/{meetingDate}/g, 'June 25, 2026')
-      .replace(/{meetingTime}/g, '3:30 PM')
-      .replace(/{meetingLink}/g, 'https://meet.jit.si/WowMyFlight-MarcusVance-Assessment')
-      .replace(/{rescheduleLink}/g, 'https://aaa-consultancy.com/reschedule?id=9928')
-      .replace(/{bookingLink}/g, 'https://aaa-consultancy.com/book-assessment')
+      .replace(/{pnr}/g, 'WMF-78921')
+      .replace(/{route}/g, 'JFK ➔ LHR (New York to London)')
+      .replace(/{airline}/g, 'Delta Air Lines (DL 402)')
+      .replace(/{departureDate}/g, 'October 24, 2026')
+      .replace(/{departureTime}/g, '18:45 EST')
+      .replace(/{cabinClass}/g, 'Business Class')
+      .replace(/{quoteId}/g, 'QT-8821')
       .replace(/{invoiceId}/g, 'INV-2026-004')
-      .replace(/{packageName}/g, 'Premium Relocation Package')
-      .replace(/{amount}/g, '€2,500')
-      .replace(/{dueDate}/g, 'June 30, 2026')
+      .replace(/{packageName}/g, 'Executive Business VIP Concierge')
+      .replace(/{amount}/g, '$3,450.00')
+      .replace(/{dueDate}/g, 'October 20, 2026')
       .replace(/{consultantName}/g, 'Sofia Rodriguez')
+      .replace(/{bookingLink}/g, 'https://wowmyflight.com/itinerary/WMF-78921')
+      .replace(/{paymentLink}/g, 'https://wowmyflight.com/checkout/INV-2026-004')
       .replace(/\n/g, '<br />');
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // TAB 4: STRIPE PAYMENT ACCOUNTS
+  // ─────────────────────────────────────────────────────────────────────────────
+  const [isStripeModalOpen, setIsStripeModalOpen] = useState(false);
+  const [stripeForm, setStripeForm] = useState({
+    targetId: 'stripe_primary',
+    publishableKey: '',
+    secretKey: '',
+    currency: 'USD'
+  });
+
+  const handleOpenStripeModal = (account) => {
+    setStripeForm({
+      targetId: account.id,
+      publishableKey: account.publishableKey || '',
+      secretKey: '',
+      currency: account.currency || 'USD'
+    });
+    setIsStripeModalOpen(true);
+  };
+
+  const handleSaveStripeModal = () => {
+    const isPrimary = stripeForm.targetId === 'stripe_primary';
+    const currentPrimary = stripeSettings.primaryAccount || {};
+    const currentSecondary = stripeSettings.secondaryAccount || {};
+
+    const updated = {
+      ...stripeSettings,
+      primaryAccount: isPrimary
+        ? {
+            ...currentPrimary,
+            publishableKey: stripeForm.publishableKey || currentPrimary.publishableKey,
+            secretKeyMasked: stripeForm.secretKey ? stripeForm.secretKey.slice(0, 7) + '...' + stripeForm.secretKey.slice(-4) : currentPrimary.secretKeyMasked,
+            currency: stripeForm.currency
+          }
+        : currentPrimary,
+      secondaryAccount: !isPrimary
+        ? {
+            ...currentSecondary,
+            publishableKey: stripeForm.publishableKey || currentSecondary.publishableKey,
+            secretKeyMasked: stripeForm.secretKey ? stripeForm.secretKey.slice(0, 7) + '...' + stripeForm.secretKey.slice(-4) : currentSecondary.secretKeyMasked,
+            currency: stripeForm.currency
+          }
+        : currentSecondary
+    };
+
+    updateStripeMutation.mutate(updated);
+    setIsStripeModalOpen(false);
+    showAlert('Stripe credentials updated & synced to server', 'success');
+  };
+
+  const handleToggleStripeStatus = (accountId) => {
+    const updated = {
+      ...stripeSettings,
+      primaryAccount: {
+        ...stripeSettings.primaryAccount,
+        status: accountId === 'stripe_primary' ? 'Active' : 'Standby'
+      },
+      secondaryAccount: {
+        ...stripeSettings.secondaryAccount,
+        status: accountId === 'stripe_secondary' ? 'Active' : 'Standby'
+      }
+    };
+    updateStripeMutation.mutate(updated);
+    showAlert(`Switched active processing gateway to ${accountId === 'stripe_primary' ? 'Primary' : 'Secondary'} account`, 'info');
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // TAB 5: MULTI-CHANNEL FORM STATE
+  // ─────────────────────────────────────────────────────────────────────────────
+  const [channelForm, setChannelForm] = useState({
+    primaryPhone: '+1 (833) 395-5554',
+    secondaryPhone: '+1 (850) 332-9680',
+    whatsappSales: '+1 (833) 395-5554',
+    whatsappSupport: '+1 (850) 332-9680',
+    facebookPage1: 'https://facebook.com/WowMyFlight',
+    facebookPage2: 'https://facebook.com/WowMyFlightVIP',
+    instagramAccount1: '@wowmyflight',
+    instagramAccount2: '@wowmyflight_deals'
+  });
+
+  useEffect(() => {
+    if (channelSettings && Object.keys(channelSettings).length > 0) {
+      setChannelForm({
+        primaryPhone: channelSettings.primaryPhone || '+1 (833) 395-5554',
+        secondaryPhone: channelSettings.secondaryPhone || '+1 (850) 332-9680',
+        whatsappSales: channelSettings.whatsappSales || '+1 (833) 395-5554',
+        whatsappSupport: channelSettings.whatsappSupport || '+1 (850) 332-9680',
+        facebookPage1: channelSettings.facebookPage1 || 'https://facebook.com/WowMyFlight',
+        facebookPage2: channelSettings.facebookPage2 || 'https://facebook.com/WowMyFlightVIP',
+        instagramAccount1: channelSettings.instagramAccount1 || '@wowmyflight',
+        instagramAccount2: channelSettings.instagramAccount2 || '@wowmyflight_deals'
+      });
+    }
+  }, [channelSettings]);
+
+  const handleSaveChannels = () => {
+    updateChannelsMutation.mutate(channelForm);
+    showAlert('Multi-channel communication accounts saved to server', 'success');
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // TAB 6: AUTO-ROUTING RULES STATE
+  // ─────────────────────────────────────────────────────────────────────────────
+  const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
+  const [newRuleForm, setNewRuleForm] = useState({
+    name: '',
+    priority: 1,
+    type: 'Skill-Based',
+    condition: '',
+    action: ''
+  });
+
+  const handleCreateRule = () => {
+    if (!newRuleForm.name.trim() || !newRuleForm.condition.trim()) {
+      showAlert('Rule name and matching condition are required', 'error');
+      return;
+    }
+    createRoutingRuleMutation.mutate({
+      ...newRuleForm,
+      priority: Number(newRuleForm.priority) || 1,
+      enabled: true
+    });
+    setIsRuleModalOpen(false);
+    setNewRuleForm({ name: '', priority: 1, type: 'Skill-Based', condition: '', action: '' });
+    showAlert('New auto-routing rule deployed to live distribution engine', 'success');
+  };
+
+  const handleToggleRuleStatus = (rule) => {
+    updateRoutingRuleMutation.mutate({
+      id: rule.id,
+      data: { enabled: !rule.enabled }
+    });
+    showAlert(`Rule #${rule.id} ${!rule.enabled ? 'activated' : 'deactivated'}`, 'info');
+  };
+
+  const handleDeleteRule = (ruleId) => {
+    deleteRoutingRuleMutation.mutate(ruleId);
+    showAlert(`Rule #${ruleId} deleted from server`, 'warning');
   };
 
   return (
     <Box sx={{ width: '100%' }}>
       <PageHeader
-        title="CRM Settings Panel"
-        subtitle="Manage company information, VAT rules, relocation services details, and notifications templates."
+        title="CRM Settings & Agency Administration"
+        subtitle="Manage official corporate identity, flight service tiers, travel bundles, live communication channels, and intelligent lead auto-routing rules."
       />
 
-      {/* HORIZONTAL TABS SYSTEM - Matches Reports Tabs aesthetics */}
+      {/* HORIZONTAL TABS SYSTEM */}
       <Tabs
         value={activeTab}
         onChange={(e, val) => setActiveTab(val)}
@@ -405,12 +622,12 @@ export const Settings = () => {
         sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 4, width: '100%' }}
       >
         <Tab icon={<BusinessIcon />} iconPosition="start" label="General Info" sx={{ fontWeight: 700, minHeight: 48 }} />
-        <Tab icon={<MonetizationOnIcon />} iconPosition="start" label="Visa Settings" sx={{ fontWeight: 700, minHeight: 48 }} />
-        <Tab icon={<CardMembershipIcon />} iconPosition="start" label="Relocation Packages" sx={{ fontWeight: 700, minHeight: 48 }} />
+        <Tab icon={<FlightIcon />} iconPosition="start" label="Flight Services" sx={{ fontWeight: 700, minHeight: 48 }} />
+        <Tab icon={<CardMembershipIcon />} iconPosition="start" label="Flight Packages" sx={{ fontWeight: 700, minHeight: 48 }} />
         <Tab icon={<MessageIcon />} iconPosition="start" label="Templates Editor" sx={{ fontWeight: 700, minHeight: 48 }} />
-        <Tab icon={<PaymentIcon />} iconPosition="start" label="Stripe Config" sx={{ fontWeight: 700, minHeight: 48 }} />
+        <Tab icon={<PaymentIcon />} iconPosition="start" label="Stripe & Payments" sx={{ fontWeight: 700, minHeight: 48 }} />
         <Tab icon={<CellTowerIcon />} iconPosition="start" label="Multi-Channel" sx={{ fontWeight: 700, minHeight: 48 }} />
-        <Tab icon={<RouterIcon />} iconPosition="start" label="Auto-Routing" sx={{ fontWeight: 700, minHeight: 48 }} />
+        <Tab icon={<RouterIcon />} iconPosition="start" label="Auto-Routing Rules" sx={{ fontWeight: 700, minHeight: 48 }} />
       </Tabs>
 
       {/* TAB 0: GENERAL INFO */}
@@ -418,7 +635,7 @@ export const Settings = () => {
         <Box sx={{ width: '100%' }}>
           <AppCard
             title="Corporate Identity & Profile"
-            subheader="Official branding credentials, contact channels, and headquarters registry."
+            subheader="Official branding credentials, contact channels, and headquarters registry stored in database."
             action={
               <Button
                 variant="contained"
@@ -432,7 +649,6 @@ export const Settings = () => {
             }
           >
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5, mt: 1 }}>
-
               {/* BRAND IDENTITY */}
               <Box>
                 <Typography variant="subtitle2" color="primary.main" sx={{ fontWeight: 700, mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -456,13 +672,13 @@ export const Settings = () => {
                   </Box>
                   <Box className="col-span-12" sm>
                     <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main' }}>
-                      {generalSettings.companyName || 'Wow My Flight Luxury Aviation LLC'}
+                      {generalSettings.companyName || 'Wow My Flight Travel Agency Inc.'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 500 }}>
-                      Primary Brand: Indigo Royal (#1E40AF) | Accent Color: Gold Accent (#F59E0B)
+                      Primary Brand: Royal Aviation Blue (#1E40AF) | Gold Accent: (#C59B27)
                     </Typography>
                     <Typography variant="caption" color="secondary.main" display="block" sx={{ fontWeight: 700, mt: 0.5, textTransform: 'uppercase' }}>
-                      WOW MY FLIGHT Luxury Aviation & Booking Portal
+                      WOW MY FLIGHT — Premier Global Travel & Flight Booking Management
                     </Typography>
                   </Box>
                 </Box>
@@ -482,7 +698,7 @@ export const Settings = () => {
                       <Box>
                         <Typography variant="caption" color="text.secondary" display="block">Legal Entity Name</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          {generalSettings.companyName || 'AAA Business Consultancy LLC'}
+                          {generalSettings.companyName || 'Wow My Flight Travel Agency Inc.'}
                         </Typography>
                       </Box>
                     </Paper>
@@ -491,9 +707,9 @@ export const Settings = () => {
                     <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral', display: 'flex', alignItems: 'center', gap: 2 }}>
                       <VpnKeyIcon color="secondary" />
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">VAT Registration / Tax ID</Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">Tax ID / US EIN</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          {generalSettings.vatId || 'VAT-AE-2026-9932'}
+                          {generalSettings.vatId || 'EIN-US-92-4819201'}
                         </Typography>
                       </Box>
                     </Paper>
@@ -504,7 +720,7 @@ export const Settings = () => {
                       <Box>
                         <Typography variant="caption" color="text.secondary" display="block">Incorporation Date</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          {generalSettings.incorporationDate ? new Date(generalSettings.incorporationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'May 12, 2018'}
+                          {generalSettings.incorporationDate ? new Date(generalSettings.incorporationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'March 15, 2020'}
                         </Typography>
                       </Box>
                     </Paper>
@@ -517,7 +733,7 @@ export const Settings = () => {
                         <Typography
                           variant="body2"
                           component="a"
-                          href={generalSettings.website || 'https://aaabusinessconsultancy.com'}
+                          href={generalSettings.website || 'https://wowmyflight.com'}
                           target="_blank"
                           rel="noopener noreferrer"
                           sx={{
@@ -528,9 +744,10 @@ export const Settings = () => {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            '&:hover': { textDecoration: 'underline' } }}
+                            '&:hover': { textDecoration: 'underline' }
+                          }}
                         >
-                          {generalSettings.website || 'https://aaabusinessconsultancy.com'}
+                          {generalSettings.website || 'https://wowmyflight.com'}
                         </Typography>
                       </Box>
                     </Paper>
@@ -543,16 +760,16 @@ export const Settings = () => {
               {/* CONTACTS AND HQ DISPLAY */}
               <Box>
                 <Typography variant="subtitle2" color="primary.main" sx={{ fontWeight: 700, mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Contact Channels & Headquarters
+                  Contact Channels & Global Headquarters
                 </Typography>
                 <Box className="grid grid-cols-12 gap-2">
                   <Box className="col-span-12 sm:col-span-6">
                     <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral', display: 'flex', alignItems: 'center', gap: 2 }}>
                       <PhoneIcon color="secondary" />
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">WhatsApp Hotline Contact</Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">Toll-Free Support Hotline</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          {generalSettings.phone || '+971 50 955 4142'}
+                          {generalSettings.phone || '+1 (833) 395-5554'}
                         </Typography>
                       </Box>
                     </Paper>
@@ -563,7 +780,7 @@ export const Settings = () => {
                       <Box sx={{ minWidth: 0, overflow: 'hidden', flex: 1 }}>
                         <Typography variant="caption" color="text.secondary" display="block">Client Support Email</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
-                          {generalSettings.email || 'info@aaabusinessconsultancy.com'}
+                          {generalSettings.email || 'support@wowmyflight.com'}
                         </Typography>
                       </Box>
                     </Paper>
@@ -572,9 +789,9 @@ export const Settings = () => {
                     <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral', display: 'flex', alignItems: 'flex-start', gap: 2 }}>
                       <LocationOnIcon color="secondary" sx={{ mt: 0.5 }} />
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">Corporate Headquarters Address</Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">Corporate Headquarters Physical Address</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main', whiteSpace: 'pre-line' }}>
-                          {generalSettings.address || 'Business Village, Block B, 4th Floor, Office F09, Deira, Dubai, UAE'}
+                          {generalSettings.address || 'One World Trade Center, Suite 8500, New York, NY 10007, USA'}
                         </Typography>
                       </Box>
                     </Paper>
@@ -587,53 +804,52 @@ export const Settings = () => {
               {/* FINANCIAL SETTINGS DISPLAY */}
               <Box>
                 <Typography variant="subtitle2" color="primary.main" sx={{ fontWeight: 700, mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Portal Billing Rules
+                  Portal Billing Rules & Operations
                 </Typography>
                 <Box className="grid grid-cols-12 gap-2">
-                  <Box className="col-span-12 sm:col-span-6">
+                  <Box className="col-span-12 sm:col-span-4">
                     <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral', display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Box sx={{ fontWeight: 800, color: 'secondary.main', fontSize: '1.2rem', width: 24, textAlign: 'center' }}>%</Box>
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">Default Invoiced VAT Rate</Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">Default Tax / VAT Rate</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          {generalSettings.vatRate || 5}%
+                          {generalSettings.vatRate || 7.5}%
                         </Typography>
                       </Box>
                     </Paper>
                   </Box>
-                  <Box className="col-span-12 sm:col-span-6">
+                  <Box className="col-span-12 sm:col-span-4">
                     <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral', display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ fontWeight: 800, color: 'secondary.main', fontSize: '1.2rem', width: 24, textAlign: 'center' }}>€</Box>
+                      <Box sx={{ fontWeight: 800, color: 'secondary.main', fontSize: '1.2rem', width: 24, textAlign: 'center' }}>$</Box>
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">Default Portal Currency</Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">Portal Currency</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          Euro (EUR)
+                          US Dollar (USD - $)
                         </Typography>
                       </Box>
                     </Paper>
                   </Box>
-                  <Box className="col-span-12 sm:col-span-6">
+                  <Box className="col-span-12 sm:col-span-4">
                     <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral', display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Box sx={{ fontWeight: 800, color: 'secondary.main', fontSize: '1.2rem', width: 24, textAlign: 'center' }}>⚙️</Box>
                       <Box>
                         <Typography variant="caption" color="text.secondary" display="block">Lead Auto-Assignment</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          {generalSettings.autoAssignConsultant ? 'Enabled (Language & Load Match)' : 'Disabled (Manual Assignment)'}
+                          {generalSettings.autoAssignConsultant !== false ? 'Enabled (Skill & Load Match)' : 'Disabled (Manual)'}
                         </Typography>
                       </Box>
                     </Paper>
                   </Box>
                 </Box>
               </Box>
-
             </Box>
           </AppCard>
 
-          {/* Meeting & Assessment Recordings Storage Card */}
+          {/* Meeting & Telephony Audio Recordings Storage Card */}
           <Box sx={{ mt: 3.5 }}>
             <AppCard
-              title="Meeting & Assessment Recordings Storage"
-              subheader="Configure how virtual Zoom and Google Meet assessment recordings are processed and hosted."
+              title="Call & Consultation Recordings Storage"
+              subheader="Configure how Telnyx softphone calls and virtual consultations are archived and streamed."
             >
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
@@ -642,7 +858,7 @@ export const Settings = () => {
                       Storage Target Mode
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, maxWidth: 600 }}>
-                      Choose between hosting recordings in the AWS S3 Cloud or setting up automated background downloads to your local PC or Network Area Storage (NAS) device.
+                      Choose between encrypted AWS S3 Cloud Storage or automatic local Network Attached Storage (NAS) archiving for customer calls.
                     </Typography>
                   </Box>
                   <FormControlLabel
@@ -665,10 +881,10 @@ export const Settings = () => {
                   <Box className="col-span-12 sm:col-span-6">
                     <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: recordingStorage === 'cloud' ? 'rgba(37, 99, 235, 0.04)' : 'background.neutral', transition: 'all 0.2s' }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                        🌐 AWS S3 Cloud Hosting
+                        <CloudDoneIcon color="primary" fontSize="small" /> AWS S3 Cloud Hosting
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                        Store all video and audio files in our secure cloud storage environment. Recordings are available globally but incur incremental cloud bandwidth and hosting fees.
+                        All softphone calls, voicemails, and virtual consultations are encrypted and hosted on AWS S3 with instant global streaming playback.
                       </Typography>
                     </Paper>
                   </Box>
@@ -678,7 +894,7 @@ export const Settings = () => {
                         💾 Local PC / NAS Auto-Download
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                        Automatically stream completed Zoom session files straight to your local disk storage or Amazon-sourced NAS server. Saves bandwidth and eliminates cloud bills entirely.
+                        Automatically downloads Telnyx audio streams to local agency storage disks, lowering cloud bandwidth bills.
                       </Typography>
                     </Paper>
                   </Box>
@@ -689,11 +905,11 @@ export const Settings = () => {
         </Box>
       )}
 
-      {/* TAB 1: VISA SETTINGS */}
+      {/* TAB 1: FLIGHT SERVICES & CABIN PRICING */}
       {activeTab === 1 && (
         <AppCard
-          title="Visa Services & Pathway Pricing"
-          subheader="Configure base processing and application fees for Spain residency and study visa streams."
+          title="Flight Services & Cabin Class Pricing"
+          subheader="Configure standard base airfare pricing and cabin class service tiers for flight inquiries and GDS quotes."
           action={
             <Button
               variant="contained"
@@ -702,7 +918,7 @@ export const Settings = () => {
               onClick={() => setShowAddForm(!showAddForm)}
               size="small"
             >
-              {showAddForm ? 'Hide Add Form' : 'Add Visa Pathway'}
+              {showAddForm ? 'Hide Add Form' : 'Add Flight Service Tier'}
             </Button>
           }
         >
@@ -710,15 +926,15 @@ export const Settings = () => {
           {showAddForm && (
             <Paper sx={{ p: 3, mb: 3.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', bgcolor: 'background.neutral' }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: 'primary.main' }}>
-                Add New Spain Visa Pathway
+                Add New Flight Service Tier
               </Typography>
               <Box className="grid grid-cols-12 gap-5 items-center">
                 <Box className="col-span-12 sm:col-span-4">
                   <TextField
-                    label="Visa Pathway Name"
+                    label="Service Tier Name"
                     value={newServiceName}
                     onChange={(e) => setNewServiceName(e.target.value)}
-                    placeholder="e.g. Golden Visa Investment"
+                    placeholder="e.g. Ultra-Luxury Suites"
                     fullWidth
                   />
                 </Box>
@@ -731,25 +947,26 @@ export const Settings = () => {
                       onChange={(e) => setNewServiceCategory(e.target.value)}
                       label="Category"
                     >
-                      <MenuItem value="Residency">Residency</MenuItem>
-                      <MenuItem value="Study">Study</MenuItem>
-                      <MenuItem value="Schengen">Schengen</MenuItem>
-                      <MenuItem value="Investment">Investment</MenuItem>
+                      <MenuItem value="Economy">Economy</MenuItem>
+                      <MenuItem value="Business">Business</MenuItem>
+                      <MenuItem value="First">First</MenuItem>
+                      <MenuItem value="Charter">Charter</MenuItem>
+                      <MenuItem value="Concierge">Concierge</MenuItem>
                     </Select>
                   </FormControl>
                 </Box>
                 <Box className="col-span-12 sm:col-span-3">
                   <TextField
-                    label="Base Fee (€)"
+                    label="Base Airfare ($ USD)"
                     type="number"
                     value={newServicePrice}
                     onChange={(e) => setNewServicePrice(e.target.value)}
-                    placeholder="3000"
+                    placeholder="1200"
                     fullWidth
                   />
                 </Box>
                 <Box className="col-span-12 sm:col-span-2" sx={{ display: 'flex', gap: 1 }}>
-                  <Button variant="contained" color="secondary" fullWidth onClick={handleAddService} sx={{ height: 40 }}>
+                  <Button variant="contained" color="secondary" fullWidth onClick={handleAddService} sx={{ height: 40, fontWeight: 700 }}>
                     Add
                   </Button>
                   <Button variant="outlined" color="primary" onClick={() => setShowAddForm(false)} sx={{ height: 40 }}>
@@ -760,17 +977,17 @@ export const Settings = () => {
             </Paper>
           )}
 
-          {/* Visa Services Table */}
+          {/* Flight Services Table */}
           <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider', overflowX: 'auto' }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Pathway ID</TableCell>
-                  <TableCell>Visa Pathway Name</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell align="right">Base Processing Fee</TableCell>
-                  <TableCell align="center">Portal Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Service Code</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Flight Service / Cabin Tier</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>Base Ticket Fare ($ USD)</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>Portal Status</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -801,16 +1018,17 @@ export const Settings = () => {
                             onChange={(e) => setEditServiceCategory(e.target.value)}
                             sx={{ minWidth: 120 }}
                           >
-                            <MenuItem value="Residency">Residency</MenuItem>
-                            <MenuItem value="Study">Study</MenuItem>
-                            <MenuItem value="Schengen">Schengen</MenuItem>
-                            <MenuItem value="Investment">Investment</MenuItem>
+                            <MenuItem value="Economy">Economy</MenuItem>
+                            <MenuItem value="Business">Business</MenuItem>
+                            <MenuItem value="First">First</MenuItem>
+                            <MenuItem value="Charter">Charter</MenuItem>
+                            <MenuItem value="Concierge">Concierge</MenuItem>
                           </Select>
                         ) : (
                           <Chip
                             label={s.category}
                             size="small"
-                            color={s.category === 'Residency' ? 'primary' : 'secondary'}
+                            color={s.category === 'Business' ? 'primary' : s.category === 'First' || s.category === 'Charter' ? 'secondary' : 'default'}
                             variant="outlined"
                           />
                         )}
@@ -822,11 +1040,11 @@ export const Settings = () => {
                             type="number"
                             value={editServicePrice}
                             onChange={(e) => setEditServicePrice(e.target.value)}
-                            sx={{ width: 100 }}
+                            sx={{ width: 110 }}
                           />
                         ) : (
                           <Typography variant="body2" sx={{ fontWeight: 700, color: 'secondary.main' }}>
-                            €{s.basePrice.toLocaleString()}
+                            ${Number(s.basePrice || 0).toLocaleString()}
                           </Typography>
                         )}
                       </TableCell>
@@ -869,9 +1087,12 @@ export const Settings = () => {
         </AppCard>
       )}
 
-      {/* TAB 2: PACKAGES */}
+      {/* TAB 2: PACKAGES & DELIVERABLES */}
       {activeTab === 2 && (
-        <AppCard title="Relocation Packages & Deliverables" subheader="Review pricing and client deliverables included in standard and premium relocation packages. Click configure to update details.">
+        <AppCard
+          title="Flight Packages & Travel Inclusions"
+          subheader="Review airfare pricing and traveler inclusions in standard, bundle, and VIP executive flight packages. Click configure to update details."
+        >
           <Box className="grid grid-cols-12 gap-7" sx={{ mt: 0.5 }}>
             {packages.map((pkg) => (
               <Box className="col-span-12 md:col-span-6" key={pkg.id}>
@@ -908,7 +1129,7 @@ export const Settings = () => {
                           justifyContent: 'center',
                           color: 'secondary.main'
                         }}>
-                          <CardMembershipIcon />
+                          <FlightIcon />
                         </Box>
                         <Box>
                           <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', fontSize: '1.25rem', fontFamily: "'Outfit', sans-serif" }}>
@@ -930,7 +1151,7 @@ export const Settings = () => {
                         boxShadow: '0 4px 10px rgba(197, 155, 39, 0.25)',
                         fontFamily: "'Outfit', sans-serif"
                       }}>
-                        €{pkg.price?.toLocaleString() || 0}
+                        ${pkg.price?.toLocaleString() || 0}
                       </Box>
                     </Box>
 
@@ -941,11 +1162,11 @@ export const Settings = () => {
                     <Divider sx={{ mb: 2.5 }} />
 
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, textTransform: 'uppercase', color: 'secondary.main', letterSpacing: '0.05em', fontSize: '0.78rem' }}>
-                      Included Deliverables Checklist:
+                      Included Passenger Deliverables Checklist:
                     </Typography>
 
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 3.5, flexGrow: 1 }}>
-                      {pkg.includes.map((deliverable, index) => (
+                      {(pkg.includes || []).map((deliverable, index) => (
                         <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
                           <CheckCircleIcon sx={{ color: 'success.main', fontSize: 18, mt: 0.25 }} />
                           <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.88rem', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -988,9 +1209,8 @@ export const Settings = () => {
         </AppCard>
       )}
 
-      {/* TAB 3: TEMPLATES */}
+      {/* TAB 3: NOTIFICATION TEMPLATES */}
       {activeTab === 3 && (() => {
-        // Merge email and whatsapp templates for listing in a single table
         const allTemplates = [
           ...emailTemplates.map(et => ({ ...et, type: 'email' })),
           ...whatsappTemplates.map(wt => ({ ...wt, type: 'whatsapp' }))
@@ -998,61 +1218,42 @@ export const Settings = () => {
 
         return (
           <AppCard
-            title="Communications Template Studio"
-            subheader="Review and configure automated email notifications and WhatsApp message templates dispatched by the Spain visa portal."
+            title="Flight Notification & Ticketing Templates"
+            subheader="Customize automated Email and WhatsApp flight confirmations, E-Ticket PNR notifications, and schedule alerts."
           >
-            <TableContainer component={Paper} sx={{ borderRadius: 2.5, boxShadow: 'none', border: '1px solid', borderColor: 'divider', mt: 1, overflowX: 'auto' }}>
+            <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider', overflowX: 'auto', mt: 1 }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Template Name</TableCell>
-                    <TableCell>Channel Type</TableCell>
-                    <TableCell>Subject Line / Preview Snippet</TableCell>
-                    <TableCell align="center">Active Trigger</TableCell>
-                    <TableCell align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Channel</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Template Name</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Subject Line / Preview</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>Dispatch Method</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {allTemplates.map((temp) => {
                     const isEmail = temp.type === 'email';
                     return (
-                      <TableRow key={`${temp.type}-${temp.id}`} hover>
-                        <TableCell sx={{ fontWeight: 700, color: 'primary.main', py: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <Box sx={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: 1.5,
-                              bgcolor: isEmail ? 'rgba(11, 27, 61, 0.08)' : 'rgba(34, 197, 94, 0.1)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: isEmail ? 'primary.main' : 'success.main'
-                            }}>
-                              {isEmail ? <EmailIcon fontSize="small" /> : <SmartphoneIcon fontSize="small" />}
-                            </Box>
-                            <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
-                              {temp.name}
+                      <TableRow key={temp.type + '-' + temp.id} hover>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {isEmail ? <EmailIcon color="primary" fontSize="small" /> : <WhatsAppIcon sx={{ color: '#25D366' }} fontSize="small" />}
+                            <Typography variant="body2" sx={{ fontWeight: 700, textTransform: 'capitalize' }}>
+                              {temp.type}
                             </Typography>
                           </Box>
                         </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={isEmail ? 'Email' : 'WhatsApp'}
-                            size="small"
-                            color={isEmail ? 'primary' : 'success'}
-                            variant="outlined"
-                            sx={{ fontWeight: 700, borderRadius: 1.5 }}
-                          />
-                        </TableCell>
-                        <TableCell sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: isEmail ? 'normal' : 'italic', fontSize: '0.82rem', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                        <TableCell sx={{ fontWeight: 600 }}>{temp.name}</TableCell>
+                        <TableCell sx={{ maxWidth: 350, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {isEmail ? `Subject: ${temp.subject}` : temp.body}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
                           <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', bgcolor: 'background.neutral', px: 1.5, py: 0.5, borderRadius: 1.5, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                            {isEmail ? 'Instant Email Trigger' : 'WhatsApp API Push'}
+                            {isEmail ? 'Instant SMTP / SES' : 'Telnyx WhatsApp API'}
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
@@ -1062,7 +1263,6 @@ export const Settings = () => {
                             startIcon={<EditIcon />}
                             onClick={() => {
                               setActiveTemplate({ type: temp.type, id: temp.id });
-                              // Open modal with this template's values
                               setEditTemplateSubject(isEmail ? temp.subject : '');
                               setEditTemplateBody(temp.body || '');
                               setIsTemplateModalOpen(true);
@@ -1074,14 +1274,7 @@ export const Settings = () => {
                               fontWeight: 700,
                               fontFamily: "'Outfit', sans-serif",
                               py: 0.5,
-                              px: 1.5,
-                              borderColor: 'primary.main',
-                              color: 'primary.main',
-                              '&:hover': {
-                                borderColor: 'secondary.main',
-                                bgcolor: 'rgba(197, 155, 39, 0.05)',
-                                color: 'secondary.main'
-                              }
+                              px: 1.5
                             }}
                           >
                             Configure
@@ -1097,42 +1290,77 @@ export const Settings = () => {
         );
       })()}
 
-      {/* TAB 4: STRIPE ACCOUNTS CONFIG */}
+      {/* TAB 4: STRIPE PAYMENT ACCOUNTS CONFIG */}
       {activeTab === 4 && (
-        <AppCard title="Stripe Payment Accounts Configuration" subheader="Toggle between 2 Stripe accounts for processing client payments. Configure primary and secondary accounts.">
-          <Box className="grid grid-cols-12 gap-2" sx={{ mt: 0.5 }}>
+        <AppCard
+          title="Stripe Payment Accounts Configuration"
+          subheader="Manage primary and failover Stripe accounts for issuing flight quotes and processing client e-ticket payments."
+        >
+          <Box className="grid grid-cols-12 gap-5" sx={{ mt: 0.5 }}>
             {[
-              { id: 'stripe_primary', label: 'Primary Stripe Account', key: 'sk_live_AAA_primary_*****', status: 'Active', lastUsed: 'Today at 2:15 PM', volume: '€45,200', color: 'success' },
-              { id: 'stripe_secondary', label: 'Secondary Stripe Account', key: 'sk_live_AAA_secondary_*****', status: 'Standby', lastUsed: '3 days ago', volume: '€12,800', color: 'warning' },
-            ].map((acc) => (
-              <Box className="col-span-12 md:col-span-6" key={acc.id}>
-                <Paper sx={{ p: 3, borderRadius: 3, border: '2px solid', borderColor: acc.color + '.main', bgcolor: `rgba(${acc.color === 'success' ? '16,185,129' : '245,158,11'},0.04)` }}>
+              {
+                id: 'stripe_primary',
+                account: stripeSettings.primaryAccount || {
+                  label: 'Primary Stripe Account (USD Global)',
+                  publishableKey: 'pk_live_51P...WMF_USD',
+                  status: 'Active',
+                  lastUsed: 'Today at 3:45 PM',
+                  volume: '$184,520'
+                },
+                color: 'success'
+              },
+              {
+                id: 'stripe_secondary',
+                account: stripeSettings.secondaryAccount || {
+                  label: 'Secondary Stripe Account (Backup / International)',
+                  publishableKey: 'pk_live_51P...WMF_INTL',
+                  status: 'Standby',
+                  lastUsed: 'Yesterday at 6:10 PM',
+                  volume: '$42,300'
+                },
+                color: 'warning'
+              }
+            ].map(({ id, account, color }) => (
+              <Box className="col-span-12 md:col-span-6" key={id}>
+                <Paper sx={{ p: 3, borderRadius: 3, border: '2px solid', borderColor: account.status === 'Active' ? 'success.main' : 'divider', bgcolor: account.status === 'Active' ? 'rgba(16,185,129,0.04)' : 'background.neutral' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{acc.label}</Typography>
-                    <Switch defaultChecked={acc.status === 'Active'} color={acc.color} />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{account.label}</Typography>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={account.status === 'Active'}
+                          onChange={() => handleToggleStripeStatus(id)}
+                          color="success"
+                        />
+                      }
+                      label={<Typography variant="caption" sx={{ fontWeight: 700 }}>{account.status}</Typography>}
+                    />
                   </Box>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">API Key</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{acc.key}</Typography>
+                      <Typography variant="caption" color="text.secondary">Publishable Key</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{account.publishableKey || 'pk_live_***'}</Typography>
                     </Box>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Status</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: `${acc.color}.main` }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{acc.status}</Typography>
-                      </Box>
+                      <Typography variant="caption" color="text.secondary">Secret Key</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{account.secretKeyMasked || 'sk_live_••••••••••••'}</Typography>
                     </Box>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Last Transaction</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{acc.lastUsed}</Typography>
+                      <Typography variant="caption" color="text.secondary">Last Processed Booking</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{account.lastUsed || 'Today'}</Typography>
                     </Box>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Total Volume Processed</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: 'secondary.main' }}>{acc.volume}</Typography>
+                      <Typography variant="caption" color="text.secondary">Total Flight Revenue Processed</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: 'secondary.main', fontSize: '1.1rem' }}>{account.volume || '$0'}</Typography>
                     </Box>
                   </Box>
-                  <Button variant="outlined" fullWidth sx={{ mt: 2, borderRadius: 2, textTransform: 'none', fontWeight: 700 }} startIcon={<EditIcon />}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    sx={{ mt: 2.5, borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
+                    startIcon={<EditIcon />}
+                    onClick={() => handleOpenStripeModal({ id, ...account })}
+                  >
                     Update Credentials
                   </Button>
                 </Paper>
@@ -1140,8 +1368,8 @@ export const Settings = () => {
             ))}
           </Box>
           <Paper sx={{ mt: 3, p: 2, borderRadius: 2.5, border: '1px dashed', borderColor: 'divider', bgcolor: 'background.neutral' }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-              <strong>⚠️ Important:</strong> Only ONE Stripe account can be Active at a time for payment processing. The standby account is kept for failover or region-specific transactions. Toggle the switch to activate/deactivate accounts.
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+              <strong>🔒 Payment Security:</strong> One Stripe account remains Active for client checkouts and e-ticket issuance. The secondary account operates as an automated instant failover gateway.
             </Typography>
           </Paper>
         </AppCard>
@@ -1149,141 +1377,225 @@ export const Settings = () => {
 
       {/* TAB 5: MULTI-CHANNEL CONTACT CONFIG */}
       {activeTab === 5 && (
-        <AppCard title="Multi-Channel Communication Accounts" subheader="Configure multiple communication channels: 2 Phone Numbers, 2 Facebook Pages, 2 Instagram Accounts, 2 WhatsApp Business Numbers.">
-          <Box className="grid grid-cols-12 gap-2" sx={{ mt: 0.5 }}>
+        <AppCard
+          title="Multi-Channel Telephony & Social Inboxes"
+          subheader="Configure incoming Telnyx SIP trunks, WhatsApp Business numbers, and official social communication channels."
+        >
+          <Box className="grid grid-cols-12 gap-5" sx={{ mt: 0.5 }}>
             {/* Phone Numbers */}
             <Box className="col-span-12 md:col-span-6">
               <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <PhoneIcon color="primary" />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Phone Numbers</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Telnyx Telephony Hotlines</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField defaultValue="+971 50 955 4142" label="Primary Hotline" fullWidth size="small" />
-                  <TextField defaultValue="+971 52 888 3311" label="Secondary Hotline" fullWidth size="small" />
+                  <TextField
+                    value={channelForm.primaryPhone}
+                    onChange={(e) => setChannelForm({ ...channelForm, primaryPhone: e.target.value })}
+                    label="Primary Toll-Free Hotline (Toll-Free)"
+                    fullWidth
+                    size="small"
+                  />
+                  <TextField
+                    value={channelForm.secondaryPhone}
+                    onChange={(e) => setChannelForm({ ...channelForm, secondaryPhone: e.target.value })}
+                    label="Secondary Direct Outbound Dispatch"
+                    fullWidth
+                    size="small"
+                  />
                 </Box>
               </Paper>
             </Box>
+
             {/* WhatsApp Business */}
             <Box className="col-span-12 md:col-span-6">
               <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <WhatsAppIcon sx={{ color: '#25D366' }} />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>WhatsApp Business Accounts</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>WhatsApp Business Numbers</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField defaultValue="+971 50 955 4142" label="WA Business #1 (Sales)" fullWidth size="small" />
-                  <TextField defaultValue="+971 52 888 3311" label="WA Business #2 (Support)" fullWidth size="small" />
+                  <TextField
+                    value={channelForm.whatsappSales}
+                    onChange={(e) => setChannelForm({ ...channelForm, whatsappSales: e.target.value })}
+                    label="WhatsApp Business #1 (Flight Sales & Quotes)"
+                    fullWidth
+                    size="small"
+                  />
+                  <TextField
+                    value={channelForm.whatsappSupport}
+                    onChange={(e) => setChannelForm({ ...channelForm, whatsappSupport: e.target.value })}
+                    label="WhatsApp Business #2 (Post-Ticketing Support)"
+                    fullWidth
+                    size="small"
+                  />
                 </Box>
               </Paper>
             </Box>
+
             {/* Facebook Pages */}
             <Box className="col-span-12 md:col-span-6">
               <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <FacebookIcon sx={{ color: '#1877F2' }} />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Facebook Pages</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Facebook Business Inboxes</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField defaultValue="https://facebook.com/AAABusinessConsultancy" label="FB Page #1 (Main Brand)" fullWidth size="small" />
-                  <TextField defaultValue="https://facebook.com/SpainVisaExperts" label="FB Page #2 (Visa Community)" fullWidth size="small" />
+                  <TextField
+                    value={channelForm.facebookPage1}
+                    onChange={(e) => setChannelForm({ ...channelForm, facebookPage1: e.target.value })}
+                    label="Official Facebook Page (Main Brand)"
+                    fullWidth
+                    size="small"
+                  />
+                  <TextField
+                    value={channelForm.facebookPage2}
+                    onChange={(e) => setChannelForm({ ...channelForm, facebookPage2: e.target.value })}
+                    label="VIP & Corporate Aviation Community"
+                    fullWidth
+                    size="small"
+                  />
                 </Box>
               </Paper>
             </Box>
+
             {/* Instagram Accounts */}
             <Box className="col-span-12 md:col-span-6">
               <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <InstagramIcon sx={{ color: '#E4405F' }} />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Instagram Accounts</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Instagram Business Accounts</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField defaultValue="@aaabusinessconsultancy" label="IG Account #1 (Official)" fullWidth size="small" />
-                  <TextField defaultValue="@spainvisaguide" label="IG Account #2 (Content)" fullWidth size="small" />
+                  <TextField
+                    value={channelForm.instagramAccount1}
+                    onChange={(e) => setChannelForm({ ...channelForm, instagramAccount1: e.target.value })}
+                    label="Official Instagram Handle"
+                    fullWidth
+                    size="small"
+                  />
+                  <TextField
+                    value={channelForm.instagramAccount2}
+                    onChange={(e) => setChannelForm({ ...channelForm, instagramAccount2: e.target.value })}
+                    label="Flight Deals & Flash Promo Handle"
+                    fullWidth
+                    size="small"
+                  />
                 </Box>
               </Paper>
             </Box>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-            <Button variant="contained" color="secondary" startIcon={<SaveIcon />} sx={{ borderRadius: 2.5, px: 4, textTransform: 'none', fontWeight: 700 }}>
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<SaveIcon />}
+              onClick={handleSaveChannels}
+              sx={{ borderRadius: 2.5, px: 4, textTransform: 'none', fontWeight: 700 }}
+            >
               Save Channel Configuration
             </Button>
           </Box>
         </AppCard>
       )}
 
-      {/* TAB 6: AUTO-ROUTING RULES */}
-      {activeTab === 6 && (() => {
-        const defaultRules = [
-          { id: 1, nationality: 'British', country: 'UK', consultant: 'David Vance', consultantId: 'c5' },
-          { id: 2, nationality: 'American', country: 'US', consultant: 'David Vance', consultantId: 'c5' },
-          { id: 3, nationality: 'Canadian', country: 'CA', consultant: 'David Vance', consultantId: 'c5' },
-          { id: 4, nationality: 'Russian', country: 'RU', consultant: 'Elena Rostova', consultantId: 'c4' },
-          { id: 5, nationality: 'Arabic-Speaking', country: 'GCC', consultant: 'Lucas Gomez', consultantId: 'c2' },
-          { id: 6, nationality: 'Emirati', country: 'UAE', consultant: 'Wael Madi (CEO)', consultantId: 'c3' },
-          { id: 7, nationality: 'Spanish-Speaking', country: 'LATAM', consultant: 'Sofia Rodriguez', consultantId: 'c1' },
-        ];
-        return (
-          <AppCard title="Lead Auto-Routing Rules" subheader="Configure automatic consultant assignment based on client nationality or country of origin. When a new lead arrives, the system matches them to the appropriate consultant.">
-            <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider', mt: 1, overflowX: 'auto' }}>
-              <Table size="small">
-                <TableHead>
+      {/* TAB 6: AUTO-ROUTING RULES (Live Backend API) */}
+      {activeTab === 6 && (
+        <AppCard
+          title="Lead Distribution & Auto-Routing Rules"
+          subheader="Deploy dynamic rules that inspect incoming flight inquiries, passenger destinations, or VIP budgets and assign them immediately to the right sales desk."
+        >
+          <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider', mt: 1, overflowX: 'auto' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700 }}>Rule #</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Rule Name</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Trigger Condition</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Assigned Action / Desk</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>Status</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {routingRules.length === 0 ? (
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Rule #</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Client Nationality / Region</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Country Code</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Auto-Assigned Consultant</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                      <Typography variant="body2" color="text.secondary">No active routing rules found. Click below to create one.</Typography>
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {defaultRules.map((rule) => (
+                ) : (
+                  routingRules.map((rule) => (
                     <TableRow key={rule.id} hover>
                       <TableCell sx={{ fontWeight: 600 }}>#{rule.id}</TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{rule.nationality}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{rule.name}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip label={rule.country} size="small" color="primary" variant="outlined" sx={{ fontWeight: 700 }} />
+                        <Chip
+                          label={rule.type || 'Skill-Based'}
+                          size="small"
+                          color={rule.type === 'VIP Priority' ? 'secondary' : rule.type === 'Capacity-Based' ? 'info' : 'primary'}
+                          variant="outlined"
+                          sx={{ fontWeight: 600 }}
+                        />
                       </TableCell>
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.7rem', fontWeight: 700 }}>
-                            {rule.consultant.split(' ').map(w => w[0]).join('')}
-                          </Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{rule.consultant}</Typography>
-                        </Box>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '0.82rem' }}>
+                          {rule.condition}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                          {rule.action}
+                        </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Chip label="Active" size="small" color="success" sx={{ fontWeight: 700 }} />
+                        <Chip
+                          label={rule.enabled !== false ? 'Active' : 'Disabled'}
+                          size="small"
+                          color={rule.enabled !== false ? 'success' : 'default'}
+                          onClick={() => handleToggleRuleStatus(rule)}
+                          sx={{ cursor: 'pointer', fontWeight: 700 }}
+                        />
                       </TableCell>
                       <TableCell align="right">
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                          <IconButton size="small" color="primary"><EditIcon fontSize="small" /></IconButton>
-                          <IconButton size="small" color="error"><DeleteOutlineIcon fontSize="small" /></IconButton>
+                          <IconButton size="small" color="error" onClick={() => handleDeleteRule(rule.id)}>
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
                         </Box>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3, alignItems: 'center' }}>
-              <Paper sx={{ p: 1.5, borderRadius: 2, border: '1px dashed', borderColor: 'divider', bgcolor: 'background.neutral', flex: 1, mr: 2 }}>
-                <Typography variant="caption" color="text.secondary">
-                  <strong>How it works:</strong> When a new lead is created, the system checks nationality → matches against routing rules → auto-assigns the consultant. If no rule matches, the lead remains unassigned for manual assignment.
-                </Typography>
-              </Paper>
-              <Button variant="contained" color="primary" startIcon={<AddIcon />} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                Add Routing Rule
-              </Button>
-            </Box>
-          </AppCard>
-        );
-      })()}
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3, alignItems: 'center' }}>
+            <Paper sx={{ p: 1.5, borderRadius: 2, border: '1px dashed', borderColor: 'divider', bgcolor: 'background.neutral', flex: 1, mr: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                <strong>How it works:</strong> Inquiries coming via webhooks, WhatsApp, or phone calls match against these criteria in priority order and auto-assign to available ticketing agents.
+              </Typography>
+            </Paper>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={() => setIsRuleModalOpen(true)}
+              sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}
+            >
+              Add Routing Rule
+            </Button>
+          </Box>
+        </AppCard>
+      )}
 
-      {/* EDIT CORPORATE PROFILE MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* MODAL 1: EDIT CORPORATE PROFILE */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
       <Dialog
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
@@ -1307,10 +1619,10 @@ export const Settings = () => {
         <form onSubmit={handleSubmit(handleGeneralSubmit)} style={{ display: 'flex', flexDirection: 'column', maxHeight: '100%', overflow: 'hidden' }}>
           <Box sx={{ flexShrink: 0, py: 2, px: { xs: 2, sm: 3 }, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
             <DialogTitle sx={{ p: 0, fontWeight: 800, color: 'primary.main', fontSize: '1.4rem', fontFamily: "'Outfit', sans-serif" }}>
-              Edit Corporate Settings
+              Edit Corporate Settings & Profile
             </DialogTitle>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-              Modify official company legal profiles, contact hotlines, headquarters address, and defaulted invoicing tax rates.
+              Modify legal agency profiles, support phone lines, headquarters address, and default billing tax rates.
             </Typography>
           </Box>
 
@@ -1347,22 +1659,24 @@ export const Settings = () => {
                     <InputAdornment position="start" sx={{ mr: 1 }}>
                       <BusinessIcon color="primary" sx={{ fontSize: 20, opacity: 0.85 }} />
                     </InputAdornment>
-                  ) }}
+                  )
+                }}
               />
               <TextField
                 {...register('vatId')}
-                label="VAT Registration / Tax ID"
+                label="Tax ID / US EIN"
                 error={!!errors.vatId}
                 helperText={errors.vatId?.message}
                 fullWidth
-                placeholder="VAT-AE-2026-9932"
+                placeholder="EIN-US-92-4819201"
                 sx={fieldStyle}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start" sx={{ mr: 1 }}>
                       <VpnKeyIcon color="primary" sx={{ fontSize: 20, opacity: 0.85 }} />
                     </InputAdornment>
-                  ) }}
+                  )
+                }}
               />
               <TextField
                 {...register('incorporationDate')}
@@ -1378,7 +1692,8 @@ export const Settings = () => {
                     <InputAdornment position="start" sx={{ mr: 1 }}>
                       <CalendarTodayIcon color="primary" sx={{ fontSize: 18, opacity: 0.85 }} />
                     </InputAdornment>
-                  ) }}
+                  )
+                }}
               />
               <TextField
                 {...register('website')}
@@ -1386,18 +1701,19 @@ export const Settings = () => {
                 error={!!errors.website}
                 helperText={errors.website?.message}
                 fullWidth
-                placeholder="https://aaabusinessconsultancy.com"
+                placeholder="https://wowmyflight.com"
                 sx={fieldStyle}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start" sx={{ mr: 1 }}>
                       <WebIcon color="primary" sx={{ fontSize: 20, opacity: 0.85 }} />
                     </InputAdornment>
-                  ) }}
+                  )
+                }}
               />
               <TextField
                 {...register('phone')}
-                label="WhatsApp Hotline Contact"
+                label="Support Hotline Phone"
                 error={!!errors.phone}
                 helperText={errors.phone?.message}
                 fullWidth
@@ -1407,7 +1723,8 @@ export const Settings = () => {
                     <InputAdornment position="start" sx={{ mr: 1 }}>
                       <PhoneIcon color="primary" sx={{ fontSize: 20, opacity: 0.85 }} />
                     </InputAdornment>
-                  ) }}
+                  )
+                }}
               />
               <TextField
                 {...register('email')}
@@ -1421,12 +1738,13 @@ export const Settings = () => {
                     <InputAdornment position="start" sx={{ mr: 1 }}>
                       <EmailIcon color="primary" sx={{ fontSize: 20, opacity: 0.85 }} />
                     </InputAdornment>
-                  ) }}
+                  )
+                }}
               />
               <TextField
                 {...register('vatRate')}
                 type="number"
-                label="Default Invoiced VAT Rate"
+                label="Default Invoiced Tax Rate"
                 error={!!errors.vatRate}
                 helperText={errors.vatRate?.message}
                 fullWidth
@@ -1436,9 +1754,9 @@ export const Settings = () => {
                     <InputAdornment position="end" sx={{ pr: 1 }}>
                       <span style={{ fontWeight: 700, color: '#C59B27', fontSize: '0.95rem', fontFamily: "'Outfit', sans-serif" }}>%</span>
                     </InputAdornment>
-                  ) }}
+                  )
+                }}
               />
-              {/* Spacer cell on desktop to keep the layout clean, address spans full width below */}
               <Box sx={{ display: { xs: 'none', sm: 'block' } }} />
 
               <TextField
@@ -1458,17 +1776,18 @@ export const Settings = () => {
                     <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1, mr: 1 }}>
                       <LocationOnIcon color="primary" sx={{ fontSize: 20, opacity: 0.85 }} />
                     </InputAdornment>
-                  ) }}
+                  )
+                }}
               />
               <FormControlLabel
                 control={
                   <Switch
                     {...register('autoAssignConsultant')}
-                    checked={watch('autoAssignConsultant') || false}
+                    checked={watch('autoAssignConsultant') ?? true}
                     color="secondary"
                   />
                 }
-                label="Enable automated lead consultant assignment (based on preferred language matching)"
+                label="Enable automated lead routing (matches passenger origin & cabin skill level)"
                 sx={{
                   gridColumn: { xs: 'span 1', sm: 'span 2' },
                   mt: 1,
@@ -1482,22 +1801,7 @@ export const Settings = () => {
             <Button
               variant="outlined"
               onClick={() => setIsEditModalOpen(false)}
-              sx={{
-                borderRadius: 2.5,
-                px: 3.5,
-                py: 1.25,
-                borderColor: 'divider',
-                color: 'text.secondary',
-                fontFamily: "'Outfit', sans-serif",
-                textTransform: 'none',
-                fontWeight: 600,
-                transition: 'all 0.2s',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  backgroundColor: 'rgba(11, 27, 61, 0.04)',
-                  color: 'primary.main'
-                }
-              }}
+              sx={{ borderRadius: 2.5, px: 3.5, textTransform: 'none', fontWeight: 600 }}
             >
               Cancel
             </Button>
@@ -1508,21 +1812,9 @@ export const Settings = () => {
               sx={{
                 borderRadius: 2.5,
                 px: 4,
-                py: 1.25,
-                fontFamily: "'Outfit', sans-serif",
                 textTransform: 'none',
                 fontWeight: 700,
-                background: 'linear-gradient(135deg, #C59B27 0%, #A57F1E 100%)',
-                boxShadow: '0 4px 14px 0 rgba(197, 155, 39, 0.3)',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #A57F1E 0%, #8A6916 100%)',
-                  boxShadow: '0 6px 20px 0 rgba(197, 155, 39, 0.4)',
-                  transform: 'translateY(-1px)'
-                },
-                '&:active': {
-                  transform: 'translateY(0)'
-                }
+                background: 'linear-gradient(135deg, #C59B27 0%, #A57F1E 100%)'
               }}
             >
               Save Corporate Settings
@@ -1531,7 +1823,9 @@ export const Settings = () => {
         </form>
       </Dialog>
 
-      {/* EDIT RELOCATION PACKAGE MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* MODAL 2: CONFIGURE FLIGHT PACKAGE */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
       <Dialog
         open={isPkgModalOpen}
         onClose={() => setIsPkgModalOpen(false)}
@@ -1550,10 +1844,10 @@ export const Settings = () => {
         {selectedPkgToEdit && (
           <form onSubmit={(e) => { e.preventDefault(); handleSavePkgModal(); }}>
             <DialogTitle sx={{ fontWeight: 800, color: 'primary.main', pb: 1, fontSize: '1.5rem', fontFamily: "'Outfit', sans-serif" }}>
-              Configure Relocation Package
+              Configure Flight Package
             </DialogTitle>
             <Typography variant="body2" color="text.secondary" sx={{ px: 3, pb: 2.5, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-              Update the base fee, client-facing description, and deliverables checklist for the <strong>{selectedPkgToEdit.name}</strong>.
+              Update the package base pricing, traveler description, and included deliverables for <strong>{selectedPkgToEdit.name}</strong>.
             </Typography>
 
             <DialogContent dividers sx={{ borderTop: '1px solid', borderColor: 'divider', borderBottom: '1px solid', px: 3, py: 2.5 }}>
@@ -1568,12 +1862,13 @@ export const Settings = () => {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start" sx={{ mr: 1 }}>
-                          <CardMembershipIcon color="disabled" sx={{ fontSize: 20 }} />
+                          <FlightIcon color="disabled" sx={{ fontSize: 20 }} />
                         </InputAdornment>
-                      ) }}
+                      )
+                    }}
                   />
                   <TextField
-                    label="Base Fee (€)"
+                    label="Base Fee ($ USD)"
                     type="number"
                     value={editPkgPrice}
                     onChange={(e) => setEditPkgPrice(e.target.value)}
@@ -1582,14 +1877,15 @@ export const Settings = () => {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start" sx={{ mr: 0.5 }}>
-                          <span style={{ fontWeight: 700, color: '#C59B27', fontSize: '0.95rem' }}>€</span>
+                          <span style={{ fontWeight: 700, color: '#C59B27', fontSize: '0.95rem' }}>$</span>
                         </InputAdornment>
-                      ) }}
+                      )
+                    }}
                   />
                 </Box>
 
                 <TextField
-                  label="Client Description"
+                  label="Client-Facing Package Description"
                   multiline
                   rows={3}
                   value={editPkgDesc}
@@ -1602,7 +1898,7 @@ export const Settings = () => {
 
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, textTransform: 'uppercase', color: 'secondary.main', letterSpacing: '0.05em', fontSize: '0.78rem' }}>
-                    Deliverables Checklist Editor
+                    Included Deliverables Checklist:
                   </Typography>
 
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, minHeight: 48, p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'rgba(244, 246, 249, 0.2)' }}>
@@ -1619,20 +1915,7 @@ export const Settings = () => {
                           color="primary"
                           variant="outlined"
                           size="small"
-                          sx={{
-                            borderRadius: 1.5,
-                            fontFamily: "'Plus Jakarta Sans', sans-serif",
-                            fontSize: '0.78rem',
-                            fontWeight: 500,
-                            borderColor: 'primary.light',
-                            bgcolor: 'rgba(11, 27, 61, 0.02)',
-                            '& .MuiChip-deleteIcon': {
-                              color: 'primary.main',
-                              '&:hover': {
-                                color: 'error.main'
-                              }
-                            }
-                          }}
+                          sx={{ borderRadius: 1.5 }}
                         />
                       ))
                     )}
@@ -1641,7 +1924,7 @@ export const Settings = () => {
                   <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
                     <TextField
                       size="small"
-                      placeholder="Type a deliverable item and click Add..."
+                      placeholder="Add an inclusion (e.g. Excess Baggage 32kg, Lounge Pass)..."
                       value={newDeliverableVal}
                       onChange={(e) => setNewDeliverableVal(e.target.value)}
                       onKeyDown={(e) => {
@@ -1657,16 +1940,7 @@ export const Settings = () => {
                       variant="contained"
                       color="primary"
                       onClick={handleAddModalDeliverable}
-                      sx={{
-                        minWidth: 44,
-                        p: 0,
-                        height: 40,
-                        borderRadius: 2.5,
-                        background: 'linear-gradient(135deg, #3F51B5 0%, #303F9F 100%)',
-                        boxShadow: 'none',
-                        '&:hover': {
-                          background: 'linear-gradient(135deg, #303F9F 0%, #1A237E 100%)' }
-                      }}
+                      sx={{ minWidth: 44, height: 40, borderRadius: 2.5 }}
                     >
                       <AddIcon />
                     </Button>
@@ -1676,52 +1950,10 @@ export const Settings = () => {
             </DialogContent>
 
             <DialogActions sx={{ p: 2.5, gap: 1.5 }}>
-              <Button
-                variant="outlined"
-                onClick={() => setIsPkgModalOpen(false)}
-                sx={{
-                  borderRadius: 2.5,
-                  px: 3.5,
-                  py: 1.25,
-                  borderColor: 'divider',
-                  color: 'text.secondary',
-                  fontFamily: "'Outfit', sans-serif",
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    backgroundColor: 'rgba(11, 27, 61, 0.04)',
-                    color: 'primary.main'
-                  }
-                }}
-              >
+              <Button variant="outlined" onClick={() => setIsPkgModalOpen(false)} sx={{ borderRadius: 2.5, px: 3.5, textTransform: 'none' }}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                color="secondary"
-                sx={{
-                  borderRadius: 2.5,
-                  px: 4,
-                  py: 1.25,
-                  fontFamily: "'Outfit', sans-serif",
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  background: 'linear-gradient(135deg, #C59B27 0%, #A57F1E 100%)',
-                  boxShadow: '0 4px 14px 0 rgba(197, 155, 39, 0.3)',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #A57F1E 0%, #8A6916 100%)',
-                    boxShadow: '0 6px 20px 0 rgba(197, 155, 39, 0.4)',
-                    transform: 'translateY(-1px)'
-                  },
-                  '&:active': {
-                    transform: 'translateY(0)'
-                  }
-                }}
-              >
+              <Button type="submit" variant="contained" color="secondary" sx={{ borderRadius: 2.5, px: 4, textTransform: 'none', fontWeight: 700 }}>
                 Save Changes
               </Button>
             </DialogActions>
@@ -1729,7 +1961,9 @@ export const Settings = () => {
         )}
       </Dialog>
 
-      {/* EDIT TEMPLATE MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* MODAL 3: EDIT NOTIFICATION TEMPLATE */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
       <Dialog
         open={isTemplateModalOpen}
         onClose={() => setIsTemplateModalOpen(false)}
@@ -1747,19 +1981,14 @@ export const Settings = () => {
       >
         <form onSubmit={(e) => { e.preventDefault(); handleSaveTemplateModal(); }}>
           <DialogTitle sx={{ fontWeight: 800, color: 'primary.main', pb: 1, fontSize: '1.5rem', fontFamily: "'Outfit', sans-serif" }}>
-            Edit Template Configuration
+            Edit Flight Notification Template
           </DialogTitle>
           <Typography variant="body2" color="text.secondary" sx={{ px: 3, pb: 2.5, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            Configure template metadata, subject lines, and notifications message body. Pre-visualization will update live in the right panel.
+            Configure template variables, subject lines, and passenger notifications. Device preview updates automatically.
           </Typography>
 
           <DialogContent dividers sx={{ borderTop: '1px solid', borderColor: 'divider', borderBottom: '1px solid', px: 3, py: 2.5 }}>
-            <Box sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: '1.4fr 1fr' },
-              gap: 4,
-              py: 1
-            }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.4fr 1fr' }, gap: 4, py: 1 }}>
               {/* Left Column: Editor */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {activeTemplate.type === 'email' && (
@@ -1788,7 +2017,7 @@ export const Settings = () => {
                     Click to Inject Placeholders at Cursor Position:
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {['{clientName}', '{meetingDate}', '{meetingTime}', '{bookingLink}', '{invoiceId}', '{packageName}', '{amount}', '{dueDate}', '{consultantName}'].map((tag) => (
+                    {['{clientName}', '{pnr}', '{route}', '{airline}', '{departureDate}', '{cabinClass}', '{amount}', '{bookingLink}', '{quoteId}', '{invoiceId}'].map((tag) => (
                       <Chip
                         key={tag}
                         label={tag}
@@ -1799,15 +2028,7 @@ export const Settings = () => {
                         sx={{
                           cursor: 'pointer',
                           fontFamily: "'Courier New', Courier, monospace",
-                          borderRadius: 1.5,
-                          borderColor: 'primary.light',
-                          bgcolor: 'rgba(11, 27, 61, 0.02)',
-                          transition: 'all 0.2s',
-                          '&:hover': {
-                            bgcolor: 'secondary.main',
-                            color: '#ffffff',
-                            borderColor: 'secondary.main'
-                          }
+                          borderRadius: 1.5
                         }}
                       />
                     ))}
@@ -1834,7 +2055,7 @@ export const Settings = () => {
                       </Box>
                       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 0.8, borderBottom: '1px solid', borderColor: 'divider', fontSize: '0.75rem', bgcolor: 'background.paper' }}>
                         <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                          <strong>Subject:</strong> {editTemplateSubject ? editTemplateSubject.replace(/{clientName}/g, 'Marcus Vance').replace(/{invoiceId}/g, 'INV-2026-004') : '(No Subject)'}
+                          <strong>Subject:</strong> {editTemplateSubject ? editTemplateSubject.replace(/{clientName}/g, 'Marcus Vance').replace(/{pnr}/g, 'WMF-78921') : '(No Subject)'}
                         </Typography>
                       </Box>
                       <Box sx={{ p: 2.5, bgcolor: 'background.paper', color: 'var(--wd-334155, #334155)', fontSize: '0.78rem', lineHeight: 1.5, minHeight: 220, maxHeight: 300, overflowY: 'auto' }}>
@@ -1853,7 +2074,7 @@ export const Settings = () => {
                     }}>
                       <Box sx={{ py: 1, px: 2, bgcolor: '#075E54', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.7rem', fontFamily: "'Outfit', sans-serif" }}>
-                          AAA Consultancy Bot
+                          WowMyFlight Concierge Bot
                         </Typography>
                         <SmartphoneIcon sx={{ fontSize: 14 }} />
                       </Box>
@@ -1871,10 +2092,9 @@ export const Settings = () => {
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', whiteSpace: 'pre-line', lineHeight: 1.35, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                             {editTemplateBody ? editTemplateBody
                               .replace(/{clientName}/g, 'Marcus Vance')
-                              .replace(/{meetingTime}/g, '3:30 PM')
-                              .replace(/{bookingLink}/g, 'https://aaa-consultancy.com/book-assessment')
-                              .replace(/{consultantName}/g, 'Sofia Rodriguez') : '(No body text)'
-                            }
+                              .replace(/{pnr}/g, 'WMF-78921')
+                              .replace(/{route}/g, 'JFK ➔ LHR')
+                              .replace(/{bookingLink}/g, 'https://wowmyflight.com/itinerary/WMF-78921') : '(No body text)'}
                           </Typography>
                         </Box>
                       </Box>
@@ -1886,60 +2106,135 @@ export const Settings = () => {
           </DialogContent>
 
           <DialogActions sx={{ p: 2.5, gap: 1.5 }}>
-            <Button
-              variant="outlined"
-              onClick={() => setIsTemplateModalOpen(false)}
-              sx={{
-                borderRadius: 2.5,
-                px: 3.5,
-                py: 1.25,
-                borderColor: 'divider',
-                color: 'text.secondary',
-                fontFamily: "'Outfit', sans-serif",
-                textTransform: 'none',
-                fontWeight: 600,
-                transition: 'all 0.2s',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  backgroundColor: 'rgba(11, 27, 61, 0.04)',
-                  color: 'primary.main'
-                }
-              }}
-            >
+            <Button variant="outlined" onClick={() => setIsTemplateModalOpen(false)} sx={{ borderRadius: 2.5, px: 3.5, textTransform: 'none' }}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              color="secondary"
-              sx={{
-                borderRadius: 2.5,
-                px: 4,
-                py: 1.25,
-                fontFamily: "'Outfit', sans-serif",
-                textTransform: 'none',
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #C59B27 0%, #A57F1E 100%)',
-                boxShadow: '0 4px 14px 0 rgba(197, 155, 39, 0.3)',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #A57F1E 0%, #8A6916 100%)',
-                  boxShadow: '0 6px 20px 0 rgba(197, 155, 39, 0.4)',
-                  transform: 'translateY(-1px)'
-                },
-                '&:active': {
-                  transform: 'translateY(0)'
-                }
-              }}
-            >
+            <Button type="submit" variant="contained" color="secondary" sx={{ borderRadius: 2.5, px: 4, textTransform: 'none', fontWeight: 700 }}>
               Save Changes
             </Button>
           </DialogActions>
         </form>
       </Dialog>
 
-      {/* EDIT TEMPLATE MODAL */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* MODAL 4: EDIT STRIPE GATEWAY CREDENTIALS */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      <Dialog
+        open={isStripeModalOpen}
+        onClose={() => setIsStripeModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4, p: 1.5 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>
+          Update Stripe Credentials
+        </DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, py: 2 }}>
+          <TextField
+            label="Publishable Key"
+            placeholder="pk_live_..."
+            value={stripeForm.publishableKey}
+            onChange={(e) => setStripeForm({ ...stripeForm, publishableKey: e.target.value })}
+            fullWidth
+            sx={fieldStyle}
+          />
+          <TextField
+            label="Secret Key"
+            type="password"
+            placeholder="sk_live_... (leave blank to keep current)"
+            value={stripeForm.secretKey}
+            onChange={(e) => setStripeForm({ ...stripeForm, secretKey: e.target.value })}
+            fullWidth
+            sx={fieldStyle}
+          />
+          <TextField
+            label="Default Currency"
+            value={stripeForm.currency}
+            onChange={(e) => setStripeForm({ ...stripeForm, currency: e.target.value })}
+            fullWidth
+            sx={fieldStyle}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button variant="outlined" onClick={() => setIsStripeModalOpen(false)} sx={{ borderRadius: 2, textTransform: 'none' }}>
+            Cancel
+          </Button>
+          <Button variant="contained" color="secondary" onClick={handleSaveStripeModal} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}>
+            Save Credentials
+          </Button>
+        </DialogActions>
+      </Dialog>
 
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      {/* MODAL 5: ADD ROUTING RULE */}
+      {/* ───────────────────────────────────────────────────────────────────────────── */}
+      <Dialog
+        open={isRuleModalOpen}
+        onClose={() => setIsRuleModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4, p: 1.5 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>
+          Add Intelligent Lead Routing Rule
+        </DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, py: 2 }}>
+          <TextField
+            label="Rule Name"
+            placeholder="e.g. Asia & Pacific Inquiries"
+            value={newRuleForm.name}
+            onChange={(e) => setNewRuleForm({ ...newRuleForm, name: e.target.value })}
+            fullWidth
+            sx={fieldStyle}
+          />
+          <FormControl fullWidth>
+            <InputLabel id="rule-type-label">Routing Strategy</InputLabel>
+            <Select
+              labelId="rule-type-label"
+              value={newRuleForm.type}
+              onChange={(e) => setNewRuleForm({ ...newRuleForm, type: e.target.value })}
+              label="Routing Strategy"
+            >
+              <MenuItem value="Skill-Based">Skill-Based (Destination & Cabin Class)</MenuItem>
+              <MenuItem value="VIP Priority">VIP Priority (High Budget / First Class)</MenuItem>
+              <MenuItem value="Round Robin">Round Robin (Even Distribution)</MenuItem>
+              <MenuItem value="Capacity-Based">Capacity-Based (Agent Active Leads Limit)</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField
+            label="Trigger Condition"
+            placeholder="e.g. Destination == USA / Canada OR CabinClass == First"
+            value={newRuleForm.condition}
+            onChange={(e) => setNewRuleForm({ ...newRuleForm, condition: e.target.value })}
+            fullWidth
+            sx={fieldStyle}
+          />
+          <TextField
+            label="Assigned Action / Target Desk"
+            placeholder="e.g. Assign to North America Sales Desk"
+            value={newRuleForm.action}
+            onChange={(e) => setNewRuleForm({ ...newRuleForm, action: e.target.value })}
+            fullWidth
+            sx={fieldStyle}
+          />
+          <TextField
+            label="Evaluation Priority (1 = Highest)"
+            type="number"
+            value={newRuleForm.priority}
+            onChange={(e) => setNewRuleForm({ ...newRuleForm, priority: e.target.value })}
+            fullWidth
+            sx={fieldStyle}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button variant="outlined" onClick={() => setIsRuleModalOpen(false)} sx={{ borderRadius: 2, textTransform: 'none' }}>
+            Cancel
+          </Button>
+          <Button variant="contained" color="secondary" onClick={handleCreateRule} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}>
+            Deploy Rule
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
