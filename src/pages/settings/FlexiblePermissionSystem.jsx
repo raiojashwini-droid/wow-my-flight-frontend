@@ -50,6 +50,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import ShieldIcon from '@mui/icons-material/Shield';
 import BadgeIcon from '@mui/icons-material/Badge';
 import TuneIcon from '@mui/icons-material/Tune';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -209,26 +210,78 @@ export default function FlexiblePermissionSystem() {
   // --------------------------------------------------------------------------
   // USER OVERRIDE HANDLERS
   // --------------------------------------------------------------------------
+  const selectedAgent = useMemo(() => {
+    const currentAgents = usersList.length > 0 ? usersList : AGENTS;
+    return currentAgents.find(a => a.id === selectedUserId) || null;
+  }, [selectedUserId, usersList]);
+
+  const selectedAgentBaseRole = useMemo(() => {
+    if (!selectedAgent) return null;
+    return roles.find(r => r.id === selectedAgent.role) || null;
+  }, [selectedAgent, roles]);
+
   const handleOpenUserOverride = (user) => {
     setSelectedUserId(user.id);
     const existing = userOverrides[user.id] || [];
     const initMap = {};
     existing.forEach(o => {
-      initMap[o.key] = { enabled: o.enabled, scope: o.scope };
+      initMap[o.key] = { enabled: Boolean(o.enabled), scope: o.scope || 'own', isSet: true };
     });
     setUserOverridePerms(initMap);
     setOverrideModalOpen(true);
+  };
+
+  const handleOverrideModeChange = (permKey, mode) => {
+    if (mode === 'INHERIT') {
+      setUserOverridePerms(prev => {
+        const next = { ...prev };
+        delete next[permKey];
+        return next;
+      });
+    } else if (mode === 'ALLOW') {
+      setUserOverridePerms(prev => ({
+        ...prev,
+        [permKey]: {
+          isSet: true,
+          enabled: true,
+          scope: prev[permKey]?.scope && prev[permKey]?.scope !== 'none' ? prev[permKey].scope : 'own'
+        }
+      }));
+    } else if (mode === 'DENY') {
+      setUserOverridePerms(prev => ({
+        ...prev,
+        [permKey]: {
+          isSet: true,
+          enabled: false,
+          scope: 'none'
+        }
+      }));
+    }
+  };
+
+  const handleOverrideScopeChange = (permKey, scope) => {
+    setUserOverridePerms(prev => ({
+      ...prev,
+      [permKey]: {
+        ...(prev[permKey] || { isSet: true, enabled: true }),
+        scope
+      }
+    }));
+  };
+
+  const handleResetAllUserOverrides = () => {
+    setUserOverridePerms({});
   };
 
   const handleSaveUserOverrideSubmit = () => {
     const currentAgents = usersList.length > 0 ? usersList : AGENTS;
     const targetUser = currentAgents.find(a => a.id === selectedUserId) || { id: selectedUserId, name: 'Selected User' };
     const overridesArray = Object.keys(userOverridePerms)
-      .filter(k => userOverridePerms[k].isSet)
+      .filter(k => userOverridePerms[k]?.isSet)
       .map(k => ({
         key: k,
-        enabled: userOverridePerms[k].enabled,
-        scope: userOverridePerms[k].scope
+        enabled: Boolean(userOverridePerms[k].enabled),
+        scope: userOverridePerms[k].scope || 'own'
       }));
 
     saveUserOverride(targetUser.id, targetUser.name, overridesArray);
@@ -991,6 +1044,212 @@ export default function FlexiblePermissionSystem() {
           <Button onClick={() => setCloneModalOpen(false)}>Cancel</Button>
           <Button variant="contained" color="primary" onClick={handleConfirmClone} sx={{ fontWeight: 800 }}>
             Confirm Clone
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ==================================================================== */}
+      {/* MODAL: CONFIGURE USER PERMISSION OVERRIDES */}
+      {/* ==================================================================== */}
+      <Dialog
+        open={overrideModalOpen}
+        onClose={() => setOverrideModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 }
+        }}
+      >
+        <DialogTitle sx={{ p: 2.5, pb: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Avatar
+                src={selectedAgent?.avatar}
+                sx={{ width: 44, height: 44, bgcolor: 'primary.main', fontWeight: 900, boxShadow: 2 }}
+              >
+                {selectedAgent?.name?.[0] || 'U'}
+              </Avatar>
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'Outfit, sans-serif' }}>
+                    {selectedAgent?.name || 'Selected Staff Member'}
+                  </Typography>
+                  <Chip
+                    label={`Base Role: ${selectedAgentBaseRole?.name || selectedAgent?.role || 'Inherited'}`}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ fontWeight: 800, height: 22 }}
+                  />
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  {selectedAgent?.email || 'Configure granular per-feature permission overrides'}
+                </Typography>
+              </Box>
+            </Box>
+
+            <Button
+              size="small"
+              variant="outlined"
+              color="warning"
+              startIcon={<RestartAltIcon />}
+              onClick={handleResetAllUserOverrides}
+              sx={{ fontWeight: 800, fontSize: '0.72rem' }}
+            >
+              Reset All to Role Defaults
+            </Button>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5, fontSize: '0.8rem', fontWeight: 500 }}>
+            Custom overrides take precedence over the staff member's inherited base role. Select <b>Inherit Role Default</b> to follow the template, or explicitly <b>Grant</b> or <b>Block</b> individual features.
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent dividers sx={{ p: { xs: 1.5, sm: 2.5 } }}>
+          {PERMISSION_MODULES.map(mod => {
+            const overriddenCountInMod = mod.permissions.filter(p => userOverridePerms[p.key]?.isSet).length;
+            return (
+              <Accordion key={mod.id} defaultExpanded sx={{ mb: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: '8px !important' }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                      📁 {mod.name} ({mod.permissions.length} Features)
+                    </Typography>
+                    {overriddenCountInMod > 0 && (
+                      <Chip
+                        label={`${overriddenCountInMod} Overridden`}
+                        size="small"
+                        color="secondary"
+                        sx={{ height: 20, fontSize: '0.65rem', fontWeight: 900 }}
+                      />
+                    )}
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails sx={{ bgcolor: (theme) => theme.palette.mode === 'dark' ? 'action.hover' : 'grey.50', pt: 0 }}>
+                  {mod.permissions.map(p => {
+                    const basePerm = selectedAgentBaseRole?.permissions?.find(rp => rp.key === p.key);
+                    const isBaseAllowed = !!basePerm?.enabled;
+                    const baseScope = basePerm?.scope || 'own';
+
+                    const overrideState = userOverridePerms[p.key];
+                    const isOverridden = !!overrideState?.isSet;
+                    const overrideMode = !isOverridden ? 'INHERIT' : (overrideState.enabled ? 'ALLOW' : 'DENY');
+
+                    return (
+                      <Box
+                        key={p.key}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          py: 1.2,
+                          px: 1,
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                          flexWrap: 'wrap',
+                          gap: 1.5,
+                          bgcolor: isOverridden
+                            ? (theme) => theme.palette.mode === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)'
+                            : 'transparent',
+                          borderRadius: 1
+                        }}
+                      >
+                        <Box sx={{ flex: 1, minWidth: 200 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              {p.label}
+                            </Typography>
+                            {isOverridden ? (
+                              <Chip
+                                label={overrideState.enabled ? `Custom: Allowed (${overrideState.scope || 'own'})` : 'Custom: Blocked'}
+                                size="small"
+                                color={overrideState.enabled ? 'success' : 'error'}
+                                sx={{ height: 20, fontSize: '0.62rem', fontWeight: 800 }}
+                              />
+                            ) : (
+                              <Chip
+                                label={`Role Default: ${isBaseAllowed ? `Allowed (${baseScope})` : 'Denied'}`}
+                                size="small"
+                                variant="outlined"
+                                sx={{ height: 20, fontSize: '0.62rem', opacity: 0.8 }}
+                              />
+                            )}
+                          </Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.72rem', mt: 0.3 }}>
+                            Base Role setting: <b>{isBaseAllowed ? `Allowed (${baseScope} scope)` : 'Denied'}</b>
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          <FormControl size="small" sx={{ minWidth: 175 }}>
+                            <InputLabel id={`override-mode-label-${p.key}`}>Action</InputLabel>
+                            <Select
+                              labelId={`override-mode-label-${p.key}`}
+                              label="Action"
+                              value={overrideMode}
+                              onChange={e => handleOverrideModeChange(p.key, e.target.value)}
+                              sx={{ height: 34, fontSize: '0.75rem', fontWeight: 700 }}
+                            >
+                              <MenuItem value="INHERIT">
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                                  ⚡ Inherit Role Default
+                                </Typography>
+                              </MenuItem>
+                              <MenuItem value="ALLOW">
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                  <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'success.main' }}>
+                                    Grant Access (Allow)
+                                  </Typography>
+                                </Box>
+                              </MenuItem>
+                              <MenuItem value="DENY">
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                  <CancelIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'error.main' }}>
+                                    Block Access (Deny)
+                                  </Typography>
+                                </Box>
+                              </MenuItem>
+                            </Select>
+                          </FormControl>
+
+                          {overrideMode === 'ALLOW' && (
+                            <FormControl size="small" sx={{ minWidth: 150 }}>
+                              <InputLabel id={`override-scope-label-${p.key}`}>Access Scope</InputLabel>
+                              <Select
+                                labelId={`override-scope-label-${p.key}`}
+                                label="Access Scope"
+                                value={overrideState?.scope || 'own'}
+                                onChange={e => handleOverrideScopeChange(p.key, e.target.value)}
+                                sx={{ height: 34, fontSize: '0.75rem', fontWeight: 700 }}
+                              >
+                                {ACCESS_SCOPES.map(s => (
+                                  <MenuItem key={s.key} value={s.key}>
+                                    <Typography variant="caption" sx={{ fontWeight: 700 }}>{s.label}</Typography>
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          )}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </AccordionDetails>
+              </Accordion>
+            );
+          })}
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setOverrideModalOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSaveUserOverrideSubmit}
+            sx={{ fontWeight: 800, px: 3 }}
+          >
+            Save Overrides
           </Button>
         </DialogActions>
       </Dialog>
