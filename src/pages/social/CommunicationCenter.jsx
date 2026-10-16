@@ -168,7 +168,11 @@ export default function CommunicationCenter() {
 
         // Filter out any calls that the user previously deleted
         const activeCalls = (Array.isArray(calls) ? calls : []).filter(
-          (c) => !deletedIds.has(String(c.id)) && !deletedIds.has(String(c.callControlId))
+          (c) =>
+            !deletedIds.has(String(c.id)) &&
+            !deletedIds.has(String(c.callControlId)) &&
+            !String(c.toNumber || '').includes('6261508179') &&
+            !String(c.fromNumber || '').includes('6261508179')
         );
 
         setCallHistory(activeCalls);
@@ -184,8 +188,14 @@ export default function CommunicationCenter() {
           }
         }
 
-        // Filter out deleted events from saved timeline
-        parsedEvents = parsedEvents.filter((ev) => !deletedIds.has(String(ev.id)));
+        // Filter out deleted events and personal number from saved timeline
+        parsedEvents = parsedEvents.filter(
+          (ev) =>
+            !deletedIds.has(String(ev.id)) &&
+            !String(ev.customerPhone || '').includes('6261508179') &&
+            !String(ev.to || '').includes('6261508179') &&
+            !String(ev.from || '').includes('6261508179')
+        );
 
         // Map real calls from Telnyx into timeline events
         const mappedCallEvents = activeCalls.map((c) => ({

@@ -47,6 +47,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import HeadsetIcon from '@mui/icons-material/Headset';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
+import CloseIcon from '@mui/icons-material/Close';
 
 import { io } from 'socket.io-client';
 import DualClock from '../../components/DualClock';
@@ -147,7 +148,10 @@ export default function CallingSoftphoneWorkspace() {
       const deletedIds = getDeletedCallIds();
 
       // 1. Fetch from server API
-      const serverCalls = await fetchCallHistory().catch(() => []);
+      const rawServerCalls = await fetchCallHistory().catch(() => []);
+      const serverCalls = (Array.isArray(rawServerCalls) ? rawServerCalls : []).filter(
+        (c) => !String(c.toNumber || '').includes('6261508179') && !String(c.fromNumber || '').includes('6261508179')
+      );
 
       // 2. Fetch local call timeline items
       let localCalls = [];
@@ -157,6 +161,12 @@ export default function CallingSoftphoneWorkspace() {
           const items = JSON.parse(savedTimeline);
           localCalls = items
             .filter((item) => item.channel === 'Call')
+            .filter(
+              (item) =>
+                !String(item.to || '').includes('6261508179') &&
+                !String(item.from || '').includes('6261508179') &&
+                !String(item.customerPhone || '').includes('6261508179')
+            )
             .map((item) => ({
               id: item.id,
               callControlId: item.callControlId || item.id,
@@ -176,7 +186,7 @@ export default function CallingSoftphoneWorkspace() {
       }
 
       // Merge and deduplicate by callControlId or id
-      const combined = [...(Array.isArray(serverCalls) ? serverCalls : []), ...localCalls];
+      const combined = [...serverCalls, ...localCalls];
       const seen = new Set();
       const uniqueCalls = [];
 
@@ -195,6 +205,29 @@ export default function CallingSoftphoneWorkspace() {
       console.warn('[CallingDesk] Error loading call history:', err);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  // Auto-clean personal number from browser localStorage on startup
+  useEffect(() => {
+    try {
+      const savedLast = localStorage.getItem(LAST_DIALED_KEY);
+      if (savedLast && savedLast.includes('6261508179')) {
+        localStorage.removeItem(LAST_DIALED_KEY);
+      }
+      const savedTimeline = localStorage.getItem(TIMELINE_STORAGE_KEY);
+      if (savedTimeline && savedTimeline.includes('6261508179')) {
+        const items = JSON.parse(savedTimeline);
+        const filtered = items.filter(
+          (item) =>
+            !String(item.to || '').includes('6261508179') &&
+            !String(item.from || '').includes('6261508179') &&
+            !String(item.customerPhone || '').includes('6261508179')
+        );
+        localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(filtered));
+      }
+    } catch (err) {
+      console.warn('Auto-clean error:', err);
     }
   }, []);
 
@@ -222,16 +255,53 @@ export default function CallingSoftphoneWorkspace() {
     };
   }, [showAlert, loadCalls]);
 
-  // Last Called Number & Information
+  // Last Called Number & Information (guarantee personal number is completely omitted)
   const lastCall = useMemo(() => {
-    if (callHistory.length > 0) return callHistory[0];
+    const filtered = callHistory.filter(
+      (c) =>
+        !String(c.toNumber || '').includes('6261508179') &&
+        !String(c.fromNumber || '').includes('6261508179')
+    );
+    if (filtered.length > 0) return filtered[0];
     try {
       const saved = localStorage.getItem(LAST_DIALED_KEY);
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      if (
+        String(parsed.toNumber || '').includes('6261508179') ||
+        String(parsed.fromNumber || '').includes('6261508179')
+      ) {
+        return null;
+      }
+      return parsed;
     } catch {
       return null;
     }
   }, [callHistory]);
+
+  // Clear Last Called Number completely
+  const handleClearLastCall = useCallback(() => {
+    try {
+      localStorage.removeItem(LAST_DIALED_KEY);
+      const num = lastCall?.toNumber || lastCall?.fromNumber;
+      if (num) {
+        const savedTimeline = localStorage.getItem(TIMELINE_STORAGE_KEY);
+        if (savedTimeline) {
+          const items = JSON.parse(savedTimeline);
+          const filtered = items.filter(
+            (item) => item.to !== num && item.from !== num && item.customerPhone !== num
+          );
+          localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(filtered));
+        }
+        if (lastCall.id) saveDeletedCallId(lastCall.id);
+        if (lastCall.callControlId) saveDeletedCallId(lastCall.callControlId);
+        setCallHistory((prev) => prev.filter((c) => c.toNumber !== num && c.fromNumber !== num));
+      }
+      showAlert('Last called number removed', 'info');
+    } catch (e) {
+      console.warn('Error clearing last call:', e);
+    }
+  }, [lastCall, showAlert]);
 
   // Unique Recently Dialed Numbers (from actual calls, not dummy mock contacts)
   const recentNumbers = useMemo(() => {
@@ -834,6 +904,19 @@ export default function CallingSoftphoneWorkspace() {
                 >
                   Disposition
                 </Button>
+                <Tooltip title="Remove last called number">
+                  <IconButton
+                    size="small"
+                    onClick={handleClearLastCall}
+                    sx={{
+                      color: '#94A3B8',
+                      p: 0.5,
+                      '&:hover': { color: '#EF4444', bgcolor: 'rgba(239, 68, 68, 0.1)' },
+                    }}
+                  >
+                    <CloseIcon sx={{ fontSize: '1rem' }} />
+                  </IconButton>
+                </Tooltip>
               </Box>
             </Paper>
           )}
