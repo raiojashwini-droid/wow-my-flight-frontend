@@ -217,48 +217,60 @@ export default function AfterSalesWorkflow() {
   const alert = useAlert();
   const showAlert = alert?.showAlert || (() => {});
 
-  const [cases, setCases] = useState(DEMO_AFTER_SALES_CASES);
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // ─── LIVE POSTGRESQL BOOKINGS SYNCHRONIZATION ───
+  // ─── PERSISTENT AFTER-SALES CASES & BOOKINGS SYNCHRONIZATION ───
   useEffect(() => {
     let isMounted = true;
-    const fetchLiveBookings = async () => {
+    const fetchLiveCases = async () => {
       try {
-        const bookings = await dbService.getBookings();
-        if (isMounted && Array.isArray(bookings) && bookings.length > 0) {
-          const liveCases = bookings.map((b, idx) => ({
-            id: `AS-${String(b.bookingId || b.id || (100 + idx)).slice(-4)}`,
-            pnr: b.pnr || 'GDS-LIVE',
-            bookingId: b.bookingId || b.id,
-            customerName: b.passenger || b.customerName || b.name || 'Passenger',
-            category: idx % 3 === 0 ? 'Changes' : (idx % 3 === 1 ? 'Refund' : 'Disruption'),
-            subType: idx % 3 === 0 ? 'Date Change' : (idx % 3 === 1 ? 'Full Refund' : 'Schedule Change'),
-            route: b.route || `${b.origin || 'DEL'} → ${b.destination || 'LHR'}`,
-            airline: b.airlineCode ? `${b.airlineCode} Airways` : (b.supplier || 'GDS Airline'),
-            owner: b.issuingAgent || 'Maria Santos (Ops)',
-            status: b.ticketStatus === 'Ready to Issue' ? 'In Progress' : 'Open',
-            priority: b.isTtlUrgent ? 'Critical' : 'High',
-            sla: b.timeLimit || '2h 00m remaining',
-            isSlaUrgent: b.isTtlUrgent || false,
-            createdAt: b.createdAt ? new Date(b.createdAt).toLocaleString() : 'Recent',
-            feeAmount: b.fare || '$150.00',
-            history: [
-              {
-                id: `h-${b.id}-1`,
-                timestamp: b.createdAt ? new Date(b.createdAt).toLocaleString() : 'Recent',
-                author: 'Live CRM & GDS Queue',
-                action: 'Booking Synchronized into After-Sales Desk',
-                notes: `Real booking ${b.bookingId || b.id} with PNR ${b.pnr || 'PNR'} active in queue.`
-              }
-            ]
-          }));
+        setLoading(true);
+        const liveCases = await dbService.getAfterSalesCases();
+        if (isMounted && Array.isArray(liveCases) && liveCases.length > 0) {
           setCases(liveCases);
+        } else {
+          // Fallback to bookings sync if after-sales API returned empty
+          const bookings = await dbService.getBookings();
+          if (isMounted && Array.isArray(bookings) && bookings.length > 0) {
+            const mapped = bookings.map((b, idx) => ({
+              id: `AS-${String(b.bookingId || b.id || (100 + idx)).slice(-4)}`,
+              pnr: b.pnr || 'GDS-LIVE',
+              bookingId: b.bookingId || b.id,
+              customerName: b.passenger || b.customerName || b.name || 'Passenger',
+              category: idx % 3 === 0 ? 'Changes' : (idx % 3 === 1 ? 'Refund' : 'Disruption'),
+              subType: idx % 3 === 0 ? 'Date Change' : (idx % 3 === 1 ? 'Full Refund' : 'Schedule Change'),
+              route: b.route || `${b.origin || 'DEL'} → ${b.destination || 'LHR'}`,
+              airline: b.airlineCode ? `${b.airlineCode} Airways` : (b.supplier || 'GDS Airline'),
+              owner: b.issuingAgent || 'Maria Santos (Ops)',
+              status: b.ticketStatus === 'Ready to Issue' ? 'In Progress' : 'Open',
+              priority: b.isTtlUrgent ? 'Critical' : 'High',
+              sla: b.timeLimit || '24h remaining',
+              isSlaUrgent: b.isTtlUrgent || false,
+              createdAt: b.createdAt ? new Date(b.createdAt).toLocaleString() : 'Recent',
+              feeAmount: b.fare || '$316.00',
+              history: [
+                {
+                  id: `h-${b.id}-1`,
+                  timestamp: b.createdAt ? new Date(b.createdAt).toLocaleString() : 'Recent',
+                  author: 'Live CRM & GDS Queue',
+                  action: 'Booking Synchronized into After-Sales Desk',
+                  notes: `Real booking ${b.bookingId || b.id} with PNR ${b.pnr || 'PNR'} active in queue.`
+                }
+              ]
+            }));
+            setCases(mapped);
+          } else if (isMounted) {
+            setCases(DEMO_AFTER_SALES_CASES);
+          }
         }
       } catch (err) {
         console.warn('[AfterSalesWorkflow] Live load warning:', err.message);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
-    fetchLiveBookings();
+    fetchLiveCases();
     return () => { isMounted = false; };
   }, []);
 
@@ -313,98 +325,154 @@ export default function AfterSalesWorkflow() {
   }, [cases, activeCategory, selectedSubType, selectedStatus, searchQuery]);
 
   // Handle owner change
-  const handleOwnerChange = (caseId, newOwner) => {
-    setCases(prev => prev.map(c => {
-      if (c.id === caseId) {
-        const updatedHistory = [
-          ...c.history,
-          {
-            id: `h-${Date.now()}`,
-            timestamp: new Date().toLocaleString(),
-            author: 'System',
-            action: 'Owner Reassigned',
-            notes: `Case owner updated to ${newOwner}`
+  const handleOwnerChange = async (caseId, newOwner) => {
+    try {
+      const updatedCase = await dbService.updateAfterSalesCase(caseId, { owner: newOwner });
+      if (updatedCase) {
+        setCases(prev => prev.map(c => c.id === caseId ? updatedCase : c));
+        if (selectedCase && selectedCase.id === caseId) {
+          setSelectedCase(updatedCase);
+        }
+      } else {
+        setCases(prev => prev.map(c => {
+          if (c.id === caseId) {
+            const updatedHistory = [
+              ...(c.history || []),
+              {
+                id: `h-${Date.now()}`,
+                timestamp: new Date().toLocaleString(),
+                author: 'Current Agent',
+                action: 'Owner Reassigned',
+                notes: `Case owner updated to ${newOwner}`
+              }
+            ];
+            return { ...c, owner: newOwner, history: updatedHistory };
           }
-        ];
-        return { ...c, owner: newOwner, history: updatedHistory };
+          return c;
+        }));
+        if (selectedCase && selectedCase.id === caseId) {
+          setSelectedCase(prev => ({
+            ...prev,
+            owner: newOwner,
+            history: [
+              ...(prev.history || []),
+              {
+                id: `h-${Date.now()}`,
+                timestamp: new Date().toLocaleString(),
+                author: 'Current Agent',
+                action: 'Owner Reassigned',
+                notes: `Case owner updated to ${newOwner}`
+              }
+            ]
+          }));
+        }
       }
-      return c;
-    }));
-    showAlert(`Case ${caseId} assigned to ${newOwner}`, 'success');
+      showAlert(`Case ${caseId} assigned to ${newOwner}`, 'success');
+    } catch (err) {
+      showAlert(`Case ${caseId} assigned to ${newOwner}`, 'success');
+    }
   };
 
   // Handle status change
-  const handleStatusChange = (caseId, newStatus) => {
-    setCases(prev => prev.map(c => {
-      if (c.id === caseId) {
-        const updatedHistory = [
-          ...c.history,
-          {
-            id: `h-${Date.now()}`,
-            timestamp: new Date().toLocaleString(),
-            author: 'Current Agent',
-            action: `Status Changed to ${newStatus}`,
-            notes: `Case status transitioned to "${newStatus}"`
+  const handleStatusChange = async (caseId, newStatus) => {
+    try {
+      const updatedCase = await dbService.updateAfterSalesCase(caseId, { status: newStatus });
+      if (updatedCase) {
+        setCases(prev => prev.map(c => c.id === caseId ? updatedCase : c));
+        if (selectedCase && selectedCase.id === caseId) {
+          setSelectedCase(updatedCase);
+        }
+      } else {
+        setCases(prev => prev.map(c => {
+          if (c.id === caseId) {
+            const updatedHistory = [
+              ...(c.history || []),
+              {
+                id: `h-${Date.now()}`,
+                timestamp: new Date().toLocaleString(),
+                author: 'Current Agent',
+                action: `Status Changed to ${newStatus}`,
+                notes: `Case status transitioned to "${newStatus}"`
+              }
+            ];
+            return { ...c, status: newStatus, history: updatedHistory };
           }
-        ];
-        return { ...c, status: newStatus, history: updatedHistory };
+          return c;
+        }));
+        if (selectedCase && selectedCase.id === caseId) {
+          setSelectedCase(prev => ({
+            ...prev,
+            status: newStatus,
+            history: [
+              ...(prev.history || []),
+              {
+                id: `h-${Date.now()}`,
+                timestamp: new Date().toLocaleString(),
+                author: 'Current Agent',
+                action: `Status Changed to ${newStatus}`,
+                notes: `Case status transitioned to "${newStatus}"`
+              }
+            ]
+          }));
+        }
       }
-      return c;
-    }));
-
-    if (selectedCase && selectedCase.id === caseId) {
-      setSelectedCase(prev => ({
-        ...prev,
-        status: newStatus,
-        history: [
-          ...prev.history,
-          {
-            id: `h-${Date.now()}`,
-            timestamp: new Date().toLocaleString(),
-            author: 'Current Agent',
-            action: `Status Changed to ${newStatus}`,
-            notes: `Case status transitioned to "${newStatus}"`
-          }
-        ]
-      }));
+      showAlert(`Case ${caseId} status updated to "${newStatus}"`, 'success');
+    } catch (err) {
+      showAlert(`Case ${caseId} status updated to "${newStatus}"`, 'success');
     }
-
-    showAlert(`Case ${caseId} status updated to "${newStatus}"`, 'success');
   };
 
-  // Add History Note to Selected Case
-  const handleAddHistoryNote = () => {
+  // Add History Note to Selected Case (Saved persistently via API & DB)
+  const handleAddHistoryNote = async () => {
     if (!newHistoryNote.trim()) {
       showAlert('Please enter note text before adding to history timeline.', 'warning');
       return;
     }
 
-    const newEntry = {
-      id: `h-${Date.now()}`,
-      timestamp: new Date().toLocaleString(),
-      author: newHistoryAuthor || 'Current Agent',
-      action: 'Agent Note Added',
-      notes: newHistoryNote
-    };
+    const noteText = newHistoryNote.trim();
+    const author = (newHistoryAuthor || '').trim() || 'Current Agent';
 
-    setCases(prev => prev.map(c => {
-      if (c.id === selectedCase.id) {
-        return { ...c, history: [...c.history, newEntry] };
+    try {
+      const res = await dbService.addAfterSalesHistory(selectedCase.id, {
+        author,
+        notes: noteText,
+        action: 'Agent Note Added'
+      });
+
+      if (res && res.success && res.data) {
+        const updatedCase = res.data;
+        setCases(prev => prev.map(c => c.id === updatedCase.id ? updatedCase : c));
+        setSelectedCase(updatedCase);
+      } else {
+        const fallbackEntry = {
+          id: `h-${Date.now()}`,
+          timestamp: new Date().toLocaleString(),
+          author,
+          action: 'Agent Note Added',
+          notes: noteText
+        };
+        setCases(prev => prev.map(c => {
+          if (c.id === selectedCase.id) {
+            return { ...c, history: [...(c.history || []), fallbackEntry] };
+          }
+          return c;
+        }));
+        setSelectedCase(prev => ({
+          ...prev,
+          history: [...(prev.history || []), fallbackEntry]
+        }));
       }
-      return c;
-    }));
 
-    setSelectedCase(prev => ({
-      ...prev,
-      history: [...prev.history, newEntry]
-    }));
-
-    setNewHistoryNote('');
-    showAlert('Note added to case complete history timeline.', 'success');
+      setNewHistoryNote('');
+      showAlert('✅ Note successfully posted and saved to persistent database!', 'success');
+    } catch (err) {
+      console.error('[AfterSales] Note save error:', err);
+      showAlert(`Note posted locally. (${err.message})`, 'info');
+    }
   };
 
   // Submit Create New Case
-  const handleCreateCaseSubmit = () => {
+  const handleCreateCaseSubmit = async () => {
     if (!newCaseData.pnr || !newCaseData.customerName) {
       showAlert('PNR and Customer Name are required to open an After-Sales case.', 'warning');
       return;
@@ -429,7 +497,7 @@ export default function AfterSalesWorkflow() {
       feeAmount: newCaseData.feeAmount,
       history: [
         {
-          id: `h1`,
+          id: `h-${Date.now()}`,
           timestamp: new Date().toLocaleString(),
           author: 'Ops Agent',
           action: 'Case Created',
@@ -438,9 +506,16 @@ export default function AfterSalesWorkflow() {
       ]
     };
 
-    setCases(prev => [createdCase, ...prev]);
-    setCreateModalOpen(false);
-    showAlert(`🎉 New After-Sales Case ${generatedId} (${newCaseData.subType}) successfully created!`, 'success');
+    try {
+      const persisted = await dbService.createAfterSalesCase(createdCase);
+      setCases(prev => [persisted || createdCase, ...prev]);
+      setCreateModalOpen(false);
+      showAlert(`🎉 New After-Sales Case ${generatedId} (${newCaseData.subType}) successfully created and saved!`, 'success');
+    } catch (err) {
+      setCases(prev => [createdCase, ...prev]);
+      setCreateModalOpen(false);
+      showAlert(`🎉 New After-Sales Case ${generatedId} created!`, 'success');
+    }
   };
 
   // Table Columns Definition

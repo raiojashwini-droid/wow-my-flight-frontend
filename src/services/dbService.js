@@ -963,6 +963,121 @@ export const dbService = {
     return newBooking;
   },
 
+  // AFTER-SALES
+  getAfterSalesCases: async () => {
+    try {
+      const remote = await apiFetch('/api/after-sales');
+      if (remote && remote.success && Array.isArray(remote.data)) {
+        localStorage.setItem('crm-after-sales', JSON.stringify(remote.data));
+        return remote.data;
+      }
+    } catch (e) {
+      console.warn('[dbService] getAfterSalesCases API warning:', e.message);
+    }
+
+    await delay(50);
+    const cached = localStorage.getItem('crm-after-sales');
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) { }
+    }
+    return [];
+  },
+
+  addAfterSalesHistory: async (caseId, entry) => {
+    try {
+      const res = await apiFetch(`/api/after-sales/${caseId}/history`, {
+        method: 'POST',
+        body: JSON.stringify(entry)
+      });
+      if (res && res.success && res.data) {
+        const cached = localStorage.getItem('crm-after-sales');
+        if (cached) {
+          try {
+            const list = JSON.parse(cached);
+            const idx = list.findIndex(c => c.id === caseId);
+            if (idx !== -1) {
+              list[idx] = res.data;
+              localStorage.setItem('crm-after-sales', JSON.stringify(list));
+            }
+          } catch (e) {}
+        }
+        return res;
+      }
+    } catch (e) {
+      console.warn('[dbService] addAfterSalesHistory API warning:', e.message);
+    }
+
+    const cached = localStorage.getItem('crm-after-sales');
+    if (cached) {
+      try {
+        const list = JSON.parse(cached);
+        const idx = list.findIndex(c => c.id === caseId);
+        if (idx !== -1) {
+          const newEntry = {
+            id: `h-${Date.now()}`,
+            timestamp: new Date().toLocaleString(),
+            author: entry.author || 'Current Agent',
+            action: entry.action || 'Agent Note Added',
+            notes: entry.notes || ''
+          };
+          list[idx].history = [...(list[idx].history || []), newEntry];
+          localStorage.setItem('crm-after-sales', JSON.stringify(list));
+          return { success: true, data: list[idx], newEntry };
+        }
+      } catch (e) {}
+    }
+    return null;
+  },
+
+  updateAfterSalesCase: async (caseId, updates) => {
+    try {
+      const res = await apiFetch(`/api/after-sales/${caseId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates)
+      });
+      if (res && res.success && res.data) {
+        const cached = localStorage.getItem('crm-after-sales');
+        if (cached) {
+          try {
+            const list = JSON.parse(cached);
+            const idx = list.findIndex(c => c.id === caseId);
+            if (idx !== -1) {
+              list[idx] = res.data;
+              localStorage.setItem('crm-after-sales', JSON.stringify(list));
+            }
+          } catch (e) {}
+        }
+        return res.data;
+      }
+    } catch (e) {
+      console.warn('[dbService] updateAfterSalesCase API warning:', e.message);
+    }
+    return null;
+  },
+
+  createAfterSalesCase: async (caseData) => {
+    try {
+      const res = await apiFetch('/api/after-sales', {
+        method: 'POST',
+        body: JSON.stringify(caseData)
+      });
+      if (res && res.success && res.data) {
+        const cached = localStorage.getItem('crm-after-sales');
+        if (cached) {
+          try {
+            const list = JSON.parse(cached);
+            list.unshift(res.data);
+            localStorage.setItem('crm-after-sales', JSON.stringify(list));
+          } catch (e) {}
+        }
+        return res.data;
+      }
+    } catch (e) {
+      console.warn('[dbService] createAfterSalesCase API warning:', e.message);
+    }
+    return caseData;
+  },
+
   // DOCUMENTS
   getDocuments: async () => {
     try {

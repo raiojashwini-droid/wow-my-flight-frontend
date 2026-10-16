@@ -593,7 +593,7 @@ export default function Quotes() {
     showAlert(`Quote ${quoteId} status marked as ${newStatus}`, 'success');
   };
 
-  const handleConvertToBooking = (quote, optionIndex = 0) => {
+  const handleConvertToBooking = async (quote, optionIndex = 0) => {
     const opt = quote.options?.[optionIndex] || quote.options?.[0] || {};
     const newBookingId = 'BK-' + Math.floor(1000 + Math.random() * 9000);
     const routeParts = quote.route ? quote.route.replace('➔', '→').split('→').map(s => s.trim()) : [];
@@ -607,35 +607,45 @@ export default function Quotes() {
     const discount = opt.discount ?? (quote.discount || 0);
     const sellingPrice = opt.customerPrice ?? (quote.sellingPrice || (supplierCost + markup + serviceFee - discount));
     const profit = markup + serviceFee - discount;
+    const generatedPnr = 'PNR' + Math.floor(10000 + Math.random() * 89999);
 
     const newBooking = {
       id: newBookingId,
       bookingId: newBookingId,
+      pnr: generatedPnr,
       customerName: quote.customerName,
+      passenger: quote.customerName,
+      name: quote.customerName,
       customerEmail: quote.customerEmail || '',
       customerPhone: quote.customerPhone || '',
-      route: quote.route || `${originCity} ➔ ${destCity}`,
+      route: quote.route || `${originCity} → ${destCity}`,
       origin: originCity,
       destination: destCity,
       travelDate: opt.depDateTime ? opt.depDateTime.split('T')[0] : (quote.travelDate || new Date().toISOString().split('T')[0]),
+      date: opt.depDateTime ? opt.depDateTime.split('T')[0] : (quote.travelDate || new Date().toLocaleDateString()),
       cabinClass: opt.cabinClass || quote.cabinClass || 'Economy',
-      passengers: quote.passengers || 1,
-      pnr: 'PNR' + Math.floor(10000 + Math.random() * 89999),
+      passengers: Number(quote.passengers) || 1,
       airline: opt.airline || quote.airline || 'Emirates',
+      airlineCode: opt.airline || quote.airline || 'Emirates',
       flightNumber: opt.flightNumber || 'FL-101',
       supplier: opt.supplier || quote.supplier || 'Amadeus GDS',
+      fare: `$${Number(netFare).toFixed(2)}`,
+      taxes: `$${Number(taxes).toFixed(2)}`,
+      amount: `$${Number(sellingPrice).toFixed(2)}`,
+      commission: `$${Number(profit > 0 ? profit : 0).toFixed(2)}`,
       supplierCost,
       netFare,
-      taxes,
       markup,
       serviceFee,
       discount,
       sellingPrice,
       profit,
-      bookingStatus: 'CONFIRMED',
-      status: 'Confirmed',
-      paymentStatus: 'PENDING',
-      ticketStatus: 'PENDING',
+      bookingStatus: 'Ready to Issue',
+      status: 'Ready to Issue',
+      paymentStatus: 'Payment Confirmed',
+      ticketStatus: 'Ready to Issue',
+      timeLimit: '24h remaining',
+      ttl: '24h remaining',
       createdAt: new Date().toISOString().split('T')[0],
       createdBy: quote.createdBy || currentUser?.name || 'Agent'
     };
@@ -644,12 +654,22 @@ export default function Quotes() {
 
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-      fetch(`${backendUrl}/api/bookings`, {
+      const res = await fetch(`${backendUrl}/api/bookings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newBooking)
       });
-    } catch (e) {}
+      if (res.ok) {
+        const json = await res.json();
+        const cached = localStorage.getItem('crm-bookings');
+        const list = cached ? JSON.parse(cached) : [];
+        if (json.data) {
+          localStorage.setItem('crm-bookings', JSON.stringify([json.data, ...list.filter(b => (b.bookingId || b.id) !== newBookingId)]));
+        }
+      }
+    } catch (e) {
+      console.warn('Booking create warning:', e);
+    }
 
     handleUpdateStatus(quote.id, 'Accepted');
     showAlert(`🎉 Quote ${quote.id} successfully converted into Confirmed Booking ${newBookingId}!`, 'success');

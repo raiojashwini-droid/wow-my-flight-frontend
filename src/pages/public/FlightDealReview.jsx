@@ -147,28 +147,48 @@ export default function FlightDealReview({ quote: propQuote }) {
 
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-      await fetch(`${backendUrl}/api/bookings`, {
+      const newBookingId = `BK-${Math.floor(1000 + Math.random() * 9000)}`;
+      const paxName = activeQuote?.customerName || (passengers[0] ? `${passengers[0].firstName} ${passengers[0].lastName}` : 'Valued Passenger');
+      const totalCost = (activeQuote?.totalPrice || 474) + ancillaryAddonCost;
+      const res = await fetch(`${backendUrl}/api/bookings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          bookingId: newBookingId,
           quoteId: activeQuote?.id || activeQuote?.quoteId,
-          customerName: activeQuote?.customerName || `${passengers[0].firstName} ${passengers[0].lastName}`,
+          customerName: paxName,
+          passenger: paxName,
+          name: paxName,
           customerEmail: contactEmail,
           customerPhone: contactPhone,
           route: activeQuote?.route || `${activeQuote?.origin || 'JFK'} → ${activeQuote?.destination || 'DXB'}`,
           origin: activeQuote?.origin || 'JFK',
           destination: activeQuote?.destination || 'DXB',
           travelDate: activeQuote?.departureDate || '2026-10-16',
+          date: activeQuote?.departureDate || new Date().toLocaleDateString(),
           cabinClass: activeQuote?.cabinClass || 'Economy',
-          passengers: passengers.length,
+          passengers: passengers.length || 1,
           pnr: newPnr,
           airline: activeQuote?.airline || 'Emirates',
+          airlineCode: activeQuote?.airline || 'Emirates',
           flightNumber: activeQuote?.flightNumber || 'EK 202',
           supplier: activeQuote?.options?.[0]?.supplier || 'Amadeus GDS',
-          sellingPrice: (activeQuote?.totalPrice || 474) + ancillaryAddonCost,
+          fare: `$${Number(activeQuote?.netPrice || activeQuote?.netFare || (totalCost * 0.85)).toFixed(2)}`,
+          taxes: `$${Number(activeQuote?.taxes || (totalCost * 0.15)).toFixed(2)}`,
+          amount: `$${Number(totalCost).toFixed(2)}`,
+          paymentStatus: 'Payment Confirmed',
+          ticketStatus: 'Ready to Issue',
           bookingStatus: 'CONFIRMED'
         })
       });
+      if (res.ok) {
+        const json = await res.json();
+        const cached = localStorage.getItem('crm-bookings');
+        const list = cached ? JSON.parse(cached) : [];
+        if (json.data) {
+          localStorage.setItem('crm-bookings', JSON.stringify([json.data, ...list.filter(b => (b.bookingId || b.id) !== newBookingId)]));
+        }
+      }
     } catch (e) {
       console.warn('Booking API error:', e.message);
     }

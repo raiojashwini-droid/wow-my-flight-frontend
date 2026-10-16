@@ -143,16 +143,30 @@ export default function Suppliers() {
 
   const handleRunLiveSearchTest = async () => {
     setIsSearching(true);
+    showAlert('Querying live Travelopro GDS & Supplier API...', 'info');
+
+    // Future date: 35 days from today so GDS search never fails on past dates
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 35);
+    const departDateStr = futureDate.toISOString().split('T')[0];
+
     const results = await flightContentService.searchFlightsAcrossAdapters({
       origin: 'DEL',
       destination: 'LHR',
-      departDate: '2026-10-15',
-      cabinClass: 'Business',
-      passengers: 2
+      departDate: departDateStr,
+      cabinClass: 'Economy',
+      passengers: 1
     });
+
     setSearchResults(results);
     setIsSearching(false);
     setSearchSandboxOpen(true);
+
+    if (results && results.offersCount > 0) {
+      showAlert(`⚡ Retrieved ${results.offersCount} live flight offers from Travelopro GDS!`, 'success');
+    } else if (results?.error) {
+      showAlert(`Search note: ${results.error}`, 'warning');
+    }
   };
 
   const handleAddAdapter = (e) => {
@@ -225,9 +239,10 @@ export default function Suppliers() {
               color="info"
               startIcon={<PlayArrowIcon />}
               onClick={handleRunLiveSearchTest}
+              disabled={isSearching}
               sx={{ fontWeight: 800 }}
             >
-              ⚡ Run Multi-Supplier Live Search Test
+              {isSearching ? '⏳ Connecting to GDS API...' : '⚡ Run Multi-Supplier Live Search Test'}
             </Button>
             <Button
               variant="contained"
@@ -418,26 +433,29 @@ export default function Suppliers() {
               Query: {searchResults.query.origin} → {searchResults.query.destination} ({searchResults.query.departDate}) | Cabin: {searchResults.query.cabinClass}
             </Typography>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {searchResults.offers.map((offer, idx) => (
-                <Paper key={offer.id} elevation={0} sx={{ p: 2, border: '1px solid #BAE6FD', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(14, 165, 233, 0.12)' : '#F0F9FF', borderRadius: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip size="small" label={offer.supplierName} color="primary" sx={{ fontWeight: 800 }} />
-                      <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>{offer.airline} ({offer.flightNumber})</Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxHeight: '60vh', overflowY: 'auto', pr: 0.5 }}>
+              {searchResults.offers.slice(0, 20).map((offer, idx) => {
+                const cost = offer.supplierCost || offer.totalNetPrice || offer.fare || 0;
+                return (
+                  <Paper key={offer.id || idx} elevation={0} sx={{ p: 2, border: '1px solid #BAE6FD', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(14, 165, 233, 0.12)' : '#F0F9FF', borderRadius: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Chip size="small" label={offer.supplierName || 'Travelopro GDS'} color="primary" sx={{ fontWeight: 800 }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>{offer.airline} ({offer.flightNumber})</Typography>
+                      </Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'success.main' }}>
+                        Supplier Cost: ${typeof cost === 'number' ? cost.toLocaleString() : cost}
+                      </Typography>
                     </Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'success.main' }}>
-                      Supplier Cost: ${offer.supplierCost.toLocaleString()}
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                      {offer.departure} → {offer.arrival} | {offer.duration} ({offer.stops})
                     </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    {offer.departure} → {offer.arrival} | {offer.duration} ({offer.stops})
-                  </Typography>
-                  <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                    Protocol Used: <code>{offer.protocolUsed}</code> | Fare Family: <b>{offer.fareFamily}</b> | 🧳 {offer.baggage}
-                  </Typography>
-                </Paper>
-              ))}
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                      Protocol Used: <code>{offer.protocolUsed || 'REST / JSON API'}</code> | Fare Family: <b>{offer.fareFamily || 'Published Flexible'}</b> | 🧳 {offer.baggage || '1 Piece Included'}
+                    </Typography>
+                  </Paper>
+                );
+              })}
             </Box>
           </Box>
         )}
