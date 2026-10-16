@@ -1999,7 +1999,18 @@ export const dbService = {
   // ─── LEAD DISTRIBUTION & ROUTING API ───
   getDistributionWorkload: async () => {
     const res = await apiFetch('/api/leads/distribution/workload');
-    return res && res.success ? res.data : null;
+    if (!res || !res.success) return null;
+    const list = Array.isArray(res.data) ? res.data : [];
+    list.stats = res.stats || {
+      incomingLeads: 0,
+      autoAssigned: 0,
+      unassigned: 0,
+      roundRobin: 0,
+      skillBased: 0,
+      capacityBased: 0,
+      performanceBased: 0
+    };
+    return list;
   },
   getRoutingRules: async () => {
     const res = await apiFetch('/api/leads/distribution/rules');

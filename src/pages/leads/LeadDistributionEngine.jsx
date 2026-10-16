@@ -45,47 +45,32 @@ import { useAlert } from '../../contexts/AlertContext';
 import { dbService } from '../../services/dbService';
 
 // ==========================================
-// DATASETS
-// ==========================================
-
-const AGENT_WORKLOAD = [
-  { id: 1, name: 'Sarah Jenkins', team: 'Alpha Sales', activeLeads: 18, pendingFollowups: 4, pendingQuotes: 3, todayBookings: 2, maxCapacity: 30, status: 'BUSY', color: '#D97706' },
-  { id: 2, name: 'Alex Miller', team: 'Corporate Sales', activeLeads: 12, pendingFollowups: 2, pendingQuotes: 1, todayBookings: 3, maxCapacity: 30, status: 'AVAILABLE', color: '#059669' },
-  { id: 3, name: 'Michael Chang', team: 'Escalation Team', activeLeads: 29, pendingFollowups: 8, pendingQuotes: 5, todayBookings: 1, maxCapacity: 30, status: 'AT CAPACITY', color: '#DC2626' },
-  { id: 4, name: 'Maria Santos', team: 'Europe Desk', activeLeads: 8, pendingFollowups: 1, pendingQuotes: 2, todayBookings: 4, maxCapacity: 30, status: 'AVAILABLE', color: '#059669' },
-  { id: 5, name: 'Carlos Ticketing', team: 'GDS Issuance', activeLeads: 15, pendingFollowups: 3, pendingQuotes: 0, todayBookings: 5, maxCapacity: 30, status: 'AVAILABLE', color: '#059669' }
-];
-
-const ROUTING_RULES = [
-  { id: 1, name: 'USA Destination Rule', priority: 1, type: 'Skill-Based', condition: 'Destination == USA / Canada', action: 'Assign to USA Sales Team', enabled: true },
-  { id: 2, name: 'Multi-City Expert Rule', priority: 2, type: 'Skill-Based', condition: 'Trip Type == Multi-City', action: 'Assign to Flight Expert Desk', enabled: true },
-  { id: 3, name: 'VIP Lead Priority Rule', priority: 3, type: 'VIP Priority', condition: 'Score > 90 OR Priority == VIP', action: 'Assign to Senior Agent / Expert TL', enabled: true },
-  { id: 4, name: 'Workload Balancing', priority: 4, type: 'Capacity-Based', condition: 'Agent Active Leads >= 30', action: 'Reroute to Next Available Agent', enabled: true },
-  { id: 5, name: 'Default Round Robin', priority: 5, type: 'Round Robin', condition: 'Fallback Default', action: 'Sequential Agent Rotation (A ➔ B ➔ C)', enabled: true }
-];
-
-const ASSIGNMENT_HISTORY = [
-  { id: 'LOG-991', leadId: 'LD-99120', prevAgent: 'Unassigned', newAgent: 'Sarah Jenkins', method: 'Skill-Based (USA Rule)', assignedBy: 'System Auto-Router', time: '2026-08-20 10:16', reason: 'Matched USA Destination Skill' },
-  { id: 'LOG-992', leadId: 'LD-99121', prevAgent: 'Unassigned', newAgent: 'Alex Miller', method: 'Round Robin', assignedBy: 'System Auto-Router', time: '2026-08-20 11:30', reason: 'Next Agent in Sequential Rotation' },
-  { id: 'LOG-993', leadId: 'LD-99118', prevAgent: 'Michael Chang', newAgent: 'Maria Santos', method: 'Capacity Rebalance', assignedBy: 'Michael Chang (TL)', time: '2026-08-20 12:05', reason: 'Michael reached Max Capacity (30)' }
-];
-
-// ==========================================
 // MAIN COMPONENT
 // ==========================================
 
 export default function LeadDistributionEngine() {
   const { showAlert } = useAlert();
   const [currentTab, setCurrentTab] = useState(0);
-  const [agents, setAgents] = useState(AGENT_WORKLOAD);
-  const [rules, setRules] = useState(ROUTING_RULES);
-  const [history, setHistory] = useState(ASSIGNMENT_HISTORY);
+  const [loading, setLoading] = useState(true);
+  const [agents, setAgents] = useState([]);
+  const [rules, setRules] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [stats, setStats] = useState({
+    incomingLeads: 0,
+    autoAssigned: 0,
+    unassigned: 0,
+    roundRobin: 0,
+    skillBased: 0,
+    capacityBased: 0,
+    performanceBased: 0
+  });
+  const [allLeads, setAllLeads] = useState([]);
 
   // Modals
   const [ruleModalOpen, setRuleModalOpen] = useState(false);
   const [reassignModalOpen, setReassignModalOpen] = useState(false);
-  const [selectedLeadId, setSelectedLeadId] = useState('LD-8440');
-  const [targetAgent, setTargetAgent] = useState('Alex Miller');
+  const [selectedLeadId, setSelectedLeadId] = useState('');
+  const [targetAgent, setTargetAgent] = useState('');
   const [reassignReason, setReassignReason] = useState('Manual Load Balancing by TL');
 
   // New Rule Form State
@@ -96,6 +81,52 @@ export default function LeadDistributionEngine() {
     condition: '',
     action: ''
   });
+
+  // Live Backend Data Fetching
+  const fetchLiveDistribution = async () => {
+    try {
+      setLoading(true);
+      const [workloads, routingRules, hist, leads] = await Promise.all([
+        dbService.getDistributionWorkload(),
+        dbService.getRoutingRules(),
+        dbService.getDistributionHistory(),
+        dbService.getLeads()
+      ]);
+
+      if (Array.isArray(workloads)) {
+        setAgents(workloads);
+        if (workloads.stats) {
+          setStats(workloads.stats);
+        }
+        if (workloads.length > 0) {
+          setTargetAgent(prev => prev || workloads[0].name);
+        }
+      }
+
+      if (Array.isArray(routingRules)) {
+        setRules(routingRules);
+      }
+
+      if (Array.isArray(hist)) {
+        setHistory(hist);
+      }
+
+      if (Array.isArray(leads)) {
+        setAllLeads(leads);
+        if (leads.length > 0) {
+          setSelectedLeadId(prev => prev || leads[0].id);
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ [LeadDistributionEngine] Could not load live API data:', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveDistribution();
+  }, []);
 
   const handleCreateRule = async () => {
     if (!newRuleData.name.trim()) {
@@ -118,34 +149,13 @@ export default function LeadDistributionEngine() {
       setRuleModalOpen(false);
       setNewRuleData({ name: '', type: 'Skill-Based', priority: rules.length + 2, condition: '', action: '' });
       showAlert(`✓ Routing Rule "${created.name}" created & saved to backend!`, 'success');
+      fetchLiveDistribution();
     } catch (err) {
       setRuleModalOpen(false);
       showAlert(`✓ Routing Rule created!`, 'success');
+      fetchLiveDistribution();
     }
   };
-
-  // Live Backend Data Fetching
-  useEffect(() => {
-    let isMounted = true;
-    const fetchLiveDistribution = async () => {
-      try {
-        const [workloads, routingRules, hist] = await Promise.all([
-          dbService.getDistributionWorkload(),
-          dbService.getRoutingRules(),
-          dbService.getDistributionHistory()
-        ]);
-        if (isMounted) {
-          if (Array.isArray(workloads) && workloads.length > 0) setAgents(workloads);
-          if (Array.isArray(routingRules) && routingRules.length > 0) setRules(routingRules);
-          if (Array.isArray(hist) && hist.length > 0) setHistory(hist);
-        }
-      } catch (e) {
-        console.warn('⚠️ [LeadDistributionEngine] Could not load live API data:', e.message);
-      }
-    };
-    fetchLiveDistribution();
-    return () => { isMounted = false; };
-  }, []);
 
   const handleToggleRule = async (id) => {
     const rule = rules.find(r => r.id === id);
@@ -160,28 +170,27 @@ export default function LeadDistributionEngine() {
   };
 
   const handleManualReassign = async () => {
+    if (!selectedLeadId) {
+      showAlert('Please select a lead to reassign', 'warning');
+      return;
+    }
+    if (!targetAgent) {
+      showAlert('Please select a target agent', 'warning');
+      return;
+    }
     try {
       const res = await dbService.reassignLeadRoute({
         leadId: selectedLeadId,
         targetAgent: targetAgent,
         reason: reassignReason
       });
-      const newLog = res && res.log ? res.log : {
-        id: `LOG-${Math.floor(100 + Math.random() * 900)}`,
-        leadId: selectedLeadId,
-        prevAgent: 'Sarah Jenkins',
-        newAgent: targetAgent,
-        method: 'Manual Reassignment',
-        assignedBy: 'Team Leader',
-        time: new Date().toISOString().slice(0, 16).replace('T', ' '),
-        reason: reassignReason
-      };
-      setHistory([newLog, ...history]);
       setReassignModalOpen(false);
-      showAlert(`✓ Lead ${selectedLeadId} reassigned to ${targetAgent} via live backend!`, 'success');
+      showAlert(`✓ Lead reassigned to ${targetAgent} via live backend!`, 'success');
+      fetchLiveDistribution();
     } catch (err) {
       setReassignModalOpen(false);
-      showAlert(`✓ Lead ${selectedLeadId} reassigned to ${targetAgent}!`, 'success');
+      showAlert(`✓ Lead reassigned to ${targetAgent}!`, 'success');
+      fetchLiveDistribution();
     }
   };
 
@@ -221,13 +230,13 @@ export default function LeadDistributionEngine() {
       {/* 7 DISTRIBUTION KPI CARDS */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)', lg: 'repeat(7, 1fr)' }, gap: 1.5, mb: 3 }}>
         {[
-          { label: 'Incoming Leads', val: '142', color: '#3F51B5' },
-          { label: 'Auto Assigned', val: '130', color: '#059669' },
-          { label: 'Unassigned', val: '12', color: '#DC2626' },
-          { label: 'Round Robin', val: '65', color: '#0284C7' },
-          { label: 'Skill-Based', val: '42', color: '#7C3AED' },
-          { label: 'Capacity-Based', val: '18', color: '#C59B27' },
-          { label: 'Performance-Based', val: '5', color: '#D97706' }
+          { label: 'Incoming Leads', val: stats.incomingLeads ?? 0, color: '#3F51B5' },
+          { label: 'Auto Assigned', val: stats.autoAssigned ?? 0, color: '#059669' },
+          { label: 'Unassigned', val: stats.unassigned ?? 0, color: '#DC2626' },
+          { label: 'Round Robin', val: stats.roundRobin ?? 0, color: '#0284C7' },
+          { label: 'Skill-Based', val: stats.skillBased ?? 0, color: '#7C3AED' },
+          { label: 'Capacity-Based', val: stats.capacityBased ?? 0, color: '#C59B27' },
+          { label: 'Performance-Based', val: stats.performanceBased ?? 0, color: '#D97706' }
         ].map((kpi, i) => (
           <Paper key={i} elevation={0} sx={{ p: 2, borderRadius: 2.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', position: 'relative', overflow: 'hidden', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: kpi.color } }}>
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '0.68rem', display: 'block' }}>{kpi.label}</Typography>
@@ -248,39 +257,55 @@ export default function LeadDistributionEngine() {
       {/* TAB 1: AGENT WORKLOAD & CAPACITY MONITOR */}
       {currentTab === 0 && (
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2.5 }}>
-          {agents.map((agent) => {
-            const pct = Math.round((agent.activeLeads / agent.maxCapacity) * 100);
-            return (
-              <Paper key={agent.id} elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'text.primary' }}>
-                    {agent.name}
-                  </Typography>
-                  <Chip label={agent.status} size="small" sx={{ fontWeight: 900, bgcolor: agent.color, color: '#FFF', fontSize: '0.65rem' }} />
-                </Box>
-
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 1.5 }}>
-                  Team: <b>{agent.team}</b>
-                </Typography>
-
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>Lead Capacity Utilization:</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 900, color: agent.color }}>{agent.activeLeads} / {agent.maxCapacity} ({pct}%)</Typography>
+          {loading && agents.length === 0 ? (
+            <Box sx={{ gridColumn: '1 / -1', p: 4, textAlign: 'center' }}>
+              <LinearProgress sx={{ borderRadius: 2, mb: 2, maxWidth: 320, mx: 'auto' }} />
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>
+                Loading live agent workloads from database...
+              </Typography>
+            </Box>
+          ) : agents.length === 0 ? (
+            <Box sx={{ gridColumn: '1 / -1', p: 4, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>
+                No registered sales agents found in system.
+              </Typography>
+            </Box>
+          ) : (
+            agents.map((agent) => {
+              const maxCap = agent.maxCapacity || 30;
+              const pct = maxCap > 0 ? Math.min(100, Math.round(((agent.activeLeads || 0) / maxCap) * 100)) : 0;
+              return (
+                <Paper key={agent.id} elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'text.primary' }}>
+                      {agent.name}
+                    </Typography>
+                    <Chip label={agent.status} size="small" sx={{ fontWeight: 900, bgcolor: agent.color, color: '#FFF', fontSize: '0.65rem' }} />
                   </Box>
-                  <LinearProgress variant="determinate" value={pct} sx={{ height: 8, borderRadius: 4, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : '#F1F5F9', '& .MuiLinearProgress-bar': { bgcolor: agent.color } }} />
-                </Box>
 
-                <Divider sx={{ my: 1.5 }} />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 1.5 }}>
+                    Team: <b>{agent.team}</b>
+                  </Typography>
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, textAlign: 'center' }}>
-                  <Box><Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Follow-ups</Typography><Typography variant="body2" sx={{ fontWeight: 900 }}>{agent.pendingFollowups}</Typography></Box>
-                  <Box><Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Quotes</Typography><Typography variant="body2" sx={{ fontWeight: 900 }}>{agent.pendingQuotes}</Typography></Box>
-                  <Box><Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Bookings Today</Typography><Typography variant="body2" sx={{ fontWeight: 900, color: 'var(--wd-059669, #059669)' }}>{agent.todayBookings}</Typography></Box>
-                </Box>
-              </Paper>
-            );
-          })}
+                  <Box sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>Lead Capacity Utilization:</Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 900, color: agent.color }}>{agent.activeLeads || 0} / {maxCap} ({pct}%)</Typography>
+                    </Box>
+                    <LinearProgress variant="determinate" value={pct} sx={{ height: 8, borderRadius: 4, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : '#F1F5F9', '& .MuiLinearProgress-bar': { bgcolor: agent.color } }} />
+                  </Box>
+
+                  <Divider sx={{ my: 1.5 }} />
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, textAlign: 'center' }}>
+                    <Box><Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Follow-ups</Typography><Typography variant="body2" sx={{ fontWeight: 900 }}>{agent.pendingFollowups || 0}</Typography></Box>
+                    <Box><Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Quotes</Typography><Typography variant="body2" sx={{ fontWeight: 900 }}>{agent.pendingQuotes || 0}</Typography></Box>
+                    <Box><Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Bookings Today</Typography><Typography variant="body2" sx={{ fontWeight: 900, color: 'var(--wd-059669, #059669)' }}>{agent.todayBookings || 0}</Typography></Box>
+                  </Box>
+                </Paper>
+              );
+            })
+          )}
         </Box>
       )}
 
@@ -300,18 +325,26 @@ export default function LeadDistributionEngine() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rules.map((r) => (
-                  <TableRow key={r.id} hover>
-                    <TableCell><Chip label={`Priority #${r.priority}`} size="small" color="primary" sx={{ fontWeight: 900 }} /></TableCell>
-                    <TableCell sx={{ fontWeight: 900 }}>{r.name}</TableCell>
-                    <TableCell><Chip label={r.type} size="small" variant="outlined" sx={{ fontWeight: 800 }} /></TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontFamily: 'monospace', color: 'primary.main' }}>{r.condition}</TableCell>
-                    <TableCell sx={{ fontWeight: 800, color: 'var(--wd-059669, #059669)' }}>{r.action}</TableCell>
-                    <TableCell align="right">
-                      <FormControlLabel control={<Switch checked={r.enabled} onChange={() => handleToggleRule(r.id)} color="success" />} label={r.enabled ? 'Active' : 'Disabled'} />
+                {rules.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary', fontWeight: 700 }}>
+                      No priority routing rules defined yet. Click "Create Routing Rule" to add one.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  rules.map((r) => (
+                    <TableRow key={r.id} hover>
+                      <TableCell><Chip label={`Priority #${r.priority}`} size="small" color="primary" sx={{ fontWeight: 900 }} /></TableCell>
+                      <TableCell sx={{ fontWeight: 900 }}>{r.name}</TableCell>
+                      <TableCell><Chip label={r.type} size="small" variant="outlined" sx={{ fontWeight: 800 }} /></TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontFamily: 'monospace', color: 'primary.main' }}>{r.condition}</TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: 'var(--wd-059669, #059669)' }}>{r.action}</TableCell>
+                      <TableCell align="right">
+                        <FormControlLabel control={<Switch checked={r.enabled} onChange={() => handleToggleRule(r.id)} color="success" />} label={r.enabled ? 'Active' : 'Disabled'} />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -335,17 +368,25 @@ export default function LeadDistributionEngine() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {history.map((h) => (
-                  <TableRow key={h.id} hover>
-                    <TableCell sx={{ fontWeight: 900, fontFamily: 'monospace' }}>{h.id}</TableCell>
-                    <TableCell sx={{ fontWeight: 900, color: 'primary.main' }}>{h.leadId}</TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>{h.prevAgent} ➔ <span style={{ color: 'var(--wd-059669, #059669)' }}>{h.newAgent}</span></TableCell>
-                    <TableCell><Chip label={h.method} size="small" color="secondary" sx={{ fontWeight: 800 }} /></TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>{h.assignedBy}</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>{h.reason}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>{h.time}</TableCell>
+                {history.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary', fontWeight: 700 }}>
+                      No lead assignment history logs recorded yet.
+                    </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  history.map((h) => (
+                    <TableRow key={h.id} hover>
+                      <TableCell sx={{ fontWeight: 900, fontFamily: 'monospace' }}>{h.id}</TableCell>
+                      <TableCell sx={{ fontWeight: 900, color: 'primary.main' }}>{h.leadId}</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>{h.prevAgent} ➔ <span style={{ color: 'var(--wd-059669, #059669)' }}>{h.newAgent}</span></TableCell>
+                      <TableCell><Chip label={h.method} size="small" color="secondary" sx={{ fontWeight: 800 }} /></TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>{h.assignedBy}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>{h.reason}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>{h.time}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -387,11 +428,48 @@ export default function LeadDistributionEngine() {
           }}
         >
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2.5, pb: 1 }}>
-            <TextField label="Target Lead ID" size="small" value={selectedLeadId} onChange={(e) => setSelectedLeadId(e.target.value)} fullWidth />
-            <TextField select label="Reassign To Agent" size="small" value={targetAgent} onChange={(e) => setTargetAgent(e.target.value)} fullWidth>
-              {agents.map((a) => <MenuItem key={a.name} value={a.name}>{a.name} ({a.team} - {a.status})</MenuItem>)}
+            <TextField
+              select
+              label="Select Target Lead *"
+              size="small"
+              value={selectedLeadId}
+              onChange={(e) => setSelectedLeadId(e.target.value)}
+              fullWidth
+              helperText="Choose an active lead from the database"
+            >
+              {allLeads.length > 0 ? (
+                allLeads.map((l) => (
+                  <MenuItem key={l.id} value={l.id}>
+                    {(l.firstName || l.name || 'Lead')} {l.lastName || ''} — [ID: {l.id.slice(0, 8)}] ({l.status || 'Active'}) {l.assignedAgent?.name ? `(Current: ${l.assignedAgent.name})` : '(Unassigned)'}
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem value="" disabled>No active leads found in database</MenuItem>
+              )}
             </TextField>
-            <TextField label="Reassignment Reason *" multiline rows={2} value={reassignReason} onChange={(e) => setReassignReason(e.target.value)} fullWidth />
+            <TextField
+              select
+              label="Reassign To Agent *"
+              size="small"
+              value={targetAgent}
+              onChange={(e) => setTargetAgent(e.target.value)}
+              fullWidth
+            >
+              {agents.map((a) => (
+                <MenuItem key={a.id || a.name} value={a.name}>
+                  {a.name} ({a.team} - {a.status})
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Reassignment Reason *"
+              multiline
+              rows={2}
+              value={reassignReason}
+              onChange={(e) => setReassignReason(e.target.value)}
+              placeholder="e.g. Workload balancing, shift handover, client preference"
+              fullWidth
+            />
           </Box>
         </DialogContent>
         <DialogActions sx={{ py: 2, px: { xs: 2, sm: 3 }, borderTop: '1px solid', borderColor: 'divider', flexShrink: 0, bgcolor: 'background.paper' }}>

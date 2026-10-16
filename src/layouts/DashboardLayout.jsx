@@ -392,20 +392,20 @@ export const DashboardLayout = () => {
   };
 
   const menuItems = [
-    // PHASE 1 – SALES
+    // PHASE 1 – SALES (Chronological Sales Lifecycle Order)
     { section: 'PHASE 1 – SALES', label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader', 'flight_expert', 'ticketing_agent'] },
-    { section: 'PHASE 1 – SALES', label: 'Leads', icon: <PeopleIcon />, path: '/leads', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Customer 360', icon: <BusinessCenterIcon />, path: '/customers', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Calling System', icon: <PhoneInTalkIcon />, path: '/agents', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Follow-ups', icon: <CalendarMonthIcon />, path: '/consultations/calendar', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Quotes', icon: <RequestQuoteIcon />, path: '/quotes', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'consultant', 'flight_expert'] },
-    { section: 'PHASE 1 – SALES', label: 'Lead Distribution', icon: <SwapHorizIcon />, path: '/lead-distribution', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Lead Lifecycle', icon: <AutoFixHighIcon />, path: '/lead-lifecycle', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 1 – SALES', label: 'Duplicate Protection', icon: <SecurityIcon />, path: '/duplicate-leads', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Communication Hub', icon: <ForumIcon />, path: '/communication-center', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Lead Distribution', icon: <SwapHorizIcon />, path: '/lead-distribution', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Leads', icon: <PeopleIcon />, path: '/leads', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Lead Lifecycle', icon: <AutoFixHighIcon />, path: '/lead-lifecycle', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 1 – SALES', label: 'Live Web Chat', icon: <ChatIcon />, path: '/live-chat', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 1 – SALES', label: 'Calling & Softphone', icon: <PhoneInTalkIcon />, path: '/calling-desk', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 1 – SALES', label: 'Call Dispositions', icon: <NoteAltIcon />, path: '/call-dispositions', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Follow-ups', icon: <CalendarMonthIcon />, path: '/consultations/calendar', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Communication Hub', icon: <ForumIcon />, path: '/communication-center', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Quotes', icon: <RequestQuoteIcon />, path: '/quotes', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'consultant', 'flight_expert'] },
+    { section: 'PHASE 1 – SALES', label: 'Customer 360', icon: <BusinessCenterIcon />, path: '/customers', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Calling System', icon: <PhoneInTalkIcon />, path: '/agents', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 1 – SALES', label: 'Sales Dashboard', icon: <AssessmentIcon />, path: '/agents/performance', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'consultant'] },
 
     // PHASE 2 – BOOKING OPERATIONS
