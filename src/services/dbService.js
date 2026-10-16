@@ -1265,36 +1265,75 @@ export const dbService = {
     return conv;
   },
 
-  // NOTIFICATIONS
-  getNotifications: async () => {
+  // NOTIFICATIONS (Live PostgreSQL /api/notifications)
+  getNotifications: async (role) => {
+    try {
+      const url = role ? `/api/notifications?role=${encodeURIComponent(role)}` : '/api/notifications';
+      const res = await apiFetch(url);
+      if (res && res.success && Array.isArray(res.data)) {
+        const cacheKey = role ? `crm-notifications-${role}` : 'crm-notifications';
+        localStorage.setItem(cacheKey, JSON.stringify(res.data));
+        return res.data;
+      }
+    } catch (e) {
+      console.warn('[dbService] getNotifications API error:', e.message);
+    }
+    const cacheKey = role ? `crm-notifications-${role}` : 'crm-notifications';
+    const cached = localStorage.getItem(cacheKey) || localStorage.getItem('crm-notifications');
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
     await delay();
-    return loadState('crm-notifications', NOTIFICATIONS);
+    return [];
   },
   addNotification: async (notif) => {
-    await delay();
-    const notifications = loadState('crm-notifications', NOTIFICATIONS);
+    try {
+      const res = await apiFetch('/api/notifications', {
+        method: 'POST',
+        body: JSON.stringify(notif),
+      });
+      if (res && res.success && res.data) {
+        return res.data;
+      }
+    } catch (e) {
+      console.warn('[dbService] addNotification API error:', e.message);
+    }
+    const notifications = loadState('crm-notifications', []);
     const newNotif = {
       id: 'notif_' + Date.now(),
       read: false,
       time: 'Just now',
-      ...notif
+      ...notif,
     };
     notifications.unshift(newNotif);
     saveState('crm-notifications', notifications);
     return newNotif;
   },
   markNotificationRead: async (id) => {
-    await delay();
-    const notifications = loadState('crm-notifications', NOTIFICATIONS);
-    const updated = notifications.map(n => n.id === id ? { ...n, read: true } : n);
+    try {
+      await apiFetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
+    } catch (e) {
+      console.warn('[dbService] markNotificationRead API error:', e.message);
+    }
+    const notifications = loadState('crm-notifications', []);
+    const updated = notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
     saveState('crm-notifications', updated);
     return id;
   },
-  markAllNotificationsRead: async () => {
-    await delay();
-    const notifications = loadState('crm-notifications', NOTIFICATIONS);
-    const updated = notifications.map(n => ({ ...n, read: true }));
-    saveState('crm-notifications', updated);
+  markAllNotificationsRead: async (role) => {
+    try {
+      await apiFetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+    } catch (e) {
+      console.warn('[dbService] markAllNotificationsRead API error:', e.message);
+    }
+    const cacheKey = role ? `crm-notifications-${role}` : 'crm-notifications';
+    const notifications = loadState(cacheKey, loadState('crm-notifications', []));
+    const updated = notifications.map((n) => ({ ...n, read: true }));
+    saveState(cacheKey, updated);
     return true;
   },
 

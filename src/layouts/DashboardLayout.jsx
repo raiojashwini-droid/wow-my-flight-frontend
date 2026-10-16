@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import IncomingCallModal from '../components/IncomingCallModal';
 import CallDispositionModal from '../components/CallDispositionModal';
@@ -17,6 +17,7 @@ import Badge from '@mui/material/Badge';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import Tooltip from '@mui/material/Tooltip';
+import Chip from '@mui/material/Chip';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
@@ -90,6 +91,259 @@ import SearchBar from '../components/SearchBar';
 const drawerWidth = 260;
 const collapsedDrawerWidth = 72;
 
+const getNotificationMeta = (type) => {
+  switch (type) {
+    case 'booking':
+      return {
+        icon: <AirplaneTicketIcon sx={{ fontSize: 18 }} />,
+        color: '#10B981',
+        bg: 'rgba(16, 185, 129, 0.12)',
+        label: 'Booking',
+      };
+    case 'payment':
+      return {
+        icon: <MonetizationOnIcon sx={{ fontSize: 18 }} />,
+        color: '#059669',
+        bg: 'rgba(5, 150, 105, 0.12)',
+        label: 'Payment',
+      };
+    case 'lead':
+      return {
+        icon: <FlightIcon sx={{ fontSize: 18 }} />,
+        color: '#2563EB',
+        bg: 'rgba(37, 99, 235, 0.12)',
+        label: 'Lead',
+      };
+    case 'document':
+      return {
+        icon: <DescriptionIcon sx={{ fontSize: 18 }} />,
+        color: '#D97706',
+        bg: 'rgba(217, 119, 6, 0.12)',
+        label: 'Document',
+      };
+    case 'call':
+      return {
+        icon: <PhoneInTalkIcon sx={{ fontSize: 18 }} />,
+        color: '#7C3AED',
+        bg: 'rgba(124, 58, 237, 0.12)',
+        label: 'Call',
+      };
+    case 'sla':
+      return {
+        icon: <NotificationsIcon sx={{ fontSize: 18 }} />,
+        color: '#DC2626',
+        bg: 'rgba(220, 38, 38, 0.12)',
+        label: 'SLA Alert',
+      };
+    default:
+      return {
+        icon: <NotificationsIcon sx={{ fontSize: 18 }} />,
+        color: '#0284C7',
+        bg: 'rgba(2, 132, 199, 0.12)',
+        label: 'System',
+      };
+  }
+};
+
+// Role-specific notification configuration: titles, departments, allowed types, and custom filter chips
+const ROLE_NOTIFICATION_CONFIG = {
+  super_admin: {
+    title: 'Central Alerts',
+    roleLabel: 'Super Admin',
+    allowedTypes: null,
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'payment', label: 'Payments' },
+      { id: 'lead', label: 'Leads' },
+      { id: 'document', label: 'QA Docs' },
+      { id: 'call', label: 'Calls' },
+      { id: 'sla', label: 'SLA Alerts' },
+    ],
+  },
+  admin: {
+    title: 'Central Alerts',
+    roleLabel: 'Admin',
+    allowedTypes: null,
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'payment', label: 'Payments' },
+      { id: 'lead', label: 'Leads' },
+      { id: 'document', label: 'QA Docs' },
+      { id: 'call', label: 'Calls' },
+      { id: 'sla', label: 'SLA Alerts' },
+    ],
+  },
+  team_leader: {
+    title: 'Team Leader Alerts',
+    roleLabel: 'Team Leader',
+    allowedTypes: ['lead', 'booking', 'call', 'sla', 'document', 'system'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'lead', label: 'Leads' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'call', label: 'Calls' },
+      { id: 'sla', label: 'SLA Alerts' },
+      { id: 'document', label: 'QA Docs' },
+    ],
+  },
+  expert_team_leader: {
+    title: 'Expert TL Alerts',
+    roleLabel: 'Expert TL',
+    allowedTypes: ['lead', 'booking', 'call', 'sla', 'document', 'system'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'lead', label: 'Leads' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'call', label: 'Calls' },
+      { id: 'sla', label: 'SLA Alerts' },
+      { id: 'document', label: 'QA Docs' },
+    ],
+  },
+  consultant: {
+    title: 'Sales Agent Alerts',
+    roleLabel: 'Sales Agent',
+    allowedTypes: ['lead', 'booking', 'call', 'sla'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'lead', label: 'Leads' },
+      { id: 'call', label: 'Calls & Tasks' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'sla', label: 'SLA Alerts' },
+    ],
+  },
+  sales_agent: {
+    title: 'Sales Agent Alerts',
+    roleLabel: 'Sales Agent',
+    allowedTypes: ['lead', 'booking', 'call', 'sla'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'lead', label: 'Leads' },
+      { id: 'call', label: 'Calls & Tasks' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'sla', label: 'SLA Alerts' },
+    ],
+  },
+  agent: {
+    title: 'Sales Agent Alerts',
+    roleLabel: 'Sales Agent',
+    allowedTypes: ['lead', 'booking', 'call', 'sla'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'lead', label: 'Leads' },
+      { id: 'call', label: 'Calls & Tasks' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'sla', label: 'SLA Alerts' },
+    ],
+  },
+  ticketing_agent: {
+    title: 'Ticketing & Issuance Alerts',
+    roleLabel: 'Ticketing Agent',
+    allowedTypes: ['booking', 'document', 'call', 'sla'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'document', label: 'Passports & Visas' },
+      { id: 'call', label: 'Calls' },
+      { id: 'sla', label: 'SLA Alerts' },
+    ],
+  },
+  flight_expert: {
+    title: 'Flight Expert Alerts',
+    roleLabel: 'Flight Expert',
+    allowedTypes: ['booking', 'document', 'call', 'sla'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'document', label: 'Travel Docs' },
+      { id: 'call', label: 'Calls' },
+      { id: 'sla', label: 'SLA Alerts' },
+    ],
+  },
+  operations: {
+    title: 'Operations Alerts',
+    roleLabel: 'Operations Desk',
+    allowedTypes: ['booking', 'document', 'call', 'sla'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'document', label: 'Customer Docs' },
+      { id: 'call', label: 'Support Calls' },
+      { id: 'sla', label: 'SLA Alerts' },
+    ],
+  },
+  after_sales: {
+    title: 'After-Sales Alerts',
+    roleLabel: 'After-Sales',
+    allowedTypes: ['booking', 'document', 'call', 'sla'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'document', label: 'Customer Docs' },
+      { id: 'call', label: 'Support Calls' },
+      { id: 'sla', label: 'SLA Alerts' },
+    ],
+  },
+  finance: {
+    title: 'Finance & Invoicing Alerts',
+    roleLabel: 'Finance Desk',
+    allowedTypes: ['payment', 'booking', 'system'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'payment', label: 'Payments' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'system', label: 'System' },
+    ],
+  },
+  accountant: {
+    title: 'Accounts Alerts',
+    roleLabel: 'Accountant',
+    allowedTypes: ['payment', 'booking', 'system'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'payment', label: 'Payments' },
+      { id: 'booking', label: 'Bookings' },
+      { id: 'system', label: 'System' },
+    ],
+  },
+  marketing: {
+    title: 'Marketing Alerts',
+    roleLabel: 'Marketing',
+    allowedTypes: ['lead', 'system'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'lead', label: 'Inbound Leads' },
+      { id: 'system', label: 'System' },
+    ],
+  },
+  'marketing-manager': {
+    title: 'Marketing Alerts',
+    roleLabel: 'Marketing',
+    allowedTypes: ['lead', 'system'],
+    tabs: [
+      { id: 'all', label: 'All' },
+      { id: 'unread', label: 'Unread' },
+      { id: 'lead', label: 'Inbound Leads' },
+      { id: 'system', label: 'System' },
+    ],
+  },
+};
+
 export const DashboardLayout = () => {
   const { mode, toggleTheme } = useThemeMode();
   const { currentUser, changeRole, logout, isAdmin, isConsultant, isFinance, isOperations } = useAuth();
@@ -98,13 +352,47 @@ export const DashboardLayout = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
 
+  const currentRole = currentUser?.role || 'super_admin';
+  const notifConfig = ROLE_NOTIFICATION_CONFIG[currentRole] || ROLE_NOTIFICATION_CONFIG.super_admin;
+
+  const [notifFilter, setNotifFilter] = useState('all');
+
+  // Reset category filter when switching roles to avoid invalid filter state
+  useEffect(() => {
+    setNotifFilter('all');
+  }, [currentRole]);
+
   const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: dbService.getNotifications,
+    queryKey: ['notifications', currentRole],
+    queryFn: () => dbService.getNotifications(currentRole),
     refetchInterval: 3000,
   });
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  // Role-specific allowed notifications safety filter
+  const roleNotifications = useMemo(() => {
+    if (!notifConfig.allowedTypes) return notifications;
+    return notifications.filter(n => notifConfig.allowedTypes.includes(n.type));
+  }, [notifications, notifConfig.allowedTypes]);
+
+  const unreadCount = roleNotifications.filter(n => !n.read).length;
+
+  const filteredNotifications = useMemo(() => {
+    if (notifFilter === 'unread') return roleNotifications.filter(n => !n.read);
+    if (notifFilter === 'all') return roleNotifications;
+    if (notifFilter === 'document') return roleNotifications.filter(n => n.type === 'document' || n.type === 'qa');
+    return roleNotifications.filter(n => n.type === notifFilter);
+  }, [roleNotifications, notifFilter]);
+
+  const filterTabs = useMemo(() => {
+    return notifConfig.tabs.map((tab) => {
+      let count = 0;
+      if (tab.id === 'all') count = roleNotifications.length;
+      else if (tab.id === 'unread') count = unreadCount;
+      else if (tab.id === 'document') count = roleNotifications.filter(n => n.type === 'document' || n.type === 'qa').length;
+      else count = roleNotifications.filter(n => n.type === tab.id).length;
+      return { ...tab, count, displayLabel: `${tab.label} (${count})` };
+    });
+  }, [notifConfig.tabs, roleNotifications, unreadCount]);
 
   const { data: conversations = [] } = useQuery({
     queryKey: ['conversations'],
@@ -241,18 +529,29 @@ export const DashboardLayout = () => {
   });
 
   const markAllReadMutation = useMutation({
-    mutationFn: dbService.markAllNotificationsRead,
+    mutationFn: (role) => dbService.markAllNotificationsRead(role),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
   const handleMarkAllRead = () => {
-    markAllReadMutation.mutate();
-    showAlert('All notifications marked as read', 'success');
+    markAllReadMutation.mutate(currentRole);
+    showAlert(`All ${notifConfig.roleLabel} notifications marked as read`, 'success');
   };
 
-  const handleNotifClick = (id) => {
-    markReadMutation.mutate(id);
+  const handleNotifClick = (notif) => {
+    const id = typeof notif === 'string' ? notif : notif?.id;
+    if (id) markReadMutation.mutate(id);
     handleNotifMenuClose();
+    if (notif?.link) {
+      let targetPath = notif.link;
+      // If user is not super_admin but link has /super_admin/, redirect to their role-safe equivalent
+      if (currentRole !== 'super_admin' && targetPath.startsWith('/super_admin/')) {
+        if (targetPath.includes('/qa')) targetPath = '/documents/verify';
+        else if (targetPath.includes('/sla-management')) targetPath = '/sla-management';
+        else if (targetPath.includes('/finance')) targetPath = '/payments/refund-commission';
+      }
+      navigate(targetPath);
+    }
   };
 
   const getRolePrefix = () => {
@@ -1036,19 +1335,11 @@ export const DashboardLayout = () => {
               </IconButton>
             </Tooltip>
 
-            {/* Communication Hub Shortcut */}
-            <Tooltip title="Communication Hub (Live Chats & Softphone)">
-              <IconButton color="inherit" onClick={() => navigateTo(getDynamicPath({ path: '/communication-center?tab=chat' }))}>
-                <Badge badgeContent={totalSocialUnread} color="error">
-                  <ForumIcon />
-                </Badge>
-              </IconButton>
-            </Tooltip>
 
             {/* Notifications Popover */}
-            <Tooltip title="Notifications">
+            <Tooltip title="Real-Time System Notifications">
               <IconButton color="inherit" onClick={handleNotifMenuOpen}>
-                <Badge badgeContent={unreadCount} color="error">
+                <Badge badgeContent={unreadCount} color="error" max={99}>
                   <NotificationsIcon />
                 </Badge>
               </IconButton>
@@ -1063,66 +1354,250 @@ export const DashboardLayout = () => {
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
               PaperProps={{
                 sx: {
-                  width: { xs: 'min(92vw, 340px)', sm: 340 },
-                  maxHeight: { xs: '70dvh', sm: 440 },
+                  width: { xs: 'min(94vw, 380px)', sm: 400 },
+                  maxHeight: { xs: '75dvh', sm: 520 },
                   borderRadius: 3,
-                  mt: 1,
+                  mt: 1.2,
                   overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',
+                  boxShadow: '0 12px 36px rgba(0,0,0,0.22)',
+                  border: '1px solid',
+                  borderColor: 'divider',
                 },
               }}
             >
-              <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                  Central Real-Time Alerts
-                </Typography>
+              {/* Header */}
+              <Box sx={{ p: 2, pb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 900, letterSpacing: '-0.2px' }}>
+                      {notifConfig.title}
+                    </Typography>
+                    {unreadCount > 0 && (
+                      <Chip
+                        size="small"
+                        label={`${unreadCount} New`}
+                        color="error"
+                        sx={{ height: 20, fontSize: '0.68rem', fontWeight: 800 }}
+                      />
+                    )}
+                  </Box>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.68rem', fontWeight: 600 }}>
+                    Role: <strong style={{ color: '#2563EB' }}>{notifConfig.roleLabel}</strong> • Filtered for your department
+                  </Typography>
+                </Box>
                 {unreadCount > 0 && (
-                  <Button size="small" onClick={handleMarkAllRead} sx={{ fontSize: '0.72rem', fontWeight: 800 }}>
+                  <Button
+                    size="small"
+                    onClick={handleMarkAllRead}
+                    sx={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'none' }}
+                  >
                     Mark all read
                   </Button>
                 )}
               </Box>
+
+              {/* Category Filter Chips Bar */}
+              <Box
+                sx={{
+                  px: 2,
+                  pb: 1.2,
+                  display: 'flex',
+                  gap: 0.8,
+                  overflowX: 'auto',
+                  '&::-webkit-scrollbar': { display: 'none' },
+                  msOverflowStyle: 'none',
+                  scrollbarWidth: 'none',
+                }}
+              >
+                {filterTabs.map((tab) => (
+                  <Chip
+                    key={tab.id}
+                    size="small"
+                    label={tab.displayLabel}
+                    onClick={() => setNotifFilter(tab.id)}
+                    color={notifFilter === tab.id ? 'primary' : 'default'}
+                    variant={notifFilter === tab.id ? 'filled' : 'outlined'}
+                    sx={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      height: 24,
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  />
+                ))}
+              </Box>
+
               <Divider />
-              <List sx={{ p: 0, maxHeight: { xs: 'calc(70dvh - 80px)', sm: 300 }, overflowY: 'auto' }}>
-                {notifications.length === 0 ? (
-                  <Box sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
-                    <Typography variant="body2">No notifications found</Typography>
+
+              {/* Notification List */}
+              <List sx={{ p: 0, maxHeight: { xs: 'calc(75dvh - 140px)', sm: 360 }, overflowY: 'auto' }}>
+                {filteredNotifications.length === 0 ? (
+                  <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
+                    <NotificationsIcon sx={{ fontSize: 40, opacity: 0.3, mb: 1 }} />
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      No notifications found
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                      {notifFilter !== 'all' ? 'Try switching the category filter' : 'You are all caught up with live alerts!'}
+                    </Typography>
                   </Box>
                 ) : (
-                  notifications.map((notif) => (
-                    <ListItemButton
-                      key={notif.id}
-                      onClick={() => handleNotifClick(notif.id)}
-                      sx={{
-                        px: 2,
-                        py: 1.5,
-                        backgroundColor: notif.read ? 'transparent' : 'background.neutral',
-                        borderBottom: '1px solid',
-                        borderColor: 'divider',
-                        '&:last-child': { border: 0 },
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, width: '100%' }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: notif.read ? 600 : 900 }}>
-                            {notif.title}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', fontWeight: 700 }}>
-                            {notif.time}
-                          </Typography>
+                  filteredNotifications.map((notif) => {
+                    const meta = getNotificationMeta(notif.type);
+                    return (
+                      <ListItemButton
+                        key={notif.id}
+                        onClick={() => handleNotifClick(notif)}
+                        sx={{
+                          px: 2,
+                          py: 1.4,
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 1.5,
+                          bgcolor: notif.read
+                            ? 'transparent'
+                            : (theme) =>
+                                theme.palette.mode === 'dark'
+                                  ? 'rgba(56, 189, 248, 0.08)'
+                                  : 'rgba(37, 99, 235, 0.04)',
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                          transition: 'all 0.15s ease',
+                          '&:hover': {
+                            bgcolor: (theme) =>
+                              theme.palette.mode === 'dark'
+                                ? 'rgba(255, 255, 255, 0.05)'
+                                : 'rgba(0, 0, 0, 0.03)',
+                          },
+                          '&:last-child': { border: 0 },
+                        }}
+                      >
+                        {/* Category Icon Badge */}
+                        <Box
+                          sx={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: meta.bg,
+                            color: meta.color,
+                            flexShrink: 0,
+                            mt: 0.2,
+                          }}
+                        >
+                          {meta.icon}
                         </Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                          {notif.message}
-                        </Typography>
-                      </Box>
-                    </ListItemButton>
-                  ))
+
+                        {/* Content */}
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.3 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  fontWeight: notif.read ? 600 : 900,
+                                  fontSize: '0.86rem',
+                                  color: 'text.primary',
+                                }}
+                              >
+                                {notif.title}
+                              </Typography>
+                              {!notif.read && (
+                                <Box
+                                  sx={{
+                                    width: 7,
+                                    height: 7,
+                                    borderRadius: '50%',
+                                    bgcolor: '#2563EB',
+                                    boxShadow: '0 0 6px #2563EB',
+                                  }}
+                                />
+                              )}
+                            </Box>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: 'text.secondary',
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                flexShrink: 0,
+                                ml: 1,
+                              }}
+                            >
+                              {notif.time}
+                            </Typography>
+                          </Box>
+
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: 'text.secondary',
+                              fontSize: '0.78rem',
+                              lineHeight: 1.35,
+                              mb: 0.5,
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            {notif.message}
+                          </Typography>
+
+                          {/* Category Tag & Action link */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                            <Chip
+                              size="small"
+                              label={meta.label}
+                              sx={{
+                                height: 18,
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                bgcolor: meta.bg,
+                                color: meta.color,
+                                border: 'none',
+                              }}
+                            />
+                            {notif.link && (
+                              <Typography
+                                variant="caption"
+                                sx={{ color: 'primary.main', fontSize: '0.68rem', fontWeight: 700 }}
+                              >
+                                View details →
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      </ListItemButton>
+                    );
+                  })
                 )}
               </List>
+
               <Divider />
-              <Box sx={{ p: 1.5, textAlign: 'center', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#F8FAFC' }}>
-                <Button size="small" variant="contained" color="primary" fullWidth onClick={() => { handleNotifMenuClose(); navigate('/notifications/all'); }} sx={{ fontWeight: 800 }}>
+
+              {/* Bottom Action */}
+              <Box
+                sx={{
+                  p: 1.5,
+                  textAlign: 'center',
+                  bgcolor: (theme) =>
+                    theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#F8FAFC',
+                }}
+              >
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  onClick={() => {
+                    handleNotifMenuClose();
+                    navigate('/notifications/all');
+                  }}
+                  sx={{ fontWeight: 800, textTransform: 'none', borderRadius: 2 }}
+                >
                   View All Central Notifications & History
                 </Button>
               </Box>
