@@ -16,6 +16,7 @@ import Divider from '@mui/material/Divider';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import InputAdornment from '@mui/material/InputAdornment';
+import Tooltip from '@mui/material/Tooltip';
 
 // Icons
 import CloseIcon from '@mui/icons-material/Close';
@@ -26,6 +27,8 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 
 import { useAlert } from '../contexts/AlertContext';
 
@@ -34,6 +37,9 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
 
   // Tab State: 0 = GDS Terminal Emulator, 1 = Itinerary Details & Pricing
   const [activeTab, setActiveTab] = useState(0);
+
+  // Fullscreen / Full Page mode (Defaults to true as requested by client, with instant toggle)
+  const [isFullScreen, setIsFullScreen] = useState(true);
 
   // Command prompt input & terminal logs
   const [commandInput, setCommandInput] = useState('');
@@ -220,17 +226,24 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="lg"
+      fullScreen={isFullScreen}
+      maxWidth={isFullScreen ? false : 'xl'}
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: isFullScreen ? 0 : 3,
           backgroundColor: '#0F172A',
           color: '#FFFFFF',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: isFullScreen ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
           boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
           overflow: 'hidden',
-          minHeight: '82vh'
+          width: isFullScreen ? '100vw' : '96vw',
+          maxWidth: isFullScreen ? '100vw' : '96vw',
+          height: isFullScreen ? '100vh' : '92vh',
+          minHeight: isFullScreen ? '100vh' : '82vh',
+          m: isFullScreen ? 0 : 'auto',
+          display: 'flex',
+          flexDirection: 'column'
         }
       }}
       onPaste={handlePaste}
@@ -292,16 +305,29 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
             <Tab label="2. Itinerary Details & Net/Selling Pricing" />
           </Tabs>
 
-          <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: 'white' } }}>
+          <Tooltip title={isFullScreen ? "Restore Normal Window" : "Maximize Full Page Terminal"}>
+            <IconButton
+              onClick={() => setIsFullScreen(!isFullScreen)}
+              sx={{
+                color: isFullScreen ? '#38BDF8' : 'rgba(255,255,255,0.7)',
+                bgcolor: isFullScreen ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                '&:hover': { color: '#38BDF8', bgcolor: 'rgba(56, 189, 248, 0.25)' }
+              }}
+            >
+              {isFullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+            </IconButton>
+          </Tooltip>
+
+          <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}>
             <CloseIcon />
           </IconButton>
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 3, backgroundColor: '#0B1120', display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      <DialogContent sx={{ p: isFullScreen ? 3 : 2.5, backgroundColor: '#0B1120', display: 'flex', flexDirection: 'column', gap: 2.5, flex: 1, overflowY: 'auto' }}>
         {activeTab === 0 ? (
           /* TAB 0: GDS Terminal Emulator (Exact Match to Screenshot 1) */
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
             {/* Terminal Screen */}
             <Paper
               elevation={0}
@@ -313,14 +339,15 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
                 p: 2.5,
                 fontFamily: 'monospace',
                 color: '#E0E7FF',
-                minHeight: 420,
+                flex: 1,
+                minHeight: isFullScreen ? 'calc(100vh - 270px)' : 460,
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5)'
               }}
             >
-              <Box sx={{ overflowY: 'auto', maxHeight: 360, pr: 1 }}>
+              <Box sx={{ overflowY: 'auto', maxHeight: isFullScreen ? 'calc(100vh - 410px)' : 360, pr: 1 }}>
                 {/* Available Inventory Header */}
                 <Typography variant="caption" sx={{ color: '#A5B4FC', fontWeight: 800, letterSpacing: 0.8, display: 'block', mb: 1 }}>
                   FLIGHT AVAILABILITY (BOM → HKG → SFO) • CABIN CLASS INVENTORY:
