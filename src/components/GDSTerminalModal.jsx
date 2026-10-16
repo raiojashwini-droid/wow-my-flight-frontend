@@ -396,19 +396,25 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
                       }
                     }}
                     sx={{
-                      backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                      borderRadius: 1.5,
-                      input: {
-                        color: '#F8FAFC',
-                        fontFamily: 'monospace',
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95) !important',
+                        borderRadius: 1.5,
+                        '& fieldset': {
+                          borderColor: 'rgba(165, 180, 252, 0.4) !important'
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#38BDF8 !important'
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#38BDF8 !important'
+                        }
+                      },
+                      '& input': {
+                        color: '#F8FAFC !important',
+                        fontFamily: 'JetBrains Mono, monospace !important',
                         fontWeight: 700,
-                        fontSize: '0.88rem'
-                      },
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'rgba(165, 180, 252, 0.4)'
-                      },
-                      '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#38BDF8'
+                        fontSize: '0.88rem',
+                        py: 1
                       }
                     }}
                   />
@@ -462,21 +468,21 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
             </Paper>
           </Box>
         ) : (
-          /* TAB 1: Itinerary Details & Net vs Selling Pricing (Exact Match to Screenshot 4) */
+          /* TAB 1: Itinerary Details & Net vs Selling Pricing */
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.1fr 0.9fr' }, gap: 3 }}>
             {/* Left Column: EDIFACT Snippet & Screenshot Upload */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.2 }}>
               {/* Raw EDIFACT GDS Snippet Box */}
               <Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.8 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 800, color: '#93C5FD', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    EDIFACT GDS Cryptic Itinerary Snippet
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: '#93C5FD', textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                    <TerminalIcon sx={{ fontSize: 15, color: '#34D399' }} /> EDIFACT GDS Cryptic Itinerary Snippet
                   </Typography>
                   <Button
                     size="small"
-                    startIcon={<ContentCopyIcon sx={{ fontSize: 14 }} />}
+                    startIcon={<ContentCopyIcon sx={{ fontSize: 13 }} />}
                     onClick={handleCopyEdifact}
-                    sx={{ color: '#93C5FD', fontSize: '0.72rem', py: 0 }}
+                    sx={{ color: '#93C5FD', fontSize: '0.72rem', py: 0.2, px: 1, textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: 'rgba(59, 130, 246, 0.15)' } }}
                   >
                     Copy Snippet
                   </Button>
@@ -488,16 +494,25 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
                   value={edifactLines}
                   onChange={(e) => setEdifactLines(e.target.value)}
                   sx={{
-                    backgroundColor: '#0F172A',
-                    borderRadius: 2,
-                    textarea: {
-                      fontFamily: 'monospace',
-                      fontSize: '0.8rem',
-                      color: '#34D399',
-                      fontWeight: 700
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: '#030712 !important',
+                      borderRadius: 2,
+                      '& fieldset': {
+                        borderColor: 'rgba(52, 211, 153, 0.35) !important'
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#10B981 !important'
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#34D399 !important'
+                      }
                     },
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'rgba(52, 211, 153, 0.3)'
+                    '& textarea': {
+                      fontFamily: 'JetBrains Mono, Menlo, monospace !important',
+                      fontSize: '0.82rem',
+                      color: '#34D399 !important',
+                      fontWeight: 700,
+                      lineHeight: 1.6
                     }
                   }}
                 />
@@ -505,7 +520,7 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
 
               {/* Upload or Paste Screenshot (Ctrl+V) */}
               <Box>
-                <Typography variant="caption" sx={{ fontWeight: 800, color: '#93C5FD', display: 'block', mb: 0.8 }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: '#93C5FD', display: 'block', mb: 0.8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   Upload or Paste Itinerary Screenshot (Ctrl/Cmd + V)
                 </Typography>
                 <Box
@@ -514,8 +529,9 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
                     borderRadius: 2.5,
                     p: 2,
                     textAlign: 'center',
-                    backgroundColor: 'rgba(15, 23, 42, 0.5)',
-                    '&:hover': { borderColor: '#38BDF8' }
+                    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': { borderColor: '#38BDF8', bgcolor: 'rgba(15, 23, 42, 0.8)' }
                   }}
                 >
                   {pastedImage ? (
@@ -523,23 +539,23 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
                       <img
                         src={pastedImage}
                         alt="Pasted Itinerary"
-                        style={{ maxHeight: 140, maxWidth: '100%', borderRadius: 8, objectFit: 'contain' }}
+                        style={{ maxHeight: 130, maxWidth: '100%', borderRadius: 8, objectFit: 'contain' }}
                       />
                       <IconButton
                         size="small"
                         onClick={() => setPastedImage(null)}
-                        sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'rgba(0,0,0,0.7)', color: '#F87171' }}
+                        sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'rgba(0,0,0,0.7)', color: '#F87171', '&:hover': { bgcolor: 'rgba(0,0,0,0.9)' } }}
                       >
                         <DeleteOutlineIcon fontSize="small" />
                       </IconButton>
                     </Box>
                   ) : (
-                    <Box sx={{ py: 1.5 }}>
+                    <Box sx={{ py: 1.2 }}>
                       <CloudUploadIcon sx={{ fontSize: 32, color: '#60A5FA', mb: 0.5 }} />
-                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600, fontSize: '0.8rem' }}>
-                        Drag & Drop or Press <b>Ctrl + V</b> to paste image
+                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600, fontSize: '0.8rem' }}>
+                        Drag & Drop or Press <b style={{ color: '#38BDF8' }}>Ctrl + V</b> to paste image
                       </Typography>
-                      <Button component="label" size="small" variant="outlined" sx={{ mt: 1, borderColor: '#38BDF8', color: '#38BDF8', fontSize: '0.72rem' }}>
+                      <Button component="label" size="small" variant="outlined" sx={{ mt: 1, borderColor: '#38BDF8', color: '#38BDF8', fontSize: '0.72rem', fontWeight: 700, borderRadius: 1.5 }}>
                         Choose File
                         <input type="file" hidden accept="image/*" onChange={handleFileUpload} />
                       </Button>
@@ -550,8 +566,8 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
 
               {/* Internal Remarks & WhatsApp Toggle */}
               <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 800, color: '#93C5FD' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.8 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: '#93C5FD', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     Internal Remarks (Sales & Ops)
                   </Typography>
                   <FormControlLabel
@@ -568,6 +584,7 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
                         <WhatsAppIcon sx={{ fontSize: 15 }} /> Sync WhatsApp
                       </Box>
                     }
+                    sx={{ mr: 0 }}
                   />
                 </Box>
                 <TextField
@@ -578,114 +595,224 @@ export default function GDSTerminalModal({ open, onClose, initialData, onSave })
                   onChange={(e) => setInternalRemarks(e.target.value)}
                   placeholder="Notes on fare conditions, lie-flat guarantees, or baggage rules..."
                   sx={{
-                    backgroundColor: '#0F172A',
-                    borderRadius: 2,
-                    textarea: { color: 'white', fontSize: '0.8rem' }
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: 'rgba(15, 23, 42, 0.9) !important',
+                      borderRadius: 2,
+                      '& fieldset': {
+                        borderColor: 'rgba(148, 163, 184, 0.25) !important'
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#38BDF8 !important'
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#38BDF8 !important'
+                      }
+                    },
+                    '& textarea': {
+                      color: '#FFFFFF !important',
+                      fontSize: '0.82rem',
+                      lineHeight: 1.5
+                    }
                   }}
                 />
               </Box>
             </Box>
 
-            {/* Right Column: Selling Price vs Net Price Calculator (Screenshot 4) */}
+            {/* Right Column: Selling Price vs Net Price Calculator */}
             <Paper
               elevation={0}
               sx={{
-                backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                border: '1px solid rgba(59, 130, 246, 0.25)',
+                backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
                 borderRadius: 2.5,
                 p: 2.5,
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.3)'
               }}
             >
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {/* Ticket Type Toggle */}
                 <Box>
-                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 0.8, textTransform: 'uppercase' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: '#93C5FD', display: 'block', mb: 0.8, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                     Ticket Issuance Model
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    {['REVENUE TICKET', 'MILEAGE TICKET'].map((type) => (
-                      <Button
-                        key={type}
-                        fullWidth
-                        size="small"
-                        variant={ticketType === type ? 'contained' : 'outlined'}
-                        onClick={() => setTicketType(type)}
-                        sx={{
-                          py: 0.8,
-                          fontSize: '0.74rem',
-                          fontWeight: 800,
-                          backgroundColor: ticketType === type ? '#2563EB' : 'transparent',
-                          borderColor: ticketType === type ? '#2563EB' : 'rgba(255,255,255,0.2)',
-                          color: 'white'
-                        }}
-                      >
-                        {type}
-                      </Button>
-                    ))}
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                    <Button
+                      fullWidth
+                      size="small"
+                      variant={ticketType === 'REVENUE TICKET' ? 'contained' : 'outlined'}
+                      onClick={() => setTicketType('REVENUE TICKET')}
+                      sx={{
+                        py: 0.9,
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        letterSpacing: 0.5,
+                        borderRadius: 2,
+                        backgroundColor: ticketType === 'REVENUE TICKET' ? '#2563EB' : 'transparent',
+                        borderColor: ticketType === 'REVENUE TICKET' ? '#2563EB' : 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        '&:hover': {
+                          backgroundColor: ticketType === 'REVENUE TICKET' ? '#1D4ED8' : 'rgba(255,255,255,0.05)'
+                        }
+                      }}
+                    >
+                      REVENUE TICKET
+                    </Button>
+                    <Button
+                      fullWidth
+                      size="small"
+                      variant={ticketType === 'MILEAGE TICKET' ? 'contained' : 'outlined'}
+                      onClick={() => setTicketType('MILEAGE TICKET')}
+                      sx={{
+                        py: 0.9,
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        letterSpacing: 0.5,
+                        borderRadius: 2,
+                        backgroundColor: ticketType === 'MILEAGE TICKET' ? '#7C3AED' : 'transparent',
+                        borderColor: ticketType === 'MILEAGE TICKET' ? '#7C3AED' : 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        '&:hover': {
+                          backgroundColor: ticketType === 'MILEAGE TICKET' ? '#6D28D9' : 'rgba(255,255,255,0.05)'
+                        }
+                      }}
+                    >
+                      MILEAGE TICKET
+                    </Button>
                   </Box>
                 </Box>
 
-                {/* Pax Count & Net Price per Adult */}
+                {/* Pax Count & Net Price per Adult with Clean Dedicated Labels */}
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-                  <TextField
-                    label="Adult Passengers"
-                    type="number"
-                    size="small"
-                    value={adultCount}
-                    onChange={(e) => setAdultCount(Math.max(1, parseInt(e.target.value) || 1))}
-                    sx={{ backgroundColor: '#0A0F1D' }}
-                  />
-                  <TextField
-                    label="Net Price / Pax ($)"
-                    type="number"
-                    size="small"
-                    value={netPricePerAdult}
-                    onChange={(e) => setNetPricePerAdult(parseFloat(e.target.value) || 0)}
-                    InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
-                    sx={{ backgroundColor: '#0A0F1D' }}
-                  />
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.68rem', display: 'block', mb: 0.5, letterSpacing: 0.5 }}>
+                      Adult Passengers (Pax)
+                    </Typography>
+                    <TextField
+                      type="number"
+                      size="small"
+                      fullWidth
+                      value={adultCount}
+                      onChange={(e) => setAdultCount(Math.max(1, parseInt(e.target.value) || 1))}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(11, 17, 32, 0.95) !important',
+                          borderRadius: 2,
+                          '& fieldset': { borderColor: 'rgba(59, 130, 246, 0.3) !important' },
+                          '&:hover fieldset': { borderColor: '#3B82F6 !important' },
+                          '&.Mui-focused fieldset': { borderColor: '#60A5FA !important' }
+                        },
+                        '& input': {
+                          color: '#FFFFFF !important',
+                          fontWeight: 800,
+                          fontSize: '0.9rem',
+                          py: 1
+                        }
+                      }}
+                    />
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.68rem', display: 'block', mb: 0.5, letterSpacing: 0.5 }}>
+                      Net Price / Pax ($)
+                    </Typography>
+                    <TextField
+                      type="number"
+                      size="small"
+                      fullWidth
+                      value={netPricePerAdult}
+                      onChange={(e) => setNetPricePerAdult(parseFloat(e.target.value) || 0)}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start" sx={{ '& p': { color: '#94A3B8 !important', fontWeight: 800 } }}>$</InputAdornment>
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(11, 17, 32, 0.95) !important',
+                          borderRadius: 2,
+                          '& fieldset': { borderColor: 'rgba(59, 130, 246, 0.3) !important' },
+                          '&:hover fieldset': { borderColor: '#3B82F6 !important' },
+                          '&.Mui-focused fieldset': { borderColor: '#60A5FA !important' }
+                        },
+                        '& input': {
+                          color: '#FFFFFF !important',
+                          fontWeight: 800,
+                          fontSize: '0.9rem',
+                          py: 1
+                        }
+                      }}
+                    />
+                  </Box>
                 </Box>
 
-                {/* Markup per Adult */}
-                <TextField
-                  label="Markup / Margin per Pax ($)"
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={markupPerAdult}
-                  onChange={(e) => setMarkupPerAdult(parseFloat(e.target.value) || 0)}
-                  InputProps={{ startAdornment: <InputAdornment position="start">+$</InputAdornment> }}
-                  helperText={`Agency Profit Margin: +${marginPercentage}%`}
-                  sx={{
-                    backgroundColor: '#0A0F1D',
-                    '& .MuiFormHelperText-root': { color: '#34D399', fontWeight: 800 }
-                  }}
-                />
+                {/* Markup per Adult with Clean Dedicated Label */}
+                <Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                    <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: 0.5 }}>
+                      Markup / Margin per Pax ($)
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={`Agency Profit Margin: +${marginPercentage}%`}
+                      sx={{
+                        bgcolor: 'rgba(34, 197, 94, 0.15)',
+                        color: '#34D399',
+                        fontWeight: 800,
+                        fontSize: '0.68rem',
+                        height: 20,
+                        border: '1px solid rgba(52, 211, 153, 0.3)'
+                      }}
+                    />
+                  </Box>
+                  <TextField
+                    type="number"
+                    size="small"
+                    fullWidth
+                    value={markupPerAdult}
+                    onChange={(e) => setMarkupPerAdult(parseFloat(e.target.value) || 0)}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start" sx={{ '& p': { color: '#34D399 !important', fontWeight: 800 } }}>+$</InputAdornment>
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: 'rgba(11, 17, 32, 0.95) !important',
+                        borderRadius: 2,
+                        '& fieldset': { borderColor: 'rgba(52, 211, 153, 0.35) !important' },
+                        '&:hover fieldset': { borderColor: '#10B981 !important' },
+                        '&.Mui-focused fieldset': { borderColor: '#34D399 !important' }
+                      },
+                      '& input': {
+                        color: '#34D399 !important',
+                        fontWeight: 800,
+                        fontSize: '0.9rem',
+                        py: 1
+                      }
+                    }}
+                  />
+                </Box>
 
                 <Divider sx={{ my: 0.5, borderColor: 'rgba(255,255,255,0.1)' }} />
 
                 {/* Summary Table */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem' }}>
-                    <span style={{ color: 'rgba(255,255,255,0.7)' }}>Net Airline Cost ({adultCount} pax):</span>
-                    <span style={{ fontWeight: 800, color: '#94A3B8' }}>${totalNet.toLocaleString()}</span>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, p: 1.5, bgcolor: 'rgba(11, 17, 32, 0.6)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.84rem' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Net Airline Cost ({adultCount} pax):</span>
+                    <span style={{ fontWeight: 800, color: '#CBD5E1', fontFamily: 'monospace', fontSize: '0.95rem' }}>${totalNet.toLocaleString()}</span>
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem' }}>
-                    <span style={{ color: '#34D399' }}>Agency Total Margin:</span>
-                    <span style={{ fontWeight: 800, color: '#34D399' }}>+${totalMarkup.toLocaleString()} ({marginPercentage}%)</span>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.84rem' }}>
+                    <span style={{ color: '#34D399', fontWeight: 600 }}>Agency Total Margin:</span>
+                    <span style={{ fontWeight: 900, color: '#34D399', fontFamily: 'monospace', fontSize: '0.95rem' }}>+${totalMarkup.toLocaleString()} ({marginPercentage}%)</span>
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', pt: 1, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                    <span style={{ fontWeight: 900, color: '#FBBF24' }}>Client Selling Price:</span>
-                    <span style={{ fontWeight: 900, color: '#FBBF24', fontSize: '1.25rem' }}>${totalSelling.toLocaleString()} USD</span>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1.2, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+                    <span style={{ fontWeight: 900, color: '#FBBF24', fontSize: '0.95rem', letterSpacing: '-0.01em' }}>Client Selling Price:</span>
+                    <span style={{ fontWeight: 900, color: '#FBBF24', fontSize: '1.3rem', fontFamily: 'monospace' }}>${totalSelling.toLocaleString()} USD</span>
                   </Box>
                 </Box>
               </Box>
 
-              <Box sx={{ mt: 2.5, p: 1.5, borderRadius: 2, backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
-                <Typography variant="caption" sx={{ color: '#93C5FD', fontWeight: 700, display: 'block' }}>
+              <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, backgroundColor: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                <Typography variant="caption" sx={{ color: '#93C5FD', fontWeight: 700, display: 'block', lineHeight: 1.4 }}>
                   ✓ Instant Quote Sync Enabled: Selling price will automatically populate in Option #1 Email Quote Builder.
                 </Typography>
               </Box>
