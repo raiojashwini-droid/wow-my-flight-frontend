@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -21,6 +21,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import { flightContentService } from '../services/flightContentService';
+import AirportSelect from './AirportSelect';
 
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -60,25 +61,45 @@ import { useAlert } from '../contexts/AlertContext';
 
 export const SAMPLE_MULTI_GDS_RESULTS = [];
 
-export default function MultiGdsFlightSearch({ onSelectFlight, onGenerateQuote }) {
+export default function MultiGdsFlightSearch({
+  onSelectFlight,
+  onGenerateQuote,
+  hideSearchCard = false,
+  externalParams = null,
+  externalFilters = null,
+  searchTrigger = 0
+}) {
   const { showAlert } = useAlert();
 
   // Search parameters
-  const [tripType, setTripType] = useState('Round Trip');
-  const [origin, setOrigin] = useState('JFK');
-  const [destination, setDestination] = useState('DEL');
-  const [departDate, setDepartDate] = useState('2026-10-14');
-  const [returnDate, setReturnDate] = useState('2026-11-13');
-  const [cabinClass, setCabinClass] = useState('Business');
-  const [passengers, setPassengers] = useState(2);
+  const [tripType, setTripType] = useState(externalParams?.tripType || 'Round Trip');
+  const [origin, setOrigin] = useState(externalParams?.origin || 'DEL');
+  const [destination, setDestination] = useState(externalParams?.destination || 'LHR');
+  const [departDate, setDepartDate] = useState(externalParams?.departDate || '2026-10-15');
+  const [returnDate, setReturnDate] = useState(externalParams?.returnDate || '2026-10-25');
+  const [cabinClass, setCabinClass] = useState(externalParams?.cabinClass || 'Business');
+  const [passengers, setPassengers] = useState(externalParams?.passengers || 2);
   const [isSearching, setIsSearching] = useState(false);
   const [flightResults, setFlightResults] = useState([]);
   const [apiError, setApiError] = useState(null);
 
-  // Auto-fetch live TraveloPro GDS flights on component mount
+  // Sync with externalParams if provided
+  useEffect(() => {
+    if (externalParams) {
+      if (externalParams.origin) setOrigin(externalParams.origin);
+      if (externalParams.destination) setDestination(externalParams.destination);
+      if (externalParams.departDate) setDepartDate(externalParams.departDate);
+      if (externalParams.returnDate) setReturnDate(externalParams.returnDate);
+      if (externalParams.tripType) setTripType(externalParams.tripType);
+      if (externalParams.cabinClass) setCabinClass(externalParams.cabinClass);
+      if (externalParams.passengers) setPassengers(externalParams.passengers);
+    }
+  }, [externalParams]);
+
+  // Auto-fetch live TraveloPro GDS flights on component mount or trigger
   useEffect(() => {
     handleSearch();
-  }, []);
+  }, [searchTrigger]);
 
   // Point of Sale (POS) Filter Tabs (Screenshot 5)
   const [posTab, setPosTab] = useState(0); // 0 = UK, 1 = USA, 2 = Ireland Dynamic
@@ -105,9 +126,17 @@ export default function MultiGdsFlightSearch({ onSelectFlight, onGenerateQuote }
     showAlert('✓ WhatsApp Quotation copied to clipboard!', 'success');
   };
 
-  const handleSearch = async () => {
-    const isRound = tripType.toLowerCase().includes('round');
-    if (isRound && returnDate && departDate && new Date(returnDate) < new Date(departDate)) {
+  const handleSearch = async (overrideParams = null) => {
+    const sOrigin = overrideParams?.origin || externalParams?.origin || origin;
+    const sDest = overrideParams?.destination || externalParams?.destination || destination;
+    const sDepart = overrideParams?.departDate || externalParams?.departDate || departDate;
+    const sReturn = overrideParams?.returnDate || externalParams?.returnDate || returnDate;
+    const sTrip = overrideParams?.tripType || externalParams?.tripType || tripType;
+    const sCabin = overrideParams?.cabinClass || externalParams?.cabinClass || cabinClass;
+    const sPax = overrideParams?.passengers || externalParams?.passengers || passengers;
+
+    const isRound = String(sTrip).toLowerCase().includes('round');
+    if (isRound && sReturn && sDepart && new Date(sReturn) < new Date(sDepart)) {
       showAlert('⚠️ Return date cannot be earlier than Departure date! Please select a return date after departure.', 'warning');
       return;
     }
@@ -116,21 +145,21 @@ export default function MultiGdsFlightSearch({ onSelectFlight, onGenerateQuote }
     setApiError(null);
     try {
       const data = await flightContentService.searchFlightsAcrossAdapters({
-        origin: origin ? origin.trim().toUpperCase() : 'DEL',
-        destination: destination ? destination.trim().toUpperCase() : 'LHR',
-        departDate: departDate || '2026-11-21',
-        returnDate: isRound ? (returnDate || '2026-11-28') : null,
-        cabinClass: cabinClass || 'Economy',
-        passengers: passengers || 1,
+        origin: sOrigin ? sOrigin.trim().toUpperCase() : 'DEL',
+        destination: sDest ? sDest.trim().toUpperCase() : 'LHR',
+        departDate: sDepart || '2026-10-15',
+        returnDate: isRound ? (sReturn || '2026-10-25') : null,
+        cabinClass: sCabin || 'Business',
+        passengers: typeof sPax === 'object' ? (sPax.adults || 1) : (sPax || 1),
         tripType: isRound ? 'roundtrip' : 'oneway'
       });
 
       if (data && Array.isArray(data.offers) && data.offers.length > 0) {
         setFlightResults(data.offers);
-        showAlert(`✓ Found ${data.offersCount} live flights from TraveloPro API for ${origin} ⇄ ${destination}`, 'success');
+        showAlert(`✓ Found ${data.offersCount} live flights from GDS for ${sOrigin} ⇄ ${sDest}`, 'success');
       } else {
         setFlightResults([]);
-        showAlert(`No live flight offers returned from TraveloPro GDS for ${origin} ⇄ ${destination}.`, 'info');
+        showAlert(`No live flight offers returned from GDS for ${sOrigin} ⇄ ${sDest}.`, 'info');
       }
     } catch (err) {
       console.error('[MultiGdsFlightSearch] Live search failed:', err);
@@ -144,132 +173,151 @@ export default function MultiGdsFlightSearch({ onSelectFlight, onGenerateQuote }
 
   const currentPos = posTab === 0 ? 'United Kingdom' : posTab === 1 ? 'USA' : 'Ireland (Dynamic)';
 
-  const filteredResults = flightResults.filter(res => {
-    if (res.posCountry && posTab === 0 && res.posCountry !== 'United Kingdom') return true;
-    return true;
-  });
+  const filteredResults = useMemo(() => {
+    return flightResults.filter(res => {
+      // 1. External 10 Expert Filters
+      if (externalFilters) {
+        // Airline filter
+        if (externalFilters.airline && externalFilters.airline !== 'All') {
+          const code = externalFilters.airline.toUpperCase();
+          if (res.airlineCode !== code && !res.airline?.toUpperCase().includes(code)) return false;
+        }
+
+        // Stops filter
+        if (externalFilters.stops) {
+          if (externalFilters.stops === 'Direct') {
+            const stopsCount = res.outbound?.stops || 0;
+            if (stopsCount > 0) return false;
+          } else if (externalFilters.stops === '1 Stop Max') {
+            const stopsCount = res.outbound?.stops || 0;
+            if (stopsCount > 1) return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [flightResults, posTab, externalFilters]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* ─── SEARCH INPUTS BAR ─── */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2.5,
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'primary.light',
-          background: 'linear-gradient(135deg, var(--wl-FFFFFF, #FFFFFF) 0%, var(--wl-F8FAFC, #F8FAFC) 100%)',
-          boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)'
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {['Round Trip', 'One Way', 'Multi-City'].map((t) => (
-              <Button
-                key={t}
-                size="small"
-                variant={tripType === t ? 'contained' : 'outlined'}
-                onClick={() => setTripType(t)}
-                sx={{
-                  borderRadius: 2,
-                  fontWeight: 800,
-                  fontSize: '0.74rem',
-                  textTransform: 'none',
-                  py: 0.4,
-                  px: 1.8
-                }}
-              >
-                {t}
-              </Button>
-            ))}
+      {/* ─── SEARCH INPUTS BAR (Hidden when controlled by parent like FlightExpertDesk) ─── */}
+      {!hideSearchCard && (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2.5,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'primary.light',
+            background: 'linear-gradient(135deg, var(--wl-FFFFFF, #FFFFFF) 0%, var(--wl-F8FAFC, #F8FAFC) 100%)',
+            boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {['Round Trip', 'One Way', 'Multi-City'].map((t) => (
+                <Button
+                  key={t}
+                  size="small"
+                  variant={tripType === t ? 'contained' : 'outlined'}
+                  onClick={() => setTripType(t)}
+                  sx={{
+                    borderRadius: 2,
+                    fontWeight: 800,
+                    fontSize: '0.74rem',
+                    textTransform: 'none',
+                    py: 0.4,
+                    px: 1.8
+                  }}
+                >
+                  {t}
+                </Button>
+              ))}
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+                GDS Gateway: <b>Amadeus + Sabre + Galileo (Active)</b>
+              </Typography>
+              <Chip label="Live Inventory Connected" size="small" color="success" sx={{ fontWeight: 800, height: 22, fontSize: '0.65rem' }} />
+            </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
-              GDS Gateway: <b>Amadeus + Sabre + Galileo (Active)</b>
-            </Typography>
-            <Chip label="Live Inventory Connected" size="small" color="success" sx={{ fontWeight: 800, height: 22, fontSize: '0.65rem' }} />
-          </Box>
-        </Box>
+          <Grid container spacing={1.5} sx={{ alignItems: 'center' }}>
+            <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
+              <AirportSelect
+                value={origin}
+                onChange={(code) => setOrigin(code)}
+                label="Origin Airport / City"
+                type="origin"
+              />
+            </Grid>
 
-        <Grid container spacing={1.5} alignItems="center">
-          <Grid item xs={12} sm={6} md={2.5}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Origin Airport"
-              value={origin}
-              onChange={(e) => setOrigin(e.target.value.toUpperCase())}
-              InputProps={{ startAdornment: <FlightTakeoffIcon sx={{ color: 'primary.main', mr: 1, fontSize: 18 }} /> }}
-            />
-          </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
+              <AirportSelect
+                value={destination}
+                onChange={(code) => setDestination(code)}
+                label="Destination Airport / City"
+                type="destination"
+              />
+            </Grid>
 
-          <Grid item xs={12} sm={6} md={2.5}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Destination Airport"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value.toUpperCase())}
-              InputProps={{ startAdornment: <FlightLandIcon sx={{ color: 'secondary.main', mr: 1, fontSize: 18 }} /> }}
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={2}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Depart Date"
-              type="date"
-              value={departDate}
-              onChange={(e) => setDepartDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-
-          {tripType === 'Round Trip' && (
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
               <TextField
                 fullWidth
                 size="small"
-                label="Return Date"
+                label="Depart Date"
                 type="date"
-                value={returnDate}
-                onChange={(e) => setReturnDate(e.target.value)}
+                value={departDate}
+                onChange={(e) => setDepartDate(e.target.value)}
                 InputLabelProps={{ shrink: true }}
-                inputProps={{ min: departDate }}
               />
             </Grid>
-          )}
 
-          <Grid item xs={6} md={tripType === 'Round Trip' ? 1.5 : 2.5}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Cabin</InputLabel>
-              <Select value={cabinClass} label="Cabin" onChange={(e) => setCabinClass(e.target.value)}>
-                <MenuItem value="Economy">Economy</MenuItem>
-                <MenuItem value="Premium Economy">Premium Economy</MenuItem>
-                <MenuItem value="Business">Business</MenuItem>
-                <MenuItem value="First Class">First Class</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+            {tripType === 'Round Trip' && (
+              <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Return Date"
+                  type="date"
+                  value={returnDate}
+                  onChange={(e) => setReturnDate(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ min: departDate }}
+                />
+              </Grid>
+            )}
 
-          <Grid item xs={6} md={tripType === 'Round Trip' ? 1.5 : 2.5}>
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              onClick={handleSearch}
-              disabled={isSearching}
-              startIcon={isSearching ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />}
-              sx={{ fontWeight: 800, py: 1, borderRadius: 2 }}
-            >
-              {isSearching ? 'Searching...' : 'Search'}
-            </Button>
+            <Grid size={{ xs: 6, md: tripType === 'Round Trip' ? 1.5 : 2.5 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Cabin</InputLabel>
+                <Select value={cabinClass} label="Cabin" onChange={(e) => setCabinClass(e.target.value)}>
+                  <MenuItem value="Economy">Economy</MenuItem>
+                  <MenuItem value="Premium Economy">Premium Economy</MenuItem>
+                  <MenuItem value="Business">Business</MenuItem>
+                  <MenuItem value="First Class">First Class</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 6, md: tripType === 'Round Trip' ? 1.5 : 2.5 }}>
+              <Button
+                fullWidth
+                variant="contained"
+                color="primary"
+                onClick={() => handleSearch()}
+                disabled={isSearching}
+                startIcon={isSearching ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />}
+                sx={{ fontWeight: 800, py: 1, borderRadius: 2 }}
+              >
+                {isSearching ? 'Searching...' : 'Search'}
+              </Button>
+            </Grid>
           </Grid>
-        </Grid>
-      </Paper>
+        </Paper>
+      )}
 
       {/* ─── POINT OF SALE (POS) COUNTRY TABS (Exact to Screenshot 5) ─── */}
       <Paper elevation={0} sx={{ p: 1.5, px: 2, borderRadius: 2.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>

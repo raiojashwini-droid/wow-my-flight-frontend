@@ -55,6 +55,7 @@ import FareRulesView from '../../components/FareRulesView';
 import GDSTerminalModal from '../../components/GDSTerminalModal';
 import MultiGdsFlightSearch from '../../components/MultiGdsFlightSearch';
 import AncillariesAndSSRHub from '../../components/AncillariesAndSSRHub';
+import AirportSelect from '../../components/AirportSelect';
 import { useAlert } from '../../contexts/AlertContext';
 import StorageIcon from '@mui/icons-material/Storage';
 import SyncIcon from '@mui/icons-material/Sync';
@@ -71,6 +72,11 @@ export default function FlightExpertDesk() {
 
   // 1. ROUTE TYPES: One Way | Round Trip | Multi-City | Open Jaw
   const [tripType, setTripType] = useState('Round Trip'); // 'One Way' | 'Round Trip' | 'Multi-City' | 'Open Jaw'
+  const [origin, setOrigin] = useState('DEL');
+  const [destination, setDestination] = useState('LHR');
+  const [departDate, setDepartDate] = useState('2026-10-15');
+  const [returnDate, setReturnDate] = useState('2026-10-25');
+  const [searchTrigger, setSearchTrigger] = useState(0);
 
   // 2. SEARCH OPTIONS: Nearby Airports | Flexible Dates | Multiple Passengers
   const [nearbyAirports, setNearbyAirports] = useState(true);
@@ -474,29 +480,27 @@ export default function FlightExpertDesk() {
                         <Chip size="small" label={`Leg ${index + 1}`} color="primary" sx={{ fontWeight: 800 }} />
                       </Grid>
                       <Grid item xs={12} sm={3}>
-                        <TextField
-                          size="small"
-                          fullWidth
-                          label="Origin Airport"
+                        <AirportSelect
                           value={leg.origin}
-                          onChange={e => {
+                          onChange={(val) => {
                             const updated = [...multiCityLegs];
-                            updated[index].origin = e.target.value.toUpperCase();
+                            updated[index].origin = val;
                             setMultiCityLegs(updated);
                           }}
+                          label="Origin Airport / City"
+                          type="origin"
                         />
                       </Grid>
                       <Grid item xs={12} sm={3}>
-                        <TextField
-                          size="small"
-                          fullWidth
-                          label="Destination Airport"
+                        <AirportSelect
                           value={leg.destination}
-                          onChange={e => {
+                          onChange={(val) => {
                             const updated = [...multiCityLegs];
-                            updated[index].destination = e.target.value.toUpperCase();
+                            updated[index].destination = val;
                             setMultiCityLegs(updated);
                           }}
+                          label="Destination Airport / City"
+                          type="destination"
                         />
                       </Grid>
                       <Grid item xs={12} sm={4}>
@@ -535,13 +539,13 @@ export default function FlightExpertDesk() {
                     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>Outbound Leg:</Typography>
                     <Grid container spacing={1}>
                       <Grid item xs={4}>
-                        <TextField size="small" label="From" value={openJawRoute.outboundOrigin} onChange={e => setOpenJawRoute({ ...openJawRoute, outboundOrigin: e.target.value.toUpperCase() })} />
+                        <AirportSelect size="small" label="From" type="origin" value={openJawRoute.outboundOrigin} onChange={val => setOpenJawRoute({ ...openJawRoute, outboundOrigin: val })} />
                       </Grid>
                       <Grid item xs={4}>
-                        <TextField size="small" label="To" value={openJawRoute.outboundDest} onChange={e => setOpenJawRoute({ ...openJawRoute, outboundDest: e.target.value.toUpperCase() })} />
+                        <AirportSelect size="small" label="To" type="destination" value={openJawRoute.outboundDest} onChange={val => setOpenJawRoute({ ...openJawRoute, outboundDest: val })} />
                       </Grid>
                       <Grid item xs={4}>
-                        <TextField size="small" type="date" label="Date" value={openJawRoute.outboundDate} onChange={e => setOpenJawRoute({ ...openJawRoute, outboundDate: e.target.value })} InputLabelProps={{ shrink: true }} />
+                        <TextField fullWidth size="small" type="date" label="Date" value={openJawRoute.outboundDate} onChange={e => setOpenJawRoute({ ...openJawRoute, outboundDate: e.target.value })} InputLabelProps={{ shrink: true }} />
                       </Grid>
                     </Grid>
                   </Grid>
@@ -550,13 +554,13 @@ export default function FlightExpertDesk() {
                     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>Inbound Return Leg (Open Jaw Hub):</Typography>
                     <Grid container spacing={1}>
                       <Grid item xs={4}>
-                        <TextField size="small" label="Return From" value={openJawRoute.inboundOrigin} onChange={e => setOpenJawRoute({ ...openJawRoute, inboundOrigin: e.target.value.toUpperCase() })} />
+                        <AirportSelect size="small" label="Return From" type="origin" value={openJawRoute.inboundOrigin} onChange={val => setOpenJawRoute({ ...openJawRoute, inboundOrigin: val })} />
                       </Grid>
                       <Grid item xs={4}>
-                        <TextField size="small" label="Return To" value={openJawRoute.inboundDest} onChange={e => setOpenJawRoute({ ...openJawRoute, inboundDest: e.target.value.toUpperCase() })} />
+                        <AirportSelect size="small" label="Return To" type="destination" value={openJawRoute.inboundDest} onChange={val => setOpenJawRoute({ ...openJawRoute, inboundDest: val })} />
                       </Grid>
                       <Grid item xs={4}>
-                        <TextField size="small" type="date" label="Return Date" value={openJawRoute.inboundDate} onChange={e => setOpenJawRoute({ ...openJawRoute, inboundDate: e.target.value })} InputLabelProps={{ shrink: true }} />
+                        <TextField fullWidth size="small" type="date" label="Return Date" value={openJawRoute.inboundDate} onChange={e => setOpenJawRoute({ ...openJawRoute, inboundDate: e.target.value })} InputLabelProps={{ shrink: true }} />
                       </Grid>
                     </Grid>
                   </Grid>
@@ -566,19 +570,48 @@ export default function FlightExpertDesk() {
 
             {/* Standard One Way / Round Trip Fields */}
             {(tripType === 'One Way' || tripType === 'Round Trip') && (
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={3}>
-                  <TextField fullWidth size="small" label="Origin (Airport / City) *" defaultValue="DEL" />
+              <Grid container spacing={2} sx={{ alignItems: 'center' }}>
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <AirportSelect
+                    value={origin}
+                    onChange={(val) => setOrigin(val)}
+                    label="Origin (Airport / City) *"
+                    placeholder="e.g. Delhi, DEL, Mumbai..."
+                    type="origin"
+                  />
                 </Grid>
-                <Grid item xs={12} sm={3}>
-                  <TextField fullWidth size="small" label="Destination (Airport / City) *" defaultValue="LHR" />
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <AirportSelect
+                    value={destination}
+                    onChange={(val) => setDestination(val)}
+                    label="Destination (Airport / City) *"
+                    placeholder="e.g. London, LHR, New York..."
+                    type="destination"
+                  />
                 </Grid>
-                <Grid item xs={12} sm={3}>
-                  <TextField fullWidth size="small" type="date" label="Departure Date *" defaultValue="2026-10-15" InputLabelProps={{ shrink: true }} />
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="date"
+                    label="Departure Date *"
+                    value={departDate}
+                    onChange={(e) => setDepartDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                  />
                 </Grid>
                 {tripType === 'Round Trip' && (
-                  <Grid item xs={12} sm={3}>
-                    <TextField fullWidth size="small" type="date" label="Return Date *" defaultValue="2026-10-25" InputLabelProps={{ shrink: true }} />
+                  <Grid size={{ xs: 12, sm: 3 }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type="date"
+                      label="Return Date *"
+                      value={returnDate}
+                      onChange={(e) => setReturnDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ min: departDate }}
+                    />
                   </Grid>
                 )}
               </Grid>
@@ -728,7 +761,10 @@ export default function FlightExpertDesk() {
               variant="contained"
               color="primary"
               startIcon={<SpeedIcon />}
-              onClick={() => showAlert('⚡ Executed Flight Expert Search with 10 Advanced Filters across GDS Adapters!', 'success')}
+              onClick={() => {
+                setSearchTrigger(prev => prev + 1);
+                showAlert(`⚡ Executed Flight Expert Search for ${origin} ⇄ ${destination} (${filters.cabin}) across GDS Adapters!`, 'success');
+              }}
               sx={{ mt: 3, fontWeight: 900, px: 4, py: 1 }}
             >
               Execute Expert Flight Search →
@@ -737,6 +773,18 @@ export default function FlightExpertDesk() {
 
           {/* SECTION 3: MULTI-GDS SEARCH RESULTS & POS TARIFF BREAKDOWN */}
           <MultiGdsFlightSearch
+            hideSearchCard={true}
+            externalParams={{
+              origin,
+              destination,
+              departDate,
+              returnDate,
+              tripType,
+              cabinClass: filters.cabin,
+              passengers: (passengers.adults || 1) + (passengers.children || 0)
+            }}
+            externalFilters={filters}
+            searchTrigger={searchTrigger}
             onSelectFlight={(fl) => {
               showAlert(`✓ Selected flight ${fl.airline} (${fl.airlineCode}) for active request pricing.`, 'success');
             }}
