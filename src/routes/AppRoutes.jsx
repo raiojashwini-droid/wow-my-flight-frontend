@@ -140,7 +140,7 @@ const getMenuLabelForPath = (path) => {
   if (p.includes('/call-dispositions')) return 'Call Dispositions';
   if (p.includes('/dashboard')) return 'Dashboard';
   if (p.includes('/agents/performance')) return 'Sales Dashboard';
-  if (p.includes('/agents') || p.includes('/team')) return 'Calling System';
+  if (p.includes('/agents') || p.includes('/team')) return 'Agents Management';
   if (p.includes('/active-cases') || p.includes('/users')) return 'Users';
   if (p.includes('/qa-audits')) return 'QA Audits';
   if (p.includes('/after-sales')) return 'After-Sales';
@@ -175,7 +175,7 @@ const getDynamicRedirectPath = (label, role) => {
   if (label === 'Priority Roadmap') path = '/roadmap';
   if (label === 'Leads') path = '/leads';
   if (label === 'Customer 360') path = '/customers';
-  if (label === 'Calling System') path = '/agents';
+  if (label === 'Agents Management' || label === 'Calling System') path = '/agents';
   if (label === 'Follow-ups') path = '/consultations/calendar';
   if (label === 'Quotes') path = '/quotes';
   if (label === 'Lead Distribution') path = '/lead-distribution';

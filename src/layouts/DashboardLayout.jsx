@@ -405,7 +405,7 @@ export const DashboardLayout = () => {
     { section: 'PHASE 1 – SALES', label: 'Communication Hub', icon: <ForumIcon />, path: '/communication-center', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 1 – SALES', label: 'Quotes', icon: <RequestQuoteIcon />, path: '/quotes', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'consultant', 'flight_expert'] },
     { section: 'PHASE 1 – SALES', label: 'Customer 360', icon: <BusinessCenterIcon />, path: '/customers', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Calling System', icon: <PhoneInTalkIcon />, path: '/agents', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Agents Management', icon: <SupportAgentIcon />, path: '/agents', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 1 – SALES', label: 'Sales Dashboard', icon: <AssessmentIcon />, path: '/agents/performance', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'consultant'] },
 
     // PHASE 2 – BOOKING OPERATIONS
@@ -701,7 +701,7 @@ export const DashboardLayout = () => {
     // Core operational & management items always render for Admin and SuperAdmin
     const ALWAYS_VISIBLE_MENUS = ['Dashboard', 'QA Audits', 'After-Sales', 'Live Web Chat'];
     if (['super_admin', 'admin'].includes(currentUser?.role)) {
-      ALWAYS_VISIBLE_MENUS.push('Permission Control', 'Management Reports');
+      ALWAYS_VISIBLE_MENUS.push('Permission Control', 'Management Reports', 'Agents Management');
     }
 
     if (!ALWAYS_VISIBLE_MENUS.includes(item.label)) {
