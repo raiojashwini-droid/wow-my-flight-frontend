@@ -78,6 +78,7 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
 import HistoryIcon from '@mui/icons-material/History';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import AirplanemodeActiveIcon from '@mui/icons-material/AirplanemodeActive';
 // Contexts & Hooks
 import { useThemeMode } from '../contexts/ThemeContext';
 import { useAlert } from '../contexts/AlertContext';
@@ -380,6 +381,9 @@ export const DashboardLayout = () => {
     }
     if (item.label === 'Permission Control') {
       return currentPath.includes('/permission-control') || currentPath.includes('/permission-management');
+    }
+    if (item.label === 'Flight Search') {
+      return currentPath.includes('/flights') || currentPath.includes('/flight_expert');
     }
 
     // Social inbox matching

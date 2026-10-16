@@ -22,8 +22,11 @@ import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import { useNavigate } from 'react-router-dom';
 
 // Icons
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import FlightLandIcon from '@mui/icons-material/FlightLand';
 import AddIcon from '@mui/icons-material/Add';
@@ -64,6 +67,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dbService } from '../../services/dbService';
 
 export default function FlightExpertDesk() {
+  const navigate = useNavigate();
   const { showAlert } = useAlert();
 
   // Active Workspace Tab (0 = Expert Search & Filters, 1 = GDS Queue & Console, 2 = Advanced Info Inspector)
@@ -299,7 +303,34 @@ export default function FlightExpertDesk() {
           bgcolor: 'background.paper'
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.8 }}>
+          <Tooltip title="Back to Flight Search Desk">
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate('/flights')}
+              sx={{
+                fontWeight: 800,
+                fontSize: '0.78rem',
+                borderRadius: 2,
+                px: 1.8,
+                py: 0.65,
+                borderColor: 'divider',
+                color: 'text.primary',
+                textTransform: 'none',
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#F8FAFC',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF',
+                  color: 'primary.main'
+                }
+              }}
+            >
+              Back to Flight Search
+            </Button>
+          </Tooltip>
+
           <Box
             sx={{
               p: 1.2,
