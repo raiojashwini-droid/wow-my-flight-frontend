@@ -63,6 +63,7 @@ export const TelnyxProvider = ({ children }) => {
   const [selectedFromNumber, setSelectedFromNumber] = useState('');
   const [socketConnected, setSocketConnected] = useState(false);
   const [dispositionPending, setDispositionPending] = useState(null); // call that needs disposition
+  const [incomingChatRequest, setIncomingChatRequest] = useState(null); // Real-time incoming website chat request
 
   // ── Socket.io: Connect to backend for real-time events ──────────────────────
   useEffect(() => {
@@ -76,6 +77,8 @@ export const TelnyxProvider = ({ children }) => {
       socket.emit('agent:register', {
         agentId: currentUser.id,
         agentName: currentUser.name,
+        role: currentUser.role,
+        status: 'available',
       });
       console.log('[TelnyxContext] Socket connected:', socket.id);
     });
@@ -83,6 +86,27 @@ export const TelnyxProvider = ({ children }) => {
     socket.on('disconnect', () => {
       setSocketConnected(false);
       console.log('[TelnyxContext] Socket disconnected');
+    });
+
+    // Real-time Incoming Website Chat Request
+    socket.on('chat:incoming_request', (data) => {
+      console.log('[TelnyxContext] Incoming chat request:', data);
+      setIncomingChatRequest(data);
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(() => {});
+      } catch (e) {}
+    });
+
+    // Request claimed by another agent -> dismiss notification
+    socket.on('chat:request_claimed', ({ chatRequestId }) => {
+      setIncomingChatRequest((prev) => {
+        if (prev && prev.chatRequestId === chatRequestId) {
+          return null;
+        }
+        return prev;
+      });
     });
 
     // Incoming call from server (inbound calls from customers)
@@ -430,6 +454,24 @@ export const TelnyxProvider = ({ children }) => {
     setDispositionPending(null);
   }, []);
 
+  // ── Accept incoming chat request (Single-agent atomic claim) ───────────────────
+  const acceptChatRequest = useCallback((sessionId, callback) => {
+    if (!socketRef.current || !sessionId) return;
+    socketRef.current.emit('chat:accept_request', {
+      sessionId,
+      agentId: currentUser?.id || 'agent-1',
+      agentName: currentUser?.name || 'Support Agent',
+    }, (res) => {
+      setIncomingChatRequest(null);
+      if (callback) callback(res);
+    });
+  }, [currentUser]);
+
+  // ── Dismiss incoming chat request notification ────────────────────────────────
+  const dismissChatRequest = useCallback(() => {
+    setIncomingChatRequest(null);
+  }, []);
+
   const value = {
     // SDK
     sdkStatus,
@@ -444,6 +486,11 @@ export const TelnyxProvider = ({ children }) => {
     isMuted,
     isOnHold,
     dispositionPending,
+
+    // Chat incoming notification
+    incomingChatRequest,
+    acceptChatRequest,
+    dismissChatRequest,
 
     // Phone numbers
     phoneNumbers,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import IncomingCallModal from '../components/IncomingCallModal';
+import IncomingChatModal from '../components/IncomingChatModal';
 import CallDispositionModal from '../components/CallDispositionModal';
 import { Plane } from 'lucide-react';
 import Box from '@mui/material/Box';
@@ -80,13 +81,17 @@ import NoteAltIcon from '@mui/icons-material/NoteAlt';
 import HistoryIcon from '@mui/icons-material/History';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AirplanemodeActiveIcon from '@mui/icons-material/AirplanemodeActive';
+import VideocamIcon from '@mui/icons-material/Videocam';
 // Contexts & Hooks
 import { useThemeMode } from '../contexts/ThemeContext';
 import { useAlert } from '../contexts/AlertContext';
 import { useAuth } from '../hooks/useAuth';
+import { useTelnyx } from '../contexts/TelnyxContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dbService } from '../services/dbService';
 import SearchBar from '../components/SearchBar';
+import JitsiMeetingModal from '../components/JitsiMeetingModal';
+import { generateInternalTeamRoom } from '../services/jitsiService';
 
 const drawerWidth = 260;
 const collapsedDrawerWidth = 72;
@@ -135,6 +140,13 @@ const getNotificationMeta = (type) => {
         bg: 'rgba(220, 38, 38, 0.12)',
         label: 'SLA Alert',
       };
+    case 'chat':
+      return {
+        icon: <ChatIcon sx={{ fontSize: 18 }} />,
+        color: '#4F46E5',
+        bg: 'rgba(79, 70, 229, 0.12)',
+        label: 'Live Chat',
+      };
     default:
       return {
         icon: <NotificationsIcon sx={{ fontSize: 18 }} />,
@@ -154,6 +166,7 @@ const ROLE_NOTIFICATION_CONFIG = {
     tabs: [
       { id: 'all', label: 'All' },
       { id: 'unread', label: 'Unread' },
+      { id: 'chat', label: 'Live Chats' },
       { id: 'booking', label: 'Bookings' },
       { id: 'payment', label: 'Payments' },
       { id: 'lead', label: 'Leads' },
@@ -169,6 +182,7 @@ const ROLE_NOTIFICATION_CONFIG = {
     tabs: [
       { id: 'all', label: 'All' },
       { id: 'unread', label: 'Unread' },
+      { id: 'chat', label: 'Live Chats' },
       { id: 'booking', label: 'Bookings' },
       { id: 'payment', label: 'Payments' },
       { id: 'lead', label: 'Leads' },
@@ -180,10 +194,11 @@ const ROLE_NOTIFICATION_CONFIG = {
   team_leader: {
     title: 'Team Leader Alerts',
     roleLabel: 'Team Leader',
-    allowedTypes: ['lead', 'booking', 'call', 'sla', 'document', 'system'],
+    allowedTypes: ['lead', 'booking', 'call', 'sla', 'document', 'system', 'chat'],
     tabs: [
       { id: 'all', label: 'All' },
       { id: 'unread', label: 'Unread' },
+      { id: 'chat', label: 'Live Chats' },
       { id: 'lead', label: 'Leads' },
       { id: 'booking', label: 'Bookings' },
       { id: 'call', label: 'Calls' },
@@ -194,10 +209,11 @@ const ROLE_NOTIFICATION_CONFIG = {
   expert_team_leader: {
     title: 'Expert TL Alerts',
     roleLabel: 'Expert TL',
-    allowedTypes: ['lead', 'booking', 'call', 'sla', 'document', 'system'],
+    allowedTypes: ['lead', 'booking', 'call', 'sla', 'document', 'system', 'chat'],
     tabs: [
       { id: 'all', label: 'All' },
       { id: 'unread', label: 'Unread' },
+      { id: 'chat', label: 'Live Chats' },
       { id: 'lead', label: 'Leads' },
       { id: 'booking', label: 'Bookings' },
       { id: 'call', label: 'Calls' },
@@ -208,10 +224,11 @@ const ROLE_NOTIFICATION_CONFIG = {
   consultant: {
     title: 'Sales Agent Alerts',
     roleLabel: 'Sales Agent',
-    allowedTypes: ['lead', 'booking', 'call', 'sla'],
+    allowedTypes: ['lead', 'booking', 'call', 'sla', 'chat'],
     tabs: [
       { id: 'all', label: 'All' },
       { id: 'unread', label: 'Unread' },
+      { id: 'chat', label: 'Live Chats' },
       { id: 'lead', label: 'Leads' },
       { id: 'call', label: 'Calls & Tasks' },
       { id: 'booking', label: 'Bookings' },
@@ -221,10 +238,11 @@ const ROLE_NOTIFICATION_CONFIG = {
   sales_agent: {
     title: 'Sales Agent Alerts',
     roleLabel: 'Sales Agent',
-    allowedTypes: ['lead', 'booking', 'call', 'sla'],
+    allowedTypes: ['lead', 'booking', 'call', 'sla', 'chat'],
     tabs: [
       { id: 'all', label: 'All' },
       { id: 'unread', label: 'Unread' },
+      { id: 'chat', label: 'Live Chats' },
       { id: 'lead', label: 'Leads' },
       { id: 'call', label: 'Calls & Tasks' },
       { id: 'booking', label: 'Bookings' },
@@ -234,7 +252,7 @@ const ROLE_NOTIFICATION_CONFIG = {
   agent: {
     title: 'Sales Agent Alerts',
     roleLabel: 'Sales Agent',
-    allowedTypes: ['lead', 'booking', 'call', 'sla'],
+    allowedTypes: ['lead', 'booking', 'call', 'sla', 'chat'],
     tabs: [
       { id: 'all', label: 'All' },
       { id: 'unread', label: 'Unread' },
@@ -347,6 +365,7 @@ const ROLE_NOTIFICATION_CONFIG = {
 export const DashboardLayout = () => {
   const { mode, toggleTheme } = useThemeMode();
   const { currentUser, changeRole, logout, isAdmin, isConsultant, isFinance, isOperations } = useAuth();
+  const { incomingChatRequest } = useTelnyx();
   const { showAlert } = useAlert();
   const navigate = useNavigate();
   const location = useLocation();
@@ -368,11 +387,35 @@ export const DashboardLayout = () => {
     refetchInterval: 3000,
   });
 
+  // Combine real-time incoming chat request with database notifications
+  const combinedNotifications = useMemo(() => {
+    let list = Array.isArray(notifications) ? [...notifications] : [];
+    if (incomingChatRequest) {
+      const liveId = `chat-${incomingChatRequest.chatRequestId}`;
+      const exists = list.some(n => n.id === liveId || n.sessionId === incomingChatRequest.chatRequestId);
+      if (!exists) {
+        const liveNotif = {
+          id: liveId,
+          title: 'Incoming Website Chat',
+          message: `${incomingChatRequest.customerName || 'Website Visitor'} initiated a live chat inquiry.`,
+          type: 'chat',
+          read: false,
+          time: 'Just now',
+          link: '/live-chat',
+          sessionId: incomingChatRequest.chatRequestId,
+          createdAt: incomingChatRequest.requestTime || new Date(),
+        };
+        list = [liveNotif, ...list];
+      }
+    }
+    return list;
+  }, [incomingChatRequest, notifications]);
+
   // Role-specific allowed notifications safety filter
   const roleNotifications = useMemo(() => {
-    if (!notifConfig.allowedTypes) return notifications;
-    return notifications.filter(n => notifConfig.allowedTypes.includes(n.type));
-  }, [notifications, notifConfig.allowedTypes]);
+    if (!notifConfig.allowedTypes) return combinedNotifications;
+    return combinedNotifications.filter(n => notifConfig.allowedTypes.includes(n.type));
+  }, [combinedNotifications, notifConfig.allowedTypes]);
 
   const unreadCount = roleNotifications.filter(n => !n.read).length;
 
@@ -468,6 +511,14 @@ export const DashboardLayout = () => {
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [notifAnchorEl, setNotifAnchorEl] = useState(null);
   const [searchVal, setSearchVal] = useState('');
+  const [internalHuddleOpen, setInternalHuddleOpen] = useState(false);
+  const [internalHuddleRoom, setInternalHuddleRoom] = useState('');
+
+  const handleOpenInternalHuddle = () => {
+    const room = generateInternalTeamRoom(currentRole, currentUser?.name);
+    setInternalHuddleRoom(room);
+    setInternalHuddleOpen(true);
+  };
 
   const handleProfileMenuOpen = (event) => setProfileAnchorEl(event.currentTarget);
   const handleProfileMenuClose = () => setProfileAnchorEl(null);
@@ -540,8 +591,12 @@ export const DashboardLayout = () => {
 
   const handleNotifClick = (notif) => {
     const id = typeof notif === 'string' ? notif : notif?.id;
-    if (id) markReadMutation.mutate(id);
+    if (id && !id.startsWith('chat-')) markReadMutation.mutate(id);
     handleNotifMenuClose();
+    if (notif?.type === 'chat' && notif?.sessionId) {
+      navigate('/live-chat', { state: { sessionId: notif.sessionId } });
+      return;
+    }
     if (notif?.link) {
       let targetPath = notif.link;
       // If user is not super_admin but link has /super_admin/, redirect to their role-safe equivalent
@@ -635,6 +690,7 @@ export const DashboardLayout = () => {
       '/duplicate-leads',
       '/communication-center',
       '/live-chat',
+      '/internal-team-chat',
       '/calling-desk',
       '/call-dispositions',
       '/after-sales',
@@ -702,6 +758,7 @@ export const DashboardLayout = () => {
     { section: 'PHASE 1 – SALES', label: 'Leads', icon: <PeopleIcon />, path: '/leads', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 1 – SALES', label: 'Lead Lifecycle', icon: <AutoFixHighIcon />, path: '/lead-lifecycle', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 1 – SALES', label: 'Live Web Chat', icon: <ChatIcon />, path: '/live-chat', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Internal Team Chat', icon: <GroupsIcon />, path: '/internal-team-chat', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader', 'flight_expert', 'ticketing_agent', 'finance'] },
     { section: 'PHASE 1 – SALES', label: 'Calling & Softphone', icon: <PhoneInTalkIcon />, path: '/calling-desk', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 1 – SALES', label: 'Call Dispositions', icon: <NoteAltIcon />, path: '/call-dispositions', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 1 – SALES', label: 'Follow-ups', icon: <CalendarMonthIcon />, path: '/consultations/calendar', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
@@ -1002,7 +1059,7 @@ export const DashboardLayout = () => {
   // Render navigation item
   const renderNavItem = (item) => {
     // Core operational & management items always render for Admin and SuperAdmin
-    const ALWAYS_VISIBLE_MENUS = ['Dashboard', 'QA Audits', 'After-Sales', 'Live Web Chat'];
+    const ALWAYS_VISIBLE_MENUS = ['Dashboard', 'QA Audits', 'After-Sales', 'Live Web Chat', 'Internal Team Chat'];
     if (['super_admin', 'admin'].includes(currentUser?.role)) {
       ALWAYS_VISIBLE_MENUS.push('Permission Control', 'Management Reports', 'Agents Management');
     }
@@ -1702,7 +1759,17 @@ export const DashboardLayout = () => {
       >
         <Outlet />
         <IncomingCallModal />
+        <IncomingChatModal />
         <CallDispositionModal />
+        {internalHuddleOpen && (
+          <JitsiMeetingModal
+            open={internalHuddleOpen}
+            onClose={() => setInternalHuddleOpen(false)}
+            roomName={internalHuddleRoom}
+            clientName={`Internal Staff (${currentUser?.name || 'Team'})`}
+            agentName={currentUser?.name || 'Staff Member'}
+          />
+        )}
       </Box>
     </Box>
   );

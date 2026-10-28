@@ -337,7 +337,6 @@ export const ChatWindow = ({
         setReplyText={setReplyText} 
         handleSend={(attachment = null) => {
           handleSend(noteMode, attachment);
-          if (noteMode) setNoteMode(false); // Reset to reply after sending a note
         }} 
         handleTyping={handleTyping}
         noteMode={noteMode}

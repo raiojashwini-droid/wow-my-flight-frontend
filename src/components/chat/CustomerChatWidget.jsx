@@ -38,6 +38,17 @@ const CustomerChatWidget = () => {
   const socketRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // Fresh refs to prevent stale closure inside socket callbacks
+  const isOpenRef = useRef(isOpen);
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
   const onFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -109,11 +120,11 @@ const CustomerChatWidget = () => {
     if (isOpen) {
       setUnreadCount(0);
       dismissTooltip();
-      if (session && socket) {
-        socket.emit('chat:mark_read', { sessionId: session, readerType: 'customer' });
+      if (sessionRef.current && socketRef.current) {
+        socketRef.current.emit('chat:mark_read', { sessionId: sessionRef.current, readerType: 'customer' });
       }
     }
-  }, [isOpen, session, socket]);
+  }, [isOpen]);
 
   // Handle restoring session from localStorage
   useEffect(() => {
@@ -143,8 +154,14 @@ const CustomerChatWidget = () => {
         newSocket.emit('chat:customer_rejoin', { sessionId: sessionIdToRestore }, (res) => {
           if (res.success) {
             setSession(sessionIdToRestore);
+            sessionRef.current = sessionIdToRestore;
             setIsRegistered(true);
-            setMessages(res.messages || []);
+            const cleanMsgs = (res.messages || []).filter(m => m.type !== 'note');
+            setMessages(cleanMsgs);
+            if (!isOpenRef.current) {
+              const unread = cleanMsgs.filter(m => m.senderType === 'agent' && m.status !== 'read').length;
+              setUnreadCount(unread);
+            }
           } else {
             localStorage.removeItem('chat_session_id');
             localStorage.removeItem('chat_customer_details');
@@ -174,7 +191,7 @@ const CustomerChatWidget = () => {
               status: 'read'
             }]);
           } else {
-            setMessages(res.messages || []);
+            setMessages((res.messages || []).filter(m => m.type !== 'note'));
           }
         });
       }
@@ -184,13 +201,16 @@ const CustomerChatWidget = () => {
     newSocket.on('connect_error', () => setIsConnected(false));
 
     newSocket.on('chat:receive_message', (msg) => {
+      // Security isolation: internal staff notes must never be processed by customer widget
+      if (msg.type === 'note') return;
+
       setMessages((prev) => [...prev, msg]);
       setIsAgentTyping(false);
       
       if (msg.senderType === 'agent') {
         playSound();
-        if (isOpen) {
-          newSocket.emit('chat:mark_read', { sessionId: session || sessionIdToRestore, readerType: 'customer' });
+        if (isOpenRef.current) {
+          newSocket.emit('chat:mark_read', { sessionId: sessionRef.current || sessionIdToRestore, readerType: 'customer' });
         } else {
           setUnreadCount(prev => prev + 1);
         }
@@ -424,7 +444,7 @@ const CustomerChatWidget = () => {
                     </span>
                   </div>
                   
-                  {messages.map((msg, index) => {
+                  {messages.filter(m => m.type !== 'note').map((msg, index) => {
                     const isMe = msg.senderType === 'customer';
                     const prevMsg = index > 0 ? messages[index - 1] : null;
                     const isFirstInGroup = !prevMsg || prevMsg.senderType !== msg.senderType;
@@ -614,11 +634,11 @@ const CustomerChatWidget = () => {
             <span className="absolute -inset-1 rounded-full border-2 border-indigo-400 animate-ping opacity-75"></span>
           )}
 
-          {!isOpen && (
-            <span className="absolute -top-1 -right-1 flex h-5 w-5">
+          {!isOpen && unreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-6 min-w-6 z-20">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 border-2 border-white dark:border-[#0B1020] text-[10px] font-bold items-center justify-center text-white">
-                {unreadCount > 0 ? unreadCount : ''}
+              <span className="relative inline-flex rounded-full h-6 min-w-6 px-1.5 bg-red-500 border-2 border-white dark:border-[#0B1020] text-[11px] font-extrabold items-center justify-center text-white shadow-md">
+                {unreadCount}
               </span>
             </span>
           )}
