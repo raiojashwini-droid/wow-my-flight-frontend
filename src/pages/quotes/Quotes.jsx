@@ -878,16 +878,45 @@ export default function Quotes() {
           {/* Summary KPI Cards */}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
             {[
-              { label: 'Total Quotes', value: quotes.length, color: '#6366F1', bg: '#EEF2FF', icon: '📝' },
-              { label: 'Sent to Customer', value: quotes.filter(q => q.status === 'Sent' || q.status === 'Viewed').length, color: '#F59E0B', bg: '#FFFBEB', icon: '📤' },
-              { label: 'Accepted (Won)', value: quotes.filter(q => q.status === 'Accepted').length, color: '#10B981', bg: '#ECFDF5', icon: '✅' },
-              { label: 'Average Margin / Quote', value: '$1,480 (16.2%)', color: '#2563EB', bg: '#EFF6FF', icon: '📈' },
+              { label: 'Total Quotes', value: quotes.length, color: '#818CF8', lightBg: '#EEF2FF', darkBg: 'rgba(99, 102, 241, 0.12)', border: 'rgba(99, 102, 241, 0.3)', icon: '📝' },
+              { label: 'Sent to Customer', value: quotes.filter(q => q.status === 'Sent' || q.status === 'Viewed').length, color: '#FBBF24', lightBg: '#FFFBEB', darkBg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.3)', icon: '📤' },
+              { label: 'Accepted (Won)', value: quotes.filter(q => q.status === 'Accepted').length, color: '#34D399', lightBg: '#ECFDF5', darkBg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.3)', icon: '✅' },
+              { label: 'Average Margin / Quote', value: '$1,480 (16.2%)', color: '#60A5FA', lightBg: '#EFF6FF', darkBg: 'rgba(37, 99, 235, 0.12)', border: 'rgba(37, 99, 235, 0.3)', icon: '📈' },
             ].map((s, i) => (
-              <Paper key={i} elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: s.bg }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', display: 'block' }}>
+              <Paper
+                key={i}
+                elevation={0}
+                sx={{
+                  p: 2,
+                  border: '1px solid',
+                  borderColor: (theme) => theme.palette.mode === 'dark' ? s.border : 'divider',
+                  borderRadius: 2.5,
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? s.darkBg : s.lightBg,
+                  backdropFilter: 'blur(8px)',
+                  transition: 'all 0.2s ease-in-out',
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    display: 'block',
+                    color: (theme) => theme.palette.mode === 'dark' ? 'text.secondary' : 'text.secondary',
+                  }}
+                >
                   {s.icon} {s.label}
                 </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 900, color: s.color, mt: 0.5 }}>{s.value}</Typography>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 900,
+                    color: s.color,
+                    mt: 0.5
+                  }}
+                >
+                  {s.value}
+                </Typography>
               </Paper>
             ))}
           </Box>

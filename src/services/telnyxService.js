@@ -92,6 +92,20 @@ export const fetchCallHistory = async ({ agentId = null, limit = 50 } = {}) => {
   return response.data.data;
 };
 
+/**
+ * Delete a call log record on the server
+ */
+export const deleteCallRecord = async (id) => {
+  if (!id) return null;
+  try {
+    const response = await api.delete(`/calls/${id}`);
+    return response.data;
+  } catch (err) {
+    console.warn('[Telnyx] Server deleteCallRecord warning:', err.message);
+    return null;
+  }
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SMS
 // ─────────────────────────────────────────────────────────────────────────────

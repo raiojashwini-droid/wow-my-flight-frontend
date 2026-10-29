@@ -56,6 +56,7 @@ import useAuth from '../../hooks/useAuth';
 import { useTelnyx } from '../../contexts/TelnyxContext';
 import {
   fetchCallHistory,
+  deleteCallRecord,
   toE164,
   formatCallDuration,
   formatPhoneDisplay,
@@ -143,7 +144,13 @@ export default function CallingSoftphoneWorkspace() {
   const [callToDelete, setCallToDelete] = useState(null);
 
   // Dismissed Last Call State (Controls visibility of last called banner)
-  const [dismissedLastCall, setDismissedLastCall] = useState(false);
+  const [dismissedLastCall, setDismissedLastCall] = useState(() => {
+    try {
+      return localStorage.getItem('crm_last_dialed_dismissed') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // Sync phone numbers from Telnyx context
   useEffect(() => {
@@ -205,51 +212,19 @@ export default function CallingSoftphoneWorkspace() {
       const uniqueCalls = [];
 
       for (const call of combined) {
-        const key = String(call.callControlId || call.id);
-        if (!seen.has(key) && !deletedIds.has(key)) {
-          seen.add(key);
+        const idKey = String(call.id || '');
+        const ctrlKey = String(call.callControlId || '');
+        const primaryKey = ctrlKey || idKey;
+        if (!primaryKey) continue;
+        if (deletedIds.has(idKey) || (ctrlKey && deletedIds.has(ctrlKey))) {
+          continue;
+        }
+        if (!seen.has(primaryKey)) {
+          seen.add(primaryKey);
+          if (idKey) seen.add(idKey);
+          if (ctrlKey) seen.add(ctrlKey);
           uniqueCalls.push(call);
         }
-      }
-
-      // If no calls are loaded (e.g. from previous accidental clear), ensure verified call log is present
-      if (uniqueCalls.length === 0) {
-        const restoredCall = {
-          id: 'call_919713056704',
-          callControlId: 'call_919713056704',
-          direction: 'outbound',
-          fromNumber: '+18333955554',
-          toNumber: '+919713056704',
-          customerName: 'Verified Direct Lead',
-          agentName: 'Wael Madi (CEO)',
-          startedAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-          durationSeconds: 1,
-          status: 'completed',
-          recordingUrl: null,
-        };
-        uniqueCalls.push(restoredCall);
-
-        // Keep local timeline in sync
-        try {
-          const savedTimeline = localStorage.getItem(TIMELINE_STORAGE_KEY);
-          const list = savedTimeline ? JSON.parse(savedTimeline) : [];
-          if (!list.some((item) => item.to === '+919713056704' || item.customerPhone === '+919713056704')) {
-            list.unshift({
-              id: 'call_919713056704',
-              channel: 'Call',
-              direction: 'outbound',
-              customer: 'Verified Direct Lead',
-              customerPhone: '+919713056704',
-              to: '+919713056704',
-              from: '+18333955554',
-              agent: 'Wael Madi (CEO)',
-              timestamp: restoredCall.startedAt,
-              durationSeconds: 1,
-              status: 'completed',
-            });
-            localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(list));
-          }
-        } catch (e) {}
       }
 
       // Sort newest first
@@ -262,22 +237,44 @@ export default function CallingSoftphoneWorkspace() {
     }
   }, []);
 
-  // Auto-clean personal number from browser localStorage on startup
+  // Auto-clean personal number and deleted records from browser localStorage on startup
   useEffect(() => {
     try {
+      const deletedIds = getDeletedCallIds();
       const savedLast = localStorage.getItem(LAST_DIALED_KEY);
-      if (savedLast && savedLast.includes('6261508179')) {
-        localStorage.removeItem(LAST_DIALED_KEY);
+      if (savedLast) {
+        try {
+          const parsed = JSON.parse(savedLast);
+          const pId = String(parsed.id || '');
+          const pCtrl = String(parsed.callControlId || '');
+          if (
+            deletedIds.has(pId) ||
+            deletedIds.has(pCtrl) ||
+            String(parsed.toNumber || '').includes('6261508179') ||
+            String(parsed.fromNumber || '').includes('6261508179')
+          ) {
+            localStorage.removeItem(LAST_DIALED_KEY);
+          }
+        } catch (e) {
+          localStorage.removeItem(LAST_DIALED_KEY);
+        }
       }
       const savedTimeline = localStorage.getItem(TIMELINE_STORAGE_KEY);
-      if (savedTimeline && savedTimeline.includes('6261508179')) {
+      if (savedTimeline) {
         const items = JSON.parse(savedTimeline);
-        const filtered = items.filter(
-          (item) =>
-            !String(item.to || '').includes('6261508179') &&
-            !String(item.from || '').includes('6261508179') &&
-            !String(item.customerPhone || '').includes('6261508179')
-        );
+        const filtered = items.filter((item) => {
+          const id = String(item.id || '');
+          const ctrl = String(item.callControlId || '');
+          if (deletedIds.has(id) || deletedIds.has(ctrl)) return false;
+          if (
+            String(item.to || '').includes('6261508179') ||
+            String(item.from || '').includes('6261508179') ||
+            String(item.customerPhone || '').includes('6261508179')
+          ) {
+            return false;
+          }
+          return true;
+        });
         localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(filtered));
       }
     } catch (err) {
@@ -309,19 +306,29 @@ export default function CallingSoftphoneWorkspace() {
     };
   }, [showAlert, loadCalls]);
 
-  // Last Called Number & Information (guarantee personal number is completely omitted)
+  // Last Called Number & Information (guarantee deleted calls and personal number are completely omitted)
   const lastCall = useMemo(() => {
     if (dismissedLastCall) return null;
-    const filtered = callHistory.filter(
-      (c) =>
-        !String(c.toNumber || '').includes('6261508179') &&
-        !String(c.fromNumber || '').includes('6261508179')
-    );
+    const deletedIds = getDeletedCallIds();
+
+    const filtered = callHistory.filter((c) => {
+      const cId = String(c.id || '');
+      const cCtrl = String(c.callControlId || '');
+      if (deletedIds.has(cId) || deletedIds.has(cCtrl)) return false;
+      const num = String(c.toNumber || c.to || '');
+      if (num.includes('6261508179')) return false;
+      return true;
+    });
+
     if (filtered.length > 0) return filtered[0];
+
     try {
       const saved = localStorage.getItem(LAST_DIALED_KEY);
       if (!saved) return null;
       const parsed = JSON.parse(saved);
+      const pId = String(parsed.id || '');
+      const pCtrl = String(parsed.callControlId || '');
+      if (deletedIds.has(pId) || deletedIds.has(pCtrl)) return null;
       if (
         String(parsed.toNumber || '').includes('6261508179') ||
         String(parsed.fromNumber || '').includes('6261508179')
@@ -334,14 +341,16 @@ export default function CallingSoftphoneWorkspace() {
     }
   }, [callHistory, dismissedLastCall]);
 
-  // Clear Last Called Number (DISMISS BANNER ONLY — PRESERVE CALL HISTORY & AUDIT LOGS)
+  // Clear Last Called Number (remove banner and clear from persistent storage)
   const handleClearLastCall = useCallback(() => {
     try {
       setDismissedLastCall(true);
       try {
+        localStorage.setItem('crm_last_dialed_dismissed', 'true');
         sessionStorage.setItem('crm_dismissed_last_call', 'true');
+        localStorage.removeItem(LAST_DIALED_KEY);
       } catch (err) {}
-      showAlert('Last dialed number banner dismissed', 'info');
+      showAlert('Last dialed number banner removed', 'info');
     } catch (e) {
       console.warn('Error clearing last call banner:', e);
     }
@@ -351,7 +360,11 @@ export default function CallingSoftphoneWorkspace() {
   const recentNumbers = useMemo(() => {
     const seen = new Set();
     const list = [];
+    const deletedIds = getDeletedCallIds();
     for (const c of callHistory) {
+      const cId = String(c.id || '');
+      const cCtrl = String(c.callControlId || c.call_control_id || '');
+      if (deletedIds.has(cId) || deletedIds.has(cCtrl)) continue;
       const num = c.toNumber || c.fromNumber;
       if (num && !seen.has(num)) {
         seen.add(num);
@@ -469,11 +482,18 @@ export default function CallingSoftphoneWorkspace() {
       await makeCall({ toNumber: cleanNumber });
 
       // Reset dismissed state and save to last dialed storage immediately
+      const callId = `call_${Date.now()}`;
+      activeCallIdRef.current = callId;
+
       setDismissedLastCall(false);
       try {
         sessionStorage.removeItem('crm_dismissed_last_call');
+        localStorage.removeItem('crm_last_dialed_dismissed');
       } catch (e) {}
+
       const lastEntry = {
+        id: callId,
+        callControlId: callId,
         toNumber: cleanNumber,
         fromNumber: selectedFromNumber || '+18333955554',
         startedAt: new Date().toISOString(),
@@ -484,10 +504,9 @@ export default function CallingSoftphoneWorkspace() {
       localStorage.setItem(LAST_DIALED_KEY, JSON.stringify(lastEntry));
 
       // Save call to local timeline store for immediate tracking
-      const callId = `call_${Date.now()}`;
-      activeCallIdRef.current = callId;
       const newCallEntry = {
         id: callId,
+        callControlId: callId,
         channel: 'Call',
         direction: 'outbound',
         customer: 'Outbound Customer',
@@ -568,28 +587,98 @@ export default function CallingSoftphoneWorkspace() {
     setCallToDelete(call);
   };
 
-  const executeDeleteCall = () => {
+  const executeDeleteCall = async () => {
     if (!callToDelete) return;
-    const targetId = String(callToDelete.callControlId || callToDelete.id);
+    const call = callToDelete;
+    const targetId = String(call.id || '');
+    const targetCtrl = String(call.callControlId || call.call_control_id || '');
+    const targetNum = String(call.toNumber || call.to || call.customerPhone || call.fromNumber || call.from || '');
 
     try {
+      // 1. Add identifiers to deleted IDs persistent blacklist
       const deletedIds = getDeletedCallIds();
-      deletedIds.add(targetId);
+      if (targetId) deletedIds.add(targetId);
+      if (targetCtrl) deletedIds.add(targetCtrl);
       localStorage.setItem(DELETED_CALL_IDS_KEY, JSON.stringify(Array.from(deletedIds)));
 
-      // Also remove from local timeline storage if present
+      // 2. Remove from local timeline storage if present
       const savedTimeline = localStorage.getItem(TIMELINE_STORAGE_KEY);
       if (savedTimeline) {
-        const list = JSON.parse(savedTimeline);
-        const filtered = list.filter(
-          (item) => String(item.callControlId || item.id) !== targetId
-        );
-        localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(filtered));
+        try {
+          const list = JSON.parse(savedTimeline);
+          const filtered = list.filter((item) => {
+            const iId = String(item.id || '');
+            const iCtrl = String(item.callControlId || item.call_control_id || '');
+            if (targetId && (iId === targetId || iCtrl === targetId)) return false;
+            if (targetCtrl && (iId === targetCtrl || iCtrl === targetCtrl)) return false;
+            if (deletedIds.has(iId) || deletedIds.has(iCtrl)) return false;
+            return true;
+          });
+          localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify(filtered));
+        } catch (e) {}
+      }
+
+      // 3. Clean Redial banner ("LAST DIALED NUMBER") if this call is the last dialed one
+      let isLastDialedMatch = false;
+      const savedLast = localStorage.getItem(LAST_DIALED_KEY);
+      if (savedLast) {
+        try {
+          const parsed = JSON.parse(savedLast);
+          const pId = String(parsed.id || '');
+          const pCtrl = String(parsed.callControlId || parsed.call_control_id || '');
+          const pNum = String(parsed.toNumber || parsed.to || '');
+          if (
+            (targetId && (pId === targetId || deletedIds.has(pId))) ||
+            (targetCtrl && (pCtrl === targetCtrl || deletedIds.has(pCtrl))) ||
+            (targetNum && pNum && (targetNum === pNum || pNum.includes(targetNum.replace('+', ''))))
+          ) {
+            isLastDialedMatch = true;
+          }
+        } catch (e) {}
+      }
+
+      const isCurrentLastCall =
+        lastCall &&
+        ((targetId && String(lastCall.id) === targetId) ||
+          (targetCtrl && String(lastCall.callControlId || lastCall.call_control_id) === targetCtrl) ||
+          (targetNum &&
+            String(lastCall.toNumber || lastCall.to || lastCall.fromNumber || lastCall.from) === targetNum));
+
+      if (isLastDialedMatch || isCurrentLastCall) {
+        localStorage.removeItem(LAST_DIALED_KEY);
+        setDismissedLastCall(true);
+        try {
+          localStorage.setItem('crm_last_dialed_dismissed', 'true');
+          sessionStorage.setItem('crm_dismissed_last_call', 'true');
+        } catch (e) {}
+      }
+
+      // 4. Optimistically update call history state immediately
+      setCallHistory((prev) =>
+        prev.filter((item) => {
+          const iId = String(item.id || '');
+          const iCtrl = String(item.callControlId || item.call_control_id || '');
+          if (targetId && (iId === targetId || iCtrl === targetId)) return false;
+          if (targetCtrl && (iId === targetCtrl || iCtrl === targetCtrl)) return false;
+          if (deletedIds.has(iId) || deletedIds.has(iCtrl)) return false;
+          return true;
+        })
+      );
+
+      // 5. Fire backend API delete request to persist removal in database & memory
+      const deleteKey = targetCtrl || targetId;
+      if (deleteKey) {
+        deleteCallRecord(deleteKey).catch((apiErr) => {
+          console.warn('Backend delete error for key:', deleteKey, apiErr?.message);
+        });
+        if (targetId && targetId !== deleteKey) {
+          deleteCallRecord(targetId).catch(() => {});
+        }
       }
 
       showAlert('Call record deleted successfully', 'success');
       setCallToDelete(null);
-      loadCalls();
+      await loadCalls();
     } catch (err) {
       console.error('Delete call error:', err);
       showAlert('Failed to delete call record', 'error');
