@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuth from '../../hooks/useAuth';
@@ -11,6 +12,7 @@ const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const AgentLiveChatWorkspace = () => {
   const { currentUser } = useAuth();
+  const location = useLocation();
   
   const [socket, setSocket] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -62,13 +64,27 @@ const AgentLiveChatWorkspace = () => {
       setSessions((prev) => [session, ...prev]);
     });
 
+    // When a session is claimed by an agent
+    newSocket.on('chat:request_claimed', ({ chatRequestId, assignedAgentId }) => {
+      setSessions((prev) =>
+        prev.map((s) => (s.id === chatRequestId ? { ...s, agentId: assignedAgentId } : s))
+      );
+    });
+
     // When a session's activity is updated
     newSocket.on('chat:session_updated', (updatedSession) => {
       setSessions((prev) => {
         const exists = prev.find(s => s.id === updatedSession.id);
         if (exists) {
-          return prev.map(s => s.id === updatedSession.id ? updatedSession : s)
-                     .sort((a, b) => new Date(b.lastActivityAt) - new Date(a.lastActivityAt));
+          return prev.map(s => {
+            if (s.id === updatedSession.id) {
+              return {
+                ...updatedSession,
+                unreadCount: s.id === activeSessionIdRef.current ? 0 : (updatedSession.unreadCount ?? s.unreadCount ?? 0)
+              };
+            }
+            return s;
+          }).sort((a, b) => new Date(b.lastActivityAt) - new Date(a.lastActivityAt));
         }
         return [updatedSession, ...prev];
       });
@@ -76,7 +92,10 @@ const AgentLiveChatWorkspace = () => {
 
     // When a message is received in the ACTIVE room
     newSocket.on('chat:receive_message', (msg) => {
-      setActiveMessages((prev) => [...prev, msg]);
+      setActiveMessages((prev) => {
+        if (msg.id && prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
       
       // Stop typing indicator for this session
       setTypingUsers((prev) => ({ ...prev, [msg.sessionId]: false }));
@@ -99,11 +118,27 @@ const AgentLiveChatWorkspace = () => {
       // Automatically mark as read if we are viewing this session
       if (msg.sessionId === activeSessionIdRef.current) {
         newSocket.emit('chat:mark_read', { sessionId: activeSessionIdRef.current, readerType: 'agent' });
+        setSessions((prev) =>
+          prev.map((s) => (s.id === msg.sessionId ? { ...s, unreadCount: 0, lastMessage: msg.text || s.lastMessage } : s))
+        );
+      } else if (msg.senderType === 'customer') {
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === msg.sessionId
+              ? { ...s, unreadCount: (s.unreadCount || 0) + 1, lastMessage: msg.text || s.lastMessage }
+              : s
+          )
+        );
       }
     });
 
     // Handle read receipts
     newSocket.on('chat:messages_read', ({ sessionId, readerType }) => {
+      if (readerType === 'agent') {
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? { ...s, unreadCount: 0 } : s))
+        );
+      }
       if (sessionId === activeSessionIdRef.current && readerType === 'customer') {
         setActiveMessages(prev => prev.map(m => {
           if (m.senderType === 'agent' && m.status !== 'read') {
@@ -139,11 +174,30 @@ const AgentLiveChatWorkspace = () => {
     };
   }, [currentUser]);
 
+  // Auto-select session if passed through navigation state (e.g., from incoming chat notification)
+  useEffect(() => {
+    if (location.state?.sessionId && socket) {
+      handleSelectSession(location.state.sessionId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.sessionId, socket]);
+
   // Join a room when clicking a session
   const handleSelectSession = (sessionId) => {
+    const target = sessions.find((s) => s.id === sessionId);
+    if (target && target.agentId && target.agentId !== currentUser?.id && currentUser?.role !== 'super_admin' && currentUser?.role !== 'admin') {
+      alert('This chat session is already assigned to another agent.');
+      return;
+    }
+
     setActiveSessionId(sessionId);
     setActiveMessages([]); // Clear until history loads
     setIsMobileListOpen(false); // Switch to chat view on mobile screens
+    
+    // Clear unreadCount locally for this active session
+    setSessions((prev) =>
+      prev.map((s) => (s.id === sessionId ? { ...s, unreadCount: 0 } : s))
+    );
     
     if (socket) {
       socket.emit('chat:agent_join_room', { 
@@ -154,6 +208,8 @@ const AgentLiveChatWorkspace = () => {
           setActiveMessages(response.messages || []);
           // Mark all customer messages as read
           socket.emit('chat:mark_read', { sessionId, readerType: 'agent' });
+        } else if (response && !response.success) {
+          alert(response.message || 'Cannot join this chat session.');
         }
       });
     }

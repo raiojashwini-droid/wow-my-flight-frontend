@@ -27,6 +27,22 @@ export function generateMeetingRoom(identifier = 'Consultation', clientName = ''
 }
 
 /**
+ * Generate a dedicated internal staff room name
+ * e.g., "WowMyFlight-Internal-SalesDesk-a7b2"
+ * Strictly isolated from customer rooms and used only for internal staff collaboration
+ */
+export function generateInternalTeamRoom(department = 'TeamHuddle', staffName = '') {
+  const cleanDept = String(department).replace(/[^a-zA-Z0-9]/g, '') || 'TeamHuddle';
+  const cleanStaff = String(staffName).trim().replace(/[^a-zA-Z0-9]/g, '').slice(0, 10);
+  const randomSuffix = Math.random().toString(36).substring(2, 7);
+  
+  if (cleanStaff) {
+    return `WowMyFlight-Internal-${cleanDept}-${cleanStaff}-${randomSuffix}`;
+  }
+  return `WowMyFlight-Internal-${cleanDept}-${randomSuffix}`;
+}
+
+/**
  * Build direct public Jitsi Meet URL
  */
 export function getMeetingUrl(roomName) {
@@ -100,6 +116,7 @@ export function loadJitsiScript() {
 export const jitsiService = {
   domain: JITSI_DOMAIN,
   generateMeetingRoom,
+  generateInternalTeamRoom,
   getMeetingUrl,
   generateMeetingInvitation,
   loadJitsiScript,

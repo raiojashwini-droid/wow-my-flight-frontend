@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MessageSquare } from 'lucide-react';
+import { Search, MessageSquare, UserCheck, Clock } from 'lucide-react';
+import useAuth from '../../../hooks/useAuth';
 
 export const ConversationItem = ({ session, isActive, onClick }) => {
   const isOnline = true; // Mock online status based on some logic if needed
-  const unreadCount = 0; // Derived from session data if available
+  const unreadCount = session.unreadCount || 0;
+  const isUnassigned = !session.agentId;
   
   return (
     <motion.div
@@ -36,16 +38,27 @@ export const ConversationItem = ({ session, isActive, onClick }) => {
 
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-0.5">
-          <h4 className={`text-sm truncate pr-2 ${isActive ? 'font-bold text-slate-900' : 'font-semibold text-slate-800'}`}>
-            {session.customerName}
-          </h4>
+          <div className="flex items-center gap-1.5 min-w-0 pr-2">
+            <h4 className={`text-sm truncate ${isActive ? 'font-bold text-slate-900' : 'font-semibold text-slate-800'}`}>
+              {session.customerName}
+            </h4>
+            {isUnassigned ? (
+              <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200/80 px-1.5 py-0.2 rounded font-semibold shrink-0">
+                New
+              </span>
+            ) : (
+              <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-medium shrink-0">
+                Claimed
+              </span>
+            )}
+          </div>
           <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
             {new Date(session.lastActivityAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
         <div className="flex justify-between items-center gap-2">
           <p className={`text-xs truncate ${unreadCount > 0 ? 'font-semibold text-slate-800' : 'text-slate-500'}`}>
-            {session.lastMessage || 'Connected from website...'}
+            {session.lastMessage || (isUnassigned ? 'Awaiting agent acceptance...' : 'Connected from website...')}
           </p>
           {unreadCount > 0 && (
             <span className="shrink-0 bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
@@ -69,6 +82,7 @@ export const EmptyListState = () => (
 );
 
 export const ConversationList = ({ sessions, activeSessionId, onSelectSession }) => {
+  const { currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState('All');
 
@@ -84,8 +98,16 @@ export const ConversationList = ({ sessions, activeSessionId, onSelectSession })
     // For all other tabs, show only active sessions
     if (s.status !== 'active') return false;
     
+    if (filterTab === 'Unread') {
+      return (s.unreadCount || 0) > 0;
+    }
+
     if (filterTab === 'Unassigned') {
-      return s.agentId === null;
+      return !s.agentId;
+    }
+
+    if (filterTab === 'Mine') {
+      return s.agentId === currentUser?.id;
     }
     
     return true;
@@ -117,20 +139,34 @@ export const ConversationList = ({ sessions, activeSessionId, onSelectSession })
 
       {/* Tabs */}
       <div className="flex overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 py-2 border-b border-slate-100 shrink-0 gap-1">
-        {tabs.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setFilterTab(tab)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-colors cursor-pointer
-              ${filterTab === tab 
-                ? 'bg-slate-800 text-white shadow-sm' 
-                : 'text-slate-500 hover:bg-slate-100'
-              }
-            `}
-          >
-            {tab}
-          </button>
-        ))}
+        {tabs.map(tab => {
+          let count = null;
+          if (tab === 'Unread') {
+            const unreadTotal = sessions.filter(s => s.status === 'active' && (s.unreadCount || 0) > 0).length;
+            if (unreadTotal > 0) count = unreadTotal;
+          }
+          return (
+            <button
+              key={tab}
+              onClick={() => setFilterTab(tab)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5
+                ${filterTab === tab 
+                  ? 'bg-slate-800 text-white shadow-sm' 
+                  : 'text-slate-500 hover:bg-slate-100'
+                }
+              `}
+            >
+              <span>{tab}</span>
+              {count !== null && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  filterTab === tab ? 'bg-indigo-500 text-white' : 'bg-red-500 text-white'
+                }`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* List */}

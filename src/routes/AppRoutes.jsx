@@ -34,6 +34,7 @@ import LeadLifecycleSystem from '../pages/leads/LeadLifecycleSystem';
 import DuplicateLeadProtection from '../pages/leads/DuplicateLeadProtection';
 import CommunicationCenter from '../pages/social/CommunicationCenter';
 import AgentLiveChatWorkspace from '../pages/social/AgentLiveChatWorkspace';
+import InternalTeamChatWorkspace from '../pages/social/InternalTeamChatWorkspace';
 import CallingSoftphoneWorkspace from '../pages/social/CallingSoftphoneWorkspace';
 import MandatoryCallDispositionEngine from '../pages/social/MandatoryCallDispositionEngine';
 import FlightExpertDesk from '../pages/dashboard/FlightExpertDesk';
@@ -136,6 +137,7 @@ const getMenuLabelForPath = (path) => {
   if (p.includes('/duplicate-leads')) return 'Duplicate Protection';
   if (p.includes('/communication-center')) return 'Communication Hub';
   if (p.includes('/live-chat')) return 'Live Web Chat';
+  if (p.includes('/internal-team-chat')) return 'Internal Team Chat';
   if (p.includes('/calling-desk')) return 'Calling & Softphone';
   if (p.includes('/call-dispositions')) return 'Call Dispositions';
   if (p.includes('/dashboard')) return 'Dashboard';
@@ -183,6 +185,7 @@ const getDynamicRedirectPath = (label, role) => {
   if (label === 'Duplicate Protection') path = '/duplicate-leads';
   if (label === 'Communication Hub') path = '/communication-center';
   if (label === 'Live Web Chat') path = '/live-chat';
+  if (label === 'Internal Team Chat') path = '/internal-team-chat';
   if (label === 'Calling & Softphone') path = '/calling-desk';
   if (label === 'Call Dispositions') path = '/call-dispositions';
   if (label === 'Sales Dashboard') path = '/agents/performance';
@@ -604,6 +607,30 @@ export const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <AgentLiveChatWorkspace />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/internal-team-chat"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance', 'flight_expert', 'ticketing_agent']}>
+              <InternalTeamChatWorkspace />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/super_admin/internal-team-chat"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance', 'flight_expert', 'ticketing_agent']}>
+              <InternalTeamChatWorkspace />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/agent/internal-team-chat"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance', 'flight_expert', 'ticketing_agent']}>
+              <InternalTeamChatWorkspace />
             </ProtectedRoute>
           }
         />
