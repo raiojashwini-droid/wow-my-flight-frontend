@@ -78,8 +78,8 @@ export default function FlightExpertDesk() {
   const [tripType, setTripType] = useState('Round Trip'); // 'One Way' | 'Round Trip' | 'Multi-City' | 'Open Jaw'
   const [origin, setOrigin] = useState('DEL');
   const [destination, setDestination] = useState('LHR');
-  const [departDate, setDepartDate] = useState('2026-10-15');
-  const [returnDate, setReturnDate] = useState('2026-10-25');
+  const [departDate, setDepartDate] = useState(new Date(Date.now()+7*86400000).toISOString().slice(0,10));
+  const [returnDate, setReturnDate] = useState(new Date(Date.now()+14*86400000).toISOString().slice(0,10));
   const [searchTrigger, setSearchTrigger] = useState(0);
 
   // 2. SEARCH OPTIONS: Nearby Airports | Flexible Dates | Multiple Passengers

@@ -1,3 +1,4 @@
+import { saveRecord } from './recordApi.js';
 import {
   MOCK_LEADS,
   MOCK_CLIENTS,
@@ -13,18 +14,11 @@ import {
   MOCK_QUOTES
 } from '../constants/mockData';
 import { getMeetingUrl, generateMeetingRoom } from './jitsiService';
+import { getBackendUrl } from '../config/backend.js';
+
+export { getBackendUrl };
 
 const delay = () => Promise.resolve();
-
-export const getBackendUrl = () => {
-  if (import.meta.env.VITE_BACKEND_URL) {
-    return import.meta.env.VITE_BACKEND_URL;
-  }
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3001';
-  }
-  return 'https://wow-my-flight-backend-production-2ef6.up.railway.app';
-};
 
 export const getAuthToken = () => {
   try {
@@ -38,55 +32,11 @@ export const getAuthToken = () => {
 };
 
 async function apiFetch(path, options = {}) {
-  const primaryUrl = getBackendUrl();
   const token = getAuthToken();
-
-  const getHeaders = (extraHeaders = {}) => {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...extraHeaders
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    return headers;
-  };
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(`${primaryUrl}${path}`, {
-      signal: controller.signal,
-      ...options,
-      headers: getHeaders(options.headers)
-    });
-    clearTimeout(timeoutId);
-    if (res.ok) {
-      return await res.json();
-    }
-    if (res.status === 401) {
-      console.warn(`[apiFetch] 401 Unauthorized on ${path}`);
-    }
-  } catch (err) { }
-
-  // Fallback if primary URL failed
-  const fallbackUrl = 'https://wow-my-flight-backend-production-2ef6.up.railway.app';
-  if (primaryUrl !== fallbackUrl) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-      const res = await fetch(`${fallbackUrl}${path}`, {
-        signal: controller.signal,
-        ...options,
-        headers: getHeaders(options.headers)
-      });
-      clearTimeout(timeoutId);
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch (err) { }
-  }
-  return null;
+  const response = await fetch(getBackendUrl()+path, {...options, signal: AbortSignal.timeout(15000), headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...options.headers}});
+  const result = await response.json();
+  if (!response.ok || result.success === false) throw new Error(result.error || result.message || 'Request failed');
+  return result;
 }
 
 // Auto-sanitize legacy Spanish visa mock data from localStorage
@@ -158,54 +108,7 @@ const INITIAL_CONVERSATIONS = [];
 // ─── CLIENTS METADATA STORE & CACHE ──────────────────────────────
 const CLIENTS_META_STORAGE_KEY = 'crm-clients-meta-store';
 
-const INITIAL_CLIENTS_META = {
-  'CL-8853': {
-    city: 'Bangalore',
-    country: 'India',
-    nationality: 'India',
-    preferredCabinClass: 'Business Class',
-    passportNumber: 'M9876543',
-    passportExpiry: '2030-11-20',
-    seatPreference: 'Window',
-    mealPreference: 'Vegetarian (Asian)',
-    timezone: 'IST (UTC+5:30)',
-    preferredLanguage: 'Hindi',
-    tier: 'Gold'
-  },
-  'CL-7737': {
-    city: 'Delhi',
-    country: 'India',
-    nationality: 'India',
-    preferredCabinClass: 'Business Class',
-    seatPreference: 'Window',
-    mealPreference: 'Vegetarian (Asian)',
-    timezone: 'IST (UTC+5:30)',
-    preferredLanguage: 'Hindi',
-    tier: 'VIP Platinum'
-  },
-  'CL-9062': {
-    city: 'Mumbai',
-    country: 'India',
-    nationality: 'India',
-    preferredCabinClass: 'Economy',
-    timezone: 'IST (UTC+5:30)',
-    preferredLanguage: 'English',
-    tier: 'Standard'
-  },
-  'CL-1513': {
-    city: 'Mumbai',
-    country: 'India',
-    nationality: 'India',
-    preferredCabinClass: 'Premium Economy',
-    passportNumber: 'IND1234567',
-    passportExpiry: '2032-05-15',
-    seatPreference: 'Aisle',
-    mealPreference: 'Vegetarian (Asian)',
-    timezone: 'IST (UTC+5:30)',
-    preferredLanguage: 'Hindi',
-    tier: 'Standard'
-  }
-};
+const INITIAL_CLIENTS_META = {};
 
 function getClientsMetaStore() {
   if (typeof window === 'undefined') return { ...INITIAL_CLIENTS_META };
@@ -312,169 +215,11 @@ export const dbService = {
     const leads = await dbService.getLeads();
     return leads.find(l => l.id === id);
   },
-  createLead: async (lead) => {
-    // 1. Auto-sync to Customer 360 (Clients) so the customer immediately appears in Customer Directory
-    try {
-      const clientPayload = {
-        firstName: lead.firstName || 'Traveler',
-        lastName: lead.lastName || '',
-        email: lead.email || '',
-        phone: lead.phone || '',
-        city: lead.city || '',
-        country: lead.country || lead.nationality || '',
-        nationality: lead.country || lead.nationality || '',
-        preferredCabinClass: lead.cabinClass || (lead.serviceId ? lead.serviceId.charAt(0).toUpperCase() + lead.serviceId.slice(1) : 'Economy'),
-        tier: 'Standard',
-        totalSpent: 0,
-        status: 'Active'
-      };
-
-      // Create client via API (non-blocking)
-      apiFetch('/api/clients', {
-        method: 'POST',
-        body: JSON.stringify(clientPayload)
-      }).catch(() => {});
-
-      // Immediate local sync so Customer 360 reflects the new traveler right away
-      const cachedClients = loadState('crm-clients', []);
-      const exists = cachedClients.some(c =>
-        (c.email && lead.email && c.email.toLowerCase() === lead.email.toLowerCase()) ||
-        (c.phone && lead.phone && c.phone === lead.phone)
-      );
-      if (!exists) {
-        const autoClient = enrichClientData({
-          id: 'CL-' + Math.floor(1000 + Math.random() * 9000),
-          onboardingDate: new Date().toISOString(),
-          ...clientPayload
-        });
-        persistClientMeta(autoClient);
-        cachedClients.unshift(autoClient);
-        saveState('crm-clients', cachedClients);
-      }
-    } catch (syncErr) {
-      console.warn('[dbService] Auto client sync warning:', syncErr);
-    }
-
-    try {
-      const res = await apiFetch('/api/leads', {
-        method: 'POST',
-        body: JSON.stringify(lead)
-      });
-      if (res && res.success && res.data) {
-        const leads = loadState('crm-leads', []);
-        leads.unshift(res.data);
-        saveState('crm-leads', leads);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] createLead API warning:', e.message);
-    }
-
-    await delay(50);
-    const leads = loadState('crm-leads', []);
-    const newLead = {
-      id: lead.id || ('LD' + (1000 + leads.length + 1)),
-      createdDate: new Date().toISOString(),
-      status: lead.status || 'New Lead',
-      timeline: [
-        { date: new Date().toISOString(), event: 'Lead created in CRM', user: 'System' }
-      ],
-      ...lead
-    };
-    leads.unshift(newLead);
-    saveState('crm-leads', leads);
-    return newLead;
-  },
-  updateLead: async (lead) => {
-    try {
-      const res = await apiFetch(`/api/leads/${lead.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(lead)
-      });
-      if (res && res.success && res.data) {
-        const leads = loadState('crm-leads', []);
-        const updated = leads.map(l => l.id === lead.id ? { ...l, ...res.data } : l);
-        saveState('crm-leads', updated);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] updateLead API warning:', e.message);
-    }
-
-    await delay(50);
-    const leads = loadState('crm-leads', []);
-    const updated = leads.map(l => l.id === lead.id ? { ...l, ...lead } : l);
-    saveState('crm-leads', updated);
-    return lead;
-  },
-  deleteLead: async (id) => {
-    try {
-      await apiFetch(`/api/leads/${id}`, {
-        method: 'DELETE'
-      });
-    } catch (e) {
-      console.warn('[dbService] deleteLead API warning:', e.message);
-    }
-
-    await delay(50);
-    const leads = loadState('crm-leads', []);
-    const filtered = leads.filter(l => l.id !== id);
-    saveState('crm-leads', filtered);
-    return id;
-  },
-  assignAgent: async (leadId, agentId) => {
-    try {
-      const res = await apiFetch(`/api/leads/${leadId}/assign`, {
-        method: 'PATCH',
-        body: JSON.stringify({ agentId })
-      });
-      if (res && res.success && res.data) {
-        const leads = loadState('crm-leads', []);
-        const updated = leads.map(l => l.id === leadId ? { ...l, assignedAgentId: agentId, assignedConsultantId: agentId } : l);
-        saveState('crm-leads', updated);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] assignAgent API warning:', e.message);
-    }
-
-    await delay(50);
-    const leads = loadState('crm-leads', []);
-    const updated = leads.map(l => l.id === leadId ? {
-      ...l,
-      assignedConsultantId: agentId,
-      assignedAgentId: agentId,
-      timeline: [{ date: new Date().toISOString(), event: 'Agent reassigned.', user: 'System' }, ...(l.timeline || [])]
-    } : l);
-    saveState('crm-leads', updated);
-    return { leadId, agentId };
-  },
-  updateLeadStatus: async (leadId, status) => {
-    try {
-      const res = await apiFetch(`/api/leads/${leadId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ status })
-      });
-      if (res && res.success && res.data) {
-        const leads = loadState('crm-leads', []);
-        const updated = leads.map(l => l.id === leadId ? { ...l, status } : l);
-        saveState('crm-leads', updated);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] updateLeadStatus API warning:', e.message);
-    }
-
-    await delay(50);
-    const leads = loadState('crm-leads', []);
-    const updated = leads.map(l => l.id === leadId ? {
-      ...l,
-      status,
-      timeline: [{ date: new Date().toISOString(), event: `Status changed to ${status}`, user: 'System' }, ...(l.timeline || [])]
-    } : l);
-    saveState('crm-leads', updated);
-    return { leadId, status };
-  },
+  createLead: async lead => saveRecord('/api/leads', 'POST', lead, 'crm-leads'),
+  updateLead: async lead => saveRecord('/api/leads/' + lead.id, 'PUT', lead, 'crm-leads'),
+  deleteLead: async id => saveRecord('/api/leads/' + id, 'DELETE', undefined, 'crm-leads', id),
+  assignAgent: async (leadId, agentId) => saveRecord('/api/leads/' + leadId + '/assign', 'PATCH', { agentId }, 'crm-leads'),
+  updateLeadStatus: async (leadId, status) => saveRecord('/api/leads/' + leadId, 'PUT', { status }, 'crm-leads'),
 
   // CLIENTS METADATA & PERSISTENCE
   // Ensures city, country, preferredCabinClass and preferences are never lost
@@ -513,84 +258,9 @@ export const dbService = {
     const found = clients.find(c => c.id === id);
     return found ? enrichClientData(found) : null;
   },
-  createClient: async (client) => {
-    persistClientMeta(client);
-    try {
-      const res = await apiFetch('/api/clients', {
-        method: 'POST',
-        body: JSON.stringify(client)
-      });
-      if (res && res.success && res.data) {
-        persistClientMeta({ ...client, id: res.data.id });
-        const enriched = enrichClientData(res.data);
-        const clients = loadState('crm-clients', []);
-        clients.unshift(enriched);
-        saveState('crm-clients', clients);
-        return enriched;
-      }
-    } catch (e) {
-      console.warn('[dbService] createClient API warning:', e.message);
-    }
-
-    await delay(50);
-    const clients = loadState('crm-clients', []);
-    const newClient = enrichClientData({
-      id: client.id || ('CL-' + Math.floor(1000 + Math.random() * 9000)),
-      onboardingDate: new Date().toISOString(),
-      ...client
-    });
-    persistClientMeta(newClient);
-    clients.unshift(newClient);
-    saveState('crm-clients', clients);
-    return newClient;
-  },
-  updateClient: async (client) => {
-    persistClientMeta(client);
-    try {
-      const res = await apiFetch(`/api/clients/${client.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(client)
-      });
-      if (res && res.success && res.data) {
-        const enriched = enrichClientData({ ...client, ...res.data });
-        persistClientMeta(enriched);
-        const clients = loadState('crm-clients', []);
-        const updated = clients.map(c => c.id === client.id ? { ...c, ...enriched } : c);
-        saveState('crm-clients', updated);
-        return enriched;
-      }
-    } catch (e) {
-      console.warn('[dbService] updateClient API warning:', e.message);
-    }
-
-    await delay(50);
-    const clients = loadState('crm-clients', []);
-    const enriched = enrichClientData(client);
-    const updated = clients.map(c => c.id === client.id ? { ...c, ...enriched } : c);
-    saveState('crm-clients', updated);
-    return enriched;
-  },
-  deleteClient: async (id) => {
-    try {
-      const res = await apiFetch(`/api/clients/${id}`, {
-        method: 'DELETE'
-      });
-      if (res && res.success) {
-        const clients = loadState('crm-clients', []);
-        const filtered = clients.filter(c => c.id !== id);
-        saveState('crm-clients', filtered);
-        return true;
-      }
-    } catch (e) {
-      console.warn('[dbService] deleteClient API warning:', e.message);
-    }
-
-    await delay(50);
-    const clients = loadState('crm-clients', []);
-    const filtered = clients.filter(c => c.id !== id);
-    saveState('crm-clients', filtered);
-    return true;
-  },
+  createClient: async client => saveRecord('/api/clients', 'POST', client, 'crm-clients'),
+  updateClient: async client => saveRecord('/api/clients/' + client.id, 'PUT', client, 'crm-clients'),
+  deleteClient: async id => saveRecord('/api/clients/' + id, 'DELETE', undefined, 'crm-clients', id),
   updateClientVisaStatus: async (clientId, visaStatus, status) => {
     await delay(50);
     const clients = loadState('crm-clients', []);
@@ -628,85 +298,9 @@ export const dbService = {
     }
     return [];
   },
-  createConsultation: async (cons) => {
-    try {
-      const res = await apiFetch('/api/consultations', {
-        method: 'POST',
-        body: JSON.stringify(cons)
-      });
-      if (res && res.success && res.data) {
-        const consultations = loadState('crm-consultations', []);
-        consultations.unshift(res.data);
-        saveState('crm-consultations', consultations);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] createConsultation API warning:', e.message);
-    }
-
-    await delay(50);
-    const consultations = loadState('crm-consultations', []);
-    const newCons = {
-      id: 'CS' + (3000 + consultations.length + 1),
-      status: 'Scheduled',
-      recordingUrl: '',
-      outcome: null,
-      meetingLink: getMeetingUrl(generateMeetingRoom(cons.leadId || 'cons', cons.clientName || 'Client')),
-      ...cons
-    };
-    consultations.unshift(newCons);
-    saveState('crm-consultations', consultations);
-    return newCons;
-  },
-  updateConsultationStatus: async (consultationId, status) => {
-    try {
-      const res = await apiFetch(`/api/consultations/${consultationId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ status })
-      });
-      if (res && res.success && res.data) {
-        const consultations = loadState('crm-consultations', []);
-        const updated = consultations.map(c => c.id === consultationId ? { ...c, ...res.data } : c);
-        saveState('crm-consultations', updated);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] updateConsultationStatus API warning:', e.message);
-    }
-
-    await delay(50);
-    const consultations = loadState('crm-consultations', []);
-    const updated = consultations.map(c => c.id === consultationId ? { ...c, status } : c);
-    saveState('crm-consultations', updated);
-    return { consultationId, status };
-  },
-  completeConsultation: async (consultationId, outcome, notes) => {
-    try {
-      const res = await apiFetch(`/api/consultations/${consultationId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ status: 'Completed', outcome, notes })
-      });
-      if (res && res.success && res.data) {
-        const consultations = loadState('crm-consultations', []);
-        const updated = consultations.map(c => c.id === consultationId ? { ...c, ...res.data } : c);
-        saveState('crm-consultations', updated);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] completeConsultation API warning:', e.message);
-    }
-
-    await delay(50);
-    const consultations = loadState('crm-consultations', []);
-    const updated = consultations.map(c => c.id === consultationId ? {
-      ...c,
-      status: 'Completed',
-      outcome,
-      notes,
-    } : c);
-    saveState('crm-consultations', updated);
-    return { consultationId, outcome, notes };
-  },
+  createConsultation: async cons => saveRecord('/api/consultations', 'POST', cons, 'crm-consultations'),
+  updateConsultationStatus: async (id, status) => saveRecord('/api/consultations/' + id, 'PUT', { status }, 'crm-consultations'),
+  completeConsultation: async (id, outcome, notes) => saveRecord('/api/consultations/' + id, 'PUT', { status: 'Completed', outcome, notes }, 'crm-consultations'),
 
   // PAYMENTS & INVOICES
   getPayments: async () => {
@@ -727,70 +321,8 @@ export const dbService = {
     }
     return [];
   },
-  createInvoice: async (invoice) => {
-    try {
-      const res = await apiFetch('/api/payments', {
-        method: 'POST',
-        body: JSON.stringify(invoice)
-      });
-      if (res && res.success && res.data) {
-        const payments = loadState('crm-payments', []);
-        payments.unshift(res.data);
-        saveState('crm-payments', payments);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] createInvoice API warning:', e.message);
-    }
-
-    await delay(50);
-    const payments = loadState('crm-payments', []);
-    const newInvoice = {
-      id: 'INV-2026-' + String(payments.length + 1).padStart(3, '0'),
-      billingDate: new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      totalPaid: 0,
-      paymentMethod: '-',
-      transactionId: '-',
-      ...invoice
-    };
-    payments.unshift(newInvoice);
-    saveState('crm-payments', payments);
-    return newInvoice;
-  },
-  updatePaymentStatus: async (paymentId, status, paymentMethod, transactionId) => {
-    try {
-      const res = await apiFetch(`/api/payments/${paymentId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ status, paymentMethod, transactionId })
-      });
-      if (res && res.success && res.data) {
-        const payments = loadState('crm-payments', []);
-        const updated = payments.map(p => p.id === paymentId ? { ...p, ...res.data } : p);
-        saveState('crm-payments', updated);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] updatePaymentStatus API warning:', e.message);
-    }
-
-    await delay(50);
-    const payments = loadState('crm-payments', []);
-    const updated = payments.map(p => {
-      if (p.id === paymentId) {
-        const updatedObj = { ...p, status };
-        if (paymentMethod) updatedObj.paymentMethod = paymentMethod;
-        if (transactionId) updatedObj.transactionId = transactionId;
-        if (status === 'Paid') {
-          updatedObj.totalPaid = p.amount - (p.discount || 0);
-        }
-        return updatedObj;
-      }
-      return p;
-    });
-    saveState('crm-payments', updated);
-    return { paymentId, status };
-  },
+  createInvoice: async invoice => saveRecord('/api/payments', 'POST', invoice, 'crm-payments'),
+  updatePaymentStatus: async (id, status, paymentMethod, transactionId) => saveRecord('/api/payments/' + id + '/status', 'PATCH', { status, method: paymentMethod, transactionId }, 'crm-payments'),
 
   // FLIGHT QUOTES
   getQuotes: async () => {
@@ -821,51 +353,8 @@ export const dbService = {
     const quotes = await dbService.getQuotes();
     return quotes.find(q => q.id === id);
   },
-  createQuote: async (quote) => {
-    try {
-      const res = await apiFetch('/api/quotes', {
-        method: 'POST',
-        body: JSON.stringify(quote)
-      });
-      if (res && res.success && res.data) {
-        const quotes = loadState('crm-quotes', []);
-        quotes.unshift(res.data);
-        saveState('crm-quotes', quotes);
-        return res.data;
-      }
-    } catch (e) { }
-
-    await delay(50);
-    const quotes = loadState('crm-quotes', []);
-    const newQuote = {
-      ...quote,
-      id: quote.id || `QT-${Date.now().toString().slice(-4)}`,
-      createdAt: quote.createdAt || new Date().toISOString()
-    };
-    quotes.unshift(newQuote);
-    saveState('crm-quotes', quotes);
-    return newQuote;
-  },
-  updateQuote: async (id, updates) => {
-    try {
-      const res = await apiFetch(`/api/quotes/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updates)
-      });
-      if (res && res.success && res.data) {
-        const quotes = loadState('crm-quotes', []);
-        const updated = quotes.map(q => q.id === id ? { ...q, ...res.data } : q);
-        saveState('crm-quotes', updated);
-        return res.data;
-      }
-    } catch (e) { }
-
-    await delay(50);
-    const quotes = loadState('crm-quotes', []);
-    const updated = quotes.map(q => q.id === id ? { ...q, ...updates } : q);
-    saveState('crm-quotes', updated);
-    return { id, ...updates };
-  },
+  createQuote: async quote => saveRecord('/api/quotes', 'POST', quote, 'crm-quotes'),
+  updateQuote: async (id, updates) => saveRecord('/api/quotes/' + id, 'PUT', updates, 'crm-quotes'),
 
   // BOOKINGS & ISSUANCE
   getBookings: async () => {
@@ -886,34 +375,7 @@ export const dbService = {
     }
     return [];
   },
-  createBooking: async (booking) => {
-    try {
-      const res = await apiFetch('/api/bookings', {
-        method: 'POST',
-        body: JSON.stringify(booking)
-      });
-      if (res && res.success && res.data) {
-        const bookings = loadState('crm-bookings', []);
-        bookings.unshift(res.data);
-        saveState('crm-bookings', bookings);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] createBooking API warning:', e.message);
-    }
-
-    await delay(50);
-    const bookings = loadState('crm-bookings', []);
-    const newBooking = {
-      bookingId: booking.bookingId || `BK-${Math.floor(1000 + Math.random() * 9000)}`,
-      pnr: booking.pnr || `WMF-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      createdAt: new Date().toISOString(),
-      ...booking
-    };
-    bookings.unshift(newBooking);
-    saveState('crm-bookings', bookings);
-    return newBooking;
-  },
+  createBooking: async booking => saveRecord('/api/bookings', 'POST', booking, 'crm-bookings'),
 
   // AFTER-SALES
   getAfterSalesCases: async () => {
@@ -1051,74 +513,9 @@ export const dbService = {
     }
     return [];
   },
-  uploadDocument: async (doc) => {
-    try {
-      const res = await apiFetch('/api/documents', {
-        method: 'POST',
-        body: JSON.stringify(doc)
-      });
-      if (res && res.success && res.data) {
-        const documents = loadState('crm-documents', []);
-        documents.unshift(res.data);
-        saveState('crm-documents', documents);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] uploadDocument API warning:', e.message);
-    }
-
-    await delay(50);
-    const documents = loadState('crm-documents', []);
-    const newDoc = {
-      id: doc.id || ('DOC' + (4000 + documents.length + 1)),
-      uploadedDate: new Date().toISOString(),
-      status: 'Pending Review',
-      comment: '',
-      ...doc
-    };
-    documents.unshift(newDoc);
-    saveState('crm-documents', documents);
-    return newDoc;
-  },
-  reviewDocument: async (documentId, status, comment) => {
-    try {
-      const res = await apiFetch(`/api/documents/${documentId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ status, comment })
-      });
-      if (res && res.success && res.data) {
-        const documents = loadState('crm-documents', []);
-        const updated = documents.map(d => d.id === documentId ? { ...d, ...res.data } : d);
-        saveState('crm-documents', updated);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] reviewDocument API warning:', e.message);
-    }
-
-    await delay(50);
-    const documents = loadState('crm-documents', []);
-    const updated = documents.map(d =>
-      d.id === documentId ? { ...d, status, comment: comment !== undefined ? comment : d.comment } : d
-    );
-    saveState('crm-documents', updated);
-    return { documentId, status, comment };
-  },
-  deleteDocument: async (id) => {
-    try {
-      await apiFetch(`/api/documents/${id}`, {
-        method: 'DELETE'
-      });
-    } catch (e) {
-      console.warn('[dbService] deleteDocument API warning:', e.message);
-    }
-
-    await delay(50);
-    const documents = loadState('crm-documents', []);
-    const filtered = documents.filter(d => d.id !== id);
-    saveState('crm-documents', filtered);
-    return id;
-  },
+  uploadDocument: async doc => saveRecord('/api/documents', 'POST', doc, 'crm-documents'),
+  reviewDocument: async (id, status, comment) => saveRecord('/api/documents/' + id + '/status', 'PATCH', { status, comment }, 'crm-documents'),
+  deleteDocument: async id => saveRecord('/api/documents/' + id, 'DELETE', undefined, 'crm-documents', id),
 
   // SETTINGS (Connected to Backend API & Persistent Storage)
   getSettings: async () => {
@@ -1162,14 +559,7 @@ export const dbService = {
       saveState('crm-services', res.data);
       return res.data;
     }
-    const defaultServices = [
-      { id: 'srv_eco', name: 'Economy Class', category: 'Economy', basePrice: 550, active: true },
-      { id: 'srv_prem', name: 'Premium Economy', category: 'Economy', basePrice: 950, active: true },
-      { id: 'srv_biz', name: 'Business Class', category: 'Business', basePrice: 3200, active: true },
-      { id: 'srv_first', name: 'First Class & Suites', category: 'First', basePrice: 7500, active: true },
-      { id: 'srv_charter', name: 'Private Jet Charter', category: 'Charter', basePrice: 22000, active: true },
-      { id: 'srv_vip_concierge', name: 'VIP Airport Fast-Track & Lounge Escort', category: 'Concierge', basePrice: 350, active: true }
-    ];
+    const defaultServices = [];
     return loadState('crm-services', defaultServices);
   },
   updateServices: async (services) => {
@@ -1200,64 +590,7 @@ export const dbService = {
       saveState('crm-packages', res.data);
       return res.data;
     }
-    const defaultPackages = [
-      {
-        id: 'flight_saver',
-        name: 'Flight Only Saver',
-        price: 550,
-        description: 'Instant GDS airfare booking with competitive markup, e-ticket issuance, and automated 24/7 flight schedule tracking.',
-        includes: [
-          'GDS Fare Search (Travelopro / Sabre / Amadeus)',
-          'Instant PNR & Official Airline E-Ticket PDF',
-          'Flight Status & Schedule Change Alerts',
-          'Seat Selection & Online Check-In Guidance',
-          'WhatsApp & Email Notification Alerts',
-          'Dedicated Ticketing Helpdesk'
-        ]
-      },
-      {
-        id: 'travel_bundle',
-        name: 'Full Travel & Flight Package',
-        price: 1250,
-        description: 'Complete end-to-end holiday and business travel package with flight, 4-star hotel vouchers, and private airport transfers.',
-        includes: [
-          'Round-Trip Flights with Baggage Included (2x 23kg)',
-          'Partner Hotel Booking Vouchers (4★ / 5★)',
-          'Private Airport Chauffeur Transfer',
-          'Comprehensive Travel & Medical Insurance',
-          'Priority Boarding & Airport Lounge Pass',
-          'Dedicated Travel Concierge Agent'
-        ]
-      },
-      {
-        id: 'executive_vip',
-        name: 'Executive Business Class VIP Concierge',
-        price: 3450,
-        description: 'Ultra-premium corporate travel package for C-level executives, featuring flatbed business class and meet-and-greet airport service.',
-        includes: [
-          'Lie-flat Business Class Cabin Guarantee',
-          'Fast-Track Security Clearance & VIP Lounge Access',
-          'Dedicated 24/7 Personal Flight Broker',
-          'Flexible Date Changes & Free Refund Protection',
-          'Excess Baggage Allowance (3x 32kg)',
-          'Executive Chauffeur Sedan Pickup & Dropoff'
-        ]
-      },
-      {
-        id: 'jet_charter',
-        name: 'Private Jet & Luxury Charter',
-        price: 18500,
-        description: 'Exclusive private charter solutions for VIP families, diplomatic delegations, and high-net-worth individuals.',
-        includes: [
-          'Private Jet Terminal (FBO) Access with Zero Waiting',
-          'Custom Flight Schedule & Departure Times',
-          'Gourmet In-Flight Dining & Champagne Service',
-          'Pet In Cabin Accompaniment',
-          'Bespoke Ground Limousine Fleet',
-          'Discreet High-Security Flight Protocol'
-        ]
-      }
-    ];
+    const defaultPackages = [];
     return loadState('crm-packages', defaultPackages);
   },
   updatePackages: async (packages) => {

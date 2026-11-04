@@ -13,55 +13,14 @@
  * 8. Audit Trail -> /api/audit-trail
  */
 
-const PRIMARY_PROD_URL = 'https://wow-my-flight-backend-production-2ef6.up.railway.app';
-
-const getBackendUrl = () => {
-  if (import.meta.env.VITE_BACKEND_URL) {
-    return import.meta.env.VITE_BACKEND_URL;
-  }
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3001';
-  }
-  return PRIMARY_PROD_URL;
-};
+import { getBackendUrl } from '../config/backend.js';
 
 async function phase3Fetch(endpoint, options = {}) {
-  const primary = getBackendUrl();
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(`${primary}${endpoint}`, {
-      headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
-      ...options
-    });
-    clearTimeout(timeoutId);
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (err) {
-    // Primary URL failed, attempt failover to Railway production backend if not already tried
-    if (primary !== PRIMARY_PROD_URL) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
-        const res = await fetch(`${PRIMARY_PROD_URL}${endpoint}`, {
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          ...options
-        });
-        clearTimeout(timeoutId);
-        if (res.ok) {
-          return await res.json();
-        }
-      } catch (prodErr) {
-        console.warn(`[Phase 3 API] Failover also failed for ${endpoint}:`, prodErr.message);
-      }
-    } else {
-      console.warn(`[Phase 3 API] Call failed for ${endpoint}:`, err.message);
-    }
-  }
-  return null;
+  const token=JSON.parse(localStorage.getItem('crm-auth-user')||'null')?.token;
+  const response=await fetch(getBackendUrl()+endpoint,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...options.headers},signal:AbortSignal.timeout(15000)});
+  const result=await response.json();
+  if(!response.ok || result.success===false)throw new Error(result.error||'Request failed');
+  return result;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -122,20 +81,20 @@ export const teamLeaderDashboardService = {
 export const qaService = {
   getDocuments: async (params = {}) => {
     const query = new URLSearchParams(params).toString();
-    const endpoint = query ? `/api/qa?${query}` : '/api/qa';
+    const endpoint = query ? `/api/documents?${query}` : '/api/documents';
     const res = await phase3Fetch(endpoint);
     return res && res.success ? res.data : null;
   },
   uploadDocument: async (docData) => {
-    return phase3Fetch('/api/qa/documents', {
+    return phase3Fetch('/api/documents', {
       method: 'POST',
       body: JSON.stringify(docData)
     });
   },
   updateDocumentStatus: async (id, status, notes) => {
-    return phase3Fetch(`/api/qa/documents/${id}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status, notes })
+    return phase3Fetch(`/api/documents/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, comment: notes })
     });
   },
   getAudits: async () => {

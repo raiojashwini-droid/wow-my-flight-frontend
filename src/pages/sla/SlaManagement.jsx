@@ -74,12 +74,12 @@ import { slaManagementService } from '../../services/phase3Service';
 
 const INITIAL_SLA_KPIS = [
   { id: 'activeSla', title: 'Total Active SLAs', value: '0 Active', change: 'Live countdowns', color: '#6366F1', icon: <TimerIcon /> },
-  { id: 'completedOnTime', title: 'Completed On Time', value: '0 SLAs', change: '100% on-time', color: '#10B981', icon: <CheckCircleIcon /> },
+  { id: 'completedOnTime', title: 'Completed On Time', value: '0 SLAs', change: 'Not measured', color: '#10B981', icon: <CheckCircleIcon /> },
   { id: 'approaching', title: 'Approaching Deadline', value: '0 SLAs', change: '< 2m remaining', color: '#F59E0B', icon: <WarningAmberIcon /> },
   { id: 'breached', title: 'SLA Breached', value: '0 Breaches', change: 'Zero breaches', color: '#EF4444', icon: <ReportProblemIcon /> },
   { id: 'avgResponse', title: 'Avg Response Time', value: '0m', change: 'Target < 5m', color: '#0284C7', icon: <SpeedIcon /> },
   { id: 'avgTicketing', title: 'Avg Ticketing Time', value: '0m', change: 'Target < 10m', color: '#8B5CF6', icon: <ConfirmationNumberIcon /> },
-  { id: 'slaCompliance', title: 'SLA Compliance %', value: '100%', change: 'Live compliance', color: '#D97706', icon: <VerifiedIcon /> }
+  { id: 'slaCompliance', title: 'SLA Compliance %', value: 'Not measured', change: 'Timing history unavailable', color: '#D97706', icon: <VerifiedIcon /> }
 ];
 
 const DEFAULT_MANDATORY_SLA_RULES = [
@@ -91,12 +91,7 @@ const DEFAULT_MANDATORY_SLA_RULES = [
 
 const INITIAL_ACTIVE_SLA_TRACKER = [];
 const INITIAL_SLA_ALERTS = [];
-const DEFAULT_AGENT_LEADERBOARD = [
-  { id: 'AG-101', name: 'Abu', role: 'Ticketing Specialist', handled: 28, avgResponse: '1m 15s', avgTicketing: '2m 50s', onTime: '98.5%', rank: 1, status: 'Top Performer', color: '#10B981' },
-  { id: 'AG-102', name: 'Sarah Jenkins', role: 'Senior Travel Consultant', handled: 34, avgResponse: '1m 40s', avgTicketing: '3m 20s', onTime: '96.2%', rank: 2, status: 'Excellent', color: '#0284C7' },
-  { id: 'AG-103', name: 'David Smith', role: 'Flight Sales Agent', handled: 22, avgResponse: '2m 10s', avgTicketing: '4m 05s', onTime: '93.0%', rank: 3, status: 'Compliant', color: '#6366F1' },
-  { id: 'AG-104', name: 'Alex Rivera', role: 'Support & Changes', handled: 19, avgResponse: '2m 45s', avgTicketing: '4m 30s', onTime: '91.5%', rank: 4, status: 'Needs Coaching', color: '#F59E0B' }
-];
+const DEFAULT_AGENT_LEADERBOARD = [];
 const AGENT_COMPLIANCE_DATA = DEFAULT_AGENT_LEADERBOARD;
 
 // ==========================================

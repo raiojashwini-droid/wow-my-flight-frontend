@@ -164,7 +164,7 @@ export default function ManagementReportingDashboard() {
       return acc + (parseFloat(amtStr) || 0);
     }, 0);
 
-    const totalRevenue = paymentRevenue > 0 ? paymentRevenue : bookingRevenue;
+    const totalRevenue = paymentRevenue;
 
     // Gross Profit from bookings commission and markups
     const bookingCommission = bookings.reduce((acc, b) => {
@@ -173,8 +173,8 @@ export default function ManagementReportingDashboard() {
     }, 0);
 
     const quoteMarkup = quotes.reduce((acc, q) => acc + (Number(q.markup) || 0), 0);
-    const estimatedProfit = (bookingCommission > 0 ? bookingCommission : 0) + (quoteMarkup > 0 ? quoteMarkup : (totalRevenue * 0.12));
-    const profitMargin = totalRevenue > 0 ? ((estimatedProfit / totalRevenue) * 100).toFixed(1) : '12.0';
+    const estimatedProfit = bookingCommission;
+    const profitMargin = totalRevenue > 0 ? ((estimatedProfit / totalRevenue) * 100).toFixed(1) : '0.0';
 
     // Pending payments
     const pendingPayments = payments.filter(p => p.status === 'Pending' || p.status === 'Unpaid');
@@ -188,7 +188,7 @@ export default function ManagementReportingDashboard() {
     const avgBookingValue = bookings.length > 0 ? Math.round(totalRevenue / bookings.length) : Math.round(totalRevenue);
 
     // Confirmed Tickets
-    const ticketedCount = bookings.filter(b => b.ticketStatus === 'Ticketed' || b.paymentStatus === 'Payment Confirmed').length;
+    const ticketedCount = bookings.filter(b => b.ticketStatus === 'Ticketed').length;
 
     return {
       totalLeads: leads.length,
@@ -201,7 +201,7 @@ export default function ManagementReportingDashboard() {
       avgBookingValue,
       pendingAmount,
       ticketedCount,
-      activeUsers: users.length || 3
+      activeUsers: users.length
     };
   }, [leads, bookings, quotes, payments, users]);
 
@@ -211,13 +211,13 @@ export default function ManagementReportingDashboard() {
       id: 'revenue',
       title: 'Total Revenue',
       value: `$${metrics.totalRevenue.toLocaleString()}`,
-      change: 'Verified via Stripe & Travelopro',
+      change: 'Payments marked paid in CRM',
       color: '#10B981',
       icon: <MonetizationOnIcon />
     },
     {
       id: 'profit',
-      title: 'Gross Profit / Markup',
+      title: 'Recorded Commission',
       value: `$${metrics.estimatedProfit.toLocaleString()}`,
       change: `${metrics.profitMargin}% blended margin`,
       color: '#D97706',
@@ -266,7 +266,7 @@ export default function ManagementReportingDashboard() {
     {
       id: 'routes',
       title: 'Active Flight Sectors',
-      value: `${bookings.length > 0 ? bookings.map(b => b.route).filter(Boolean).length : 2} Routes`,
+      value: `${bookings.length > 0 ? bookings.map(b => b.route).filter(Boolean).length : 0} Routes`,
       change: 'Travelopro GDS Feeds',
       color: '#059669',
       icon: <FlightTakeoffIcon />
@@ -285,13 +285,13 @@ export default function ManagementReportingDashboard() {
   const monthlyRevenueTrend = useMemo(() => {
     const monthMap = {};
 
-    payments.forEach(p => {
+    payments.filter(p=>["Paid","Completed","Payment Confirmed"].includes(p.status)).forEach(p => {
       const date = p.paidAt ? new Date(p.paidAt) : (p.createdAt ? new Date(p.createdAt) : new Date());
       const mKey = date.toLocaleString('default', { month: 'short' });
       if (!monthMap[mKey]) monthMap[mKey] = { month: mKey, revenue: 0, profit: 0, bookings: 0 };
       const amt = Number(p.amount) || 0;
       monthMap[mKey].revenue += amt;
-      monthMap[mKey].profit += Math.round(amt * 0.12);
+      
     });
 
     bookings.forEach(b => {
@@ -299,26 +299,18 @@ export default function ManagementReportingDashboard() {
       const mKey = date.toLocaleString('default', { month: 'short' });
       if (!monthMap[mKey]) monthMap[mKey] = { month: mKey, revenue: 0, profit: 0, bookings: 0 };
       monthMap[mKey].bookings += 1;
-      const comm = parseFloat(String(b.commission || '0').replace(/[^0-9.]/g, '')) || 45;
+      const comm = parseFloat(String(b.commission || '0').replace(/[^0-9.]/g, '')) || 0;
       monthMap[mKey].profit += Math.round(comm);
     });
 
     const list = Object.values(monthMap);
-    if (list.length === 0) {
-      return [
-        { month: 'Oct 2026', revenue: metrics.totalRevenue, profit: metrics.estimatedProfit, bookings: metrics.totalBookings }
-      ];
-    }
+    if (list.length === 0) return [];
     return list;
   }, [payments, bookings, metrics]);
 
   // Sales Agent Leaderboard from Real DB Users & Entities
   const agentLeaderboard = useMemo(() => {
-    const defaultAgents = [
-      { id: 'usr-consultant', name: 'Issac (Sales Executive)', role: 'Senior Travel Specialist' },
-      { id: 'usr-super-admin', name: 'Parminder (Super Admin)', role: 'Executive Operations' },
-      { id: 'usr-admin', name: 'Xavier (Admin)', role: 'General Manager' }
-    ];
+    const defaultAgents = [];
 
     const sourceUsers = users.length > 0 ? users : defaultAgents;
 
@@ -342,14 +334,14 @@ export default function ManagementReportingDashboard() {
       }, 0);
 
       const bkgComm = agentBookings.reduce((sum, b) => {
-        const val = parseFloat(String(b.commission || '0').replace(/[^0-9.]/g, '')) || 45;
+        const val = parseFloat(String(b.commission || '0').replace(/[^0-9.]/g, '')) || 0;
         return sum + val;
       }, 0);
 
-      const callsCount = callLogs.filter(c => c.agentId === u.id).length || (agentLeads.length * 3 + agentBookings.length * 2 + 12);
-      const revTotal = bkgRev > 0 ? bkgRev : (idx === 0 ? 7700 : (idx === 1 ? 6250 : 980));
-      const profTotal = bkgComm > 0 ? bkgComm : Math.round(revTotal * 0.12);
-      const convRate = agentLeads.length > 0 ? ((agentBookings.length / agentLeads.length) * 100).toFixed(1) + '%' : '100.0%';
+      const callsCount = callLogs.filter(c => c.agentId === u.id).length;
+      const revTotal = bkgRev;
+      const profTotal = bkgComm;
+      const convRate = agentLeads.length > 0 ? ((agentBookings.length / agentLeads.length) * 100).toFixed(1) + '%' : '0.0%';
 
       return {
         rank: idx + 1,
@@ -357,9 +349,9 @@ export default function ManagementReportingDashboard() {
         name: u.name,
         role: u.role || 'Sales Agent',
         calls: callsCount,
-        talkTime: `${Math.floor(callsCount * 2.8)}m`,
-        leads: Math.max(agentLeads.length, agentBookings.length, 1),
-        bookings: Math.max(agentBookings.length, 1),
+        talkTime: `${Math.floor(callLogs.filter(c=>c.agentId===u.id).reduce((s,c)=>s+(Number(c.durationSeconds)||0),0)/60)}m`,
+        leads: agentLeads.length,
+        bookings: agentBookings.length,
         conv: convRate,
         revenue: `$${revTotal.toLocaleString()}`,
         profit: `$${profTotal.toLocaleString()}`

@@ -64,12 +64,7 @@ const INITIAL_NOTIF_KPIS = [
 
 const INITIAL_NOTIFICATION_FEED = [];
 
-const MULTI_CHANNEL_DELIVERY_DATA = [
-  { id: 'DEL-01', channel: 'WhatsApp API', recipient: '+1 (555) 234-8901', payload: 'E-ticket PDF dispatched for PNR SAB78K', status: 'Delivered', time: '14:25:15' },
-  { id: 'DEL-02', channel: 'Email Gateway', recipient: 'harold.vance@embassy.gov', payload: 'Payment Receipt & Booking Confirmation BK-10892', status: 'Delivered', time: '14:25:12' },
-  { id: 'DEL-03', channel: 'SMS Gateway', recipient: '+1 (555) 882-1920', payload: 'SLA Breach Alert sent to Agent David Ross', status: 'Sent', time: '14:18:45' },
-  { id: 'DEL-04', channel: 'WhatsApp API', recipient: '+1 (555) 991-0022', payload: 'Pre-flight check-in reminder for flight BA-117', status: 'Failed', time: '13:10:00' }
-];
+const MULTI_CHANNEL_DELIVERY_DATA = [];
 
 // ==========================================
 // MAIN COMPONENT

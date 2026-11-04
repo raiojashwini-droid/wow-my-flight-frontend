@@ -1,3 +1,4 @@
+import { getBackendUrl } from '../../config/backend.js';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -287,7 +288,7 @@ export const SuperAdminLeadList = () => {
     }
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = getBackendUrl();
       await fetch(`${backendUrl}/api/telnyx/dispositions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,3 +1,4 @@
+import { isPaid, money, paymentTrend, leadWaste } from '../../utils/dashboardMetrics';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -158,98 +159,30 @@ export const SuperAdminDashboard = () => {
   }, [dbLeads, startDate, endDate]);
 
   // 1. TOP ROW — REAL-TIME KPI STAT CARDS (computed directly from PostgreSQL)
-  const totalVolume = React.useMemo(() => {
-    const vol = filteredPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-    if (vol > 0) return vol;
-    const bVol = filteredBookings.reduce((sum, b) => {
-      const amt = typeof b.amount === 'number' ? b.amount : parseFloat(String(b.amount || '$0').replace(/[^0-9.]/g, '')) || 0;
-      return sum + amt;
-    }, 0);
-    if (bVol > 0) return bVol;
-    const quoteVol = filteredQuotes.reduce((sum, q) => sum + (parseFloat(q.totalPrice) || 0), 0);
-    return quoteVol > 0 ? quoteVol : 0;
-  }, [filteredPayments, filteredBookings, filteredQuotes]);
+  const totalVolume = filteredPayments.filter(isPaid).reduce((sum, p) => sum + money(p.amount), 0);
 
-  const netRevenue = React.useMemo(() => {
-    const markupSum = filteredQuotes.reduce((sum, q) => sum + (parseFloat(q.markup) || 0) + (parseFloat(q.serviceFee) || 0), 0);
-    if (markupSum > 0) return markupSum;
-    return Math.round(totalVolume * 0.142);
-  }, [filteredQuotes, totalVolume]);
+  const netRevenue = filteredBookings.filter(b => b.ticketStatus === "Ticketed").reduce((sum, b) => sum + money(b.commission), 0);
 
-  const totalLeadsCount = Math.max(1, filteredLeads.length || dbLeads.length);
-  const wonCount = filteredBookings.length || filteredPayments.filter(p => p.status === 'Paid').length || filteredLeads.filter(l => ['Won', 'Converted', 'Booked', 'Ticketed'].some(st => (l.status || '').includes(st))).length || 0;
+  const totalLeadsCount = filteredLeads.length;
+  const wonCount = filteredLeads.filter(l => ["won", "converted", "booked", "ticketed"].includes((l.status || "").toLowerCase())).length;
   const conversionRate = totalLeadsCount > 0 ? Math.min(100, Math.round((wonCount / totalLeadsCount) * 100)) : 0;
 
   const topKpiStats = [
     { title: 'Gross Sales Volume', value: `$${totalVolume.toLocaleString()}`, icon: <AccountBalanceWalletIcon />, color: '#2563EB', trend: 'Live DB', trendDirection: 'up', subtitle: `${filteredPayments.length} transactions recorded` },
-    { title: 'Total Net Revenue', value: `$${netRevenue.toLocaleString()}`, icon: <TrendingUpIcon />, color: '#10B981', trend: '14.2% Margin', trendDirection: 'up', subtitle: `$${netRevenue.toLocaleString()} profit earned` },
+    { title: 'Recorded Ticket Commission', value: `$${netRevenue.toLocaleString()}`, icon: <TrendingUpIcon />, color: '#10B981', trend: 'Recorded', trendDirection: 'up', subtitle: `$${netRevenue.toLocaleString()} commission recorded` },
     { title: 'Lead-to-Sale Conversion', value: `${conversionRate}%`, icon: <PercentIcon />, color: '#7C3AED', trend: `${wonCount} Won`, trendDirection: 'up', subtitle: `${wonCount} won from ${totalLeadsCount} active leads` },
-    { title: 'Live Verified Clients', value: `${dbClients.length}`, icon: <PeopleAltIcon />, color: '#059669', trend: 'Verified', trendDirection: 'up', subtitle: `${dbClients.length} registered travelers` },
-    { title: 'Active CRM Team', value: `${dbAgents.length}`, icon: <SupportAgentIcon />, color: '#8B5CF6', trend: '100% Online', trendDirection: 'up', subtitle: `${dbAgents.length} staff members active` },
+    { title: 'Registered Clients', value: `${dbClients.length}`, icon: <PeopleAltIcon />, color: '#059669', trend: 'Recorded', trendDirection: 'up', subtitle: `${dbClients.length} registered travelers` },
+    { title: 'Active CRM Team', value: `${dbAgents.length}`, icon: <SupportAgentIcon />, color: '#8B5CF6', trend: 'Accounts', trendDirection: 'up', subtitle: `${dbAgents.length} staff accounts` },
     { title: 'Quotes In Pipeline', value: `${filteredQuotes.length}`, icon: <FlightTakeoffIcon />, color: '#F59E0B', trend: `+${filteredQuotes.length} active`, trendDirection: 'up', subtitle: 'Flight proposals generated' },
-    { title: 'Avg Lead Reaction Time', value: '2.8 min', icon: <TimerIcon />, color: '#0284C7', trend: 'SLA Met', trendDirection: 'up', subtitle: 'Telnyx WebRTC pickup speed' },
+    { title: 'Avg Lead Reaction Time', value: 'Not measured', icon: <TimerIcon />, color: '#0284C7', trend: 'Unavailable', trendDirection: 'up', subtitle: 'Response timestamps are not recorded' },
   ];
 
   // 2. MIDDLE ROW — CHARTS DATA (computed from live volume)
-  const revenueTrendData = React.useMemo(() => {
-    const months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
-    const monthTotals = { 'May': 0, 'Jun': 0, 'Jul': 0, 'Aug': 0, 'Sep': 0, 'Oct': 0 };
-    [...dbPayments, ...dbBookings].forEach(item => {
-      const d = item.paidAt || item.createdAt || item.date;
-      if (d) {
-        const m = new Date(d).toLocaleString('en-US', { month: 'short' });
-        if (monthTotals[m] !== undefined) {
-          monthTotals[m] += (parseFloat(item.amount) || 0);
-        }
-      }
-    });
-    if (monthTotals['Oct'] === 0 && totalVolume > 0) {
-      monthTotals['Oct'] = totalVolume;
-    }
-    return months.map((m, idx) => ({
-      name: m,
-      revenue: monthTotals[m] || Math.round(totalVolume * (0.35 + idx * 0.12)),
-      target: Math.round(totalVolume * (0.30 + idx * 0.11))
-    }));
-  }, [dbPayments, dbBookings, totalVolume]);
+  const revenueTrendData = paymentTrend(filteredPayments);
 
-  const leadWasteData = React.useMemo(() => {
-    const wastedCount = (dbLeads || []).filter(l => ['lost', 'spam', 'cancelled'].some(st => (l.status || '').toLowerCase().includes(st))).length;
-    const total = Math.max(1, (dbLeads || []).length);
-    const currentWastePct = Math.round((wastedCount / total) * 100);
-    return [
-      { name: 'May', wasteRate: 8, wastedLeads: 4 },
-      { name: 'Jun', wasteRate: 6, wastedLeads: 3 },
-      { name: 'Jul', wasteRate: 5, wastedLeads: 2 },
-      { name: 'Aug', wasteRate: 4, wastedLeads: 2 },
-      { name: 'Sep', wasteRate: 3, wastedLeads: 1 },
-      { name: 'Oct', wasteRate: Math.max(currentWastePct, 1), wastedLeads: wastedCount },
-    ];
-  }, [dbLeads]);
+  const leadWasteData = leadWaste(filteredLeads);
 
-  const leadSourceData = React.useMemo(() => {
-    const counts = {};
-    (dbLeads || []).forEach(l => {
-      const s = l.source || 'Website Direct';
-      counts[s] = (counts[s] || 0) + 1;
-    });
-    const total = Math.max(1, (dbLeads || []).length);
-    const entries = Object.entries(counts);
-    if (entries.length === 0) {
-      return [
-        { name: 'Website Direct', value: 50, revenue: `$${Math.round(totalVolume * 0.5).toLocaleString()}` },
-        { name: 'WhatsApp Organic', value: 50, revenue: `$${Math.round(totalVolume * 0.5).toLocaleString()}` },
-      ];
-    }
-    return entries.map(([name, count]) => {
-      const pct = Math.round((count / total) * 100);
-      return {
-        name,
-        value: pct,
-        revenue: `$${Math.round(totalVolume * (pct / 100)).toLocaleString()}`
-      };
-    });
-  }, [dbLeads, totalVolume]);
+  const leadSourceData = React.useMemo(() => {const counts={}; filteredLeads.forEach(l=>{const source=l.source || 'Unspecified';counts[source]=(counts[source]||0)+1;});return Object.entries(counts).map(([name,count])=>({name,value:Math.round(count / filteredLeads.length * 100),revenue:'Not attributed'}));},[filteredLeads]);
 
   const gatewayData = React.useMemo(() => {
     const map = {};
@@ -263,15 +196,15 @@ export const SuperAdminDashboard = () => {
   // Top Agents Leaderboard from live PostgreSQL users & bookings
   const topAgentsData = React.useMemo(() => {
     const agentList = (dbAgents || []).map((a, i) => {
-      const agentPayments = (filteredPayments || []).filter(p => p.agentName === a.name || p.assignedAgentId === a.id);
+      const agentPayments = (filteredPayments || []).filter(p => isPaid(p) && (p.agentId === a.id || p.assignedAgentId === a.id));
       const pRev = agentPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
       const agentBookings = (dbBookings || []).filter(b => b.agentId === a.id || b.assignedAgentId === a.id || b.agentName?.toLowerCase() === a.name?.toLowerCase());
       const bRev = agentBookings.reduce((sum, b) => {
         const amt = typeof b.amount === 'number' ? b.amount : parseFloat(String(b.amount || '$0').replace(/[^0-9.]/g, '')) || 0;
         return sum + amt;
       }, 0);
-      const rev = bRev || pRev || 0;
-      const closed = agentBookings.length || agentPayments.length || 0;
+      const rev = pRev;
+      const closed = agentBookings.length;
 
       return {
         name: a.name || 'Sales Consultant',
@@ -280,8 +213,8 @@ export const SuperAdminDashboard = () => {
         revenue: `$${rev.toLocaleString()}`,
         revenueNum: rev,
         rate: closed > 0 ? `${Math.min(100, Math.round((closed / Math.max(1, dbLeads.length)) * 100))}%` : '0%',
-        turnaround: `${Math.max(2, 4 + i * 2)} min`,
-        status: a.status === 'active' ? 'Online' : 'Idle'
+        turnaround: 'Not measured',
+        status: a.status === 'active' ? 'Active account' : 'Inactive'
       };
     });
 
@@ -345,42 +278,9 @@ export const SuperAdminDashboard = () => {
   }, [filteredQuotes, totalVolume]);
 
   // Live Lead-to-Sale Conversion Computed Values
-  const totalInquiriesCount = Math.max(1, totalLeadsCount || 1);
+  const totalInquiriesCount = totalLeadsCount;
   const convertedInquiriesCount = wonCount || 0;
   const liveConvRate = Math.min(100, Math.max(0, Math.round((convertedInquiriesCount / totalInquiriesCount) * 100)));
-
-  // AI Flight Booking Simulation State
-  const [activeSimTab, setActiveSimTab] = useState(0);
-  const [chatbotName, setChatbotName] = useState('Johnathan Smith');
-  const [chatbotLog, setChatbotLog] = useState([]);
-
-  const handleSimulateChat = async () => {
-    if (!chatbotName.trim()) {
-      showAlert('Please enter a passenger name', 'error');
-      return;
-    }
-    const logs = [
-      { sender: 'client', text: `Hi! I need urgent Business Class tickets for NYC to London. My name is ${chatbotName}`, time: '10:00 AM' },
-      { sender: 'bot', text: `Hello ${chatbotName}! Welcome to WOW MY FLIGHT ✈️. I can check direct flights for JFK → LHR. For how many passengers?`, time: '10:01 AM' },
-      { sender: 'client', text: `2 Adults, departing 15 Oct, returning 22 Oct.`, time: '10:02 AM' },
-      { sender: 'bot', text: `Found 2 premium options: 1) British Airways BA-117 direct for $9,800 total, 2) Air India AI-101 for $10,350. Quote QT-001 created & sent to our GDS Desk!`, time: '10:03 AM' },
-      { sender: 'bot', text: `Assigned to Senior Flight Specialist Maria S. Instant payment link is ready: https://pay.wowmyflight.com/lnk/A3F9X2`, time: '10:03 AM' }
-    ];
-    setChatbotLog(logs);
-    try {
-      await dbService.createQuote({
-        customerName: chatbotName,
-        origin: 'JFK',
-        destination: 'LHR',
-        airline: 'British Airways',
-        totalPrice: 9800,
-        markup: 1200,
-        status: 'Sent'
-      });
-      queryClient.invalidateQueries({ queryKey: ['quotes'] });
-    } catch (e) {}
-    showAlert(`Simulated AI WhatsApp Flight Quote saved to DB for ${chatbotName}!`, 'success');
-  };
 
   const handleExportData = () => {
     try {
@@ -610,7 +510,7 @@ export const SuperAdminDashboard = () => {
         {/* Left: Charts Grid */}
         <Box sx={{ display: 'grid', gap: 2 }}>
           {/* Revenue Growth Trend */}
-          <ChartCard title="Revenue Growth Trend (May - Oct)" subheader="Monthly Target vs. Actual Generated Gross Sales ($)">
+          <ChartCard title="Collected Payments by Month" subheader="Actual collected payments ($)">
             <ResponsiveContainer width="100%" height={260} minWidth={0} minHeight={0}>
               <AreaChart data={revenueTrendData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
                 <defs>
@@ -666,7 +566,7 @@ export const SuperAdminDashboard = () => {
             </ChartCard>
 
             {/* Lead Source Acquisition */}
-            <ChartCard title="Lead Sources & Revenue" subheader="Marketing channel distribution">
+            <ChartCard title="Lead Sources" subheader="Marketing channel distribution">
               <ResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={leadSourceData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={4} dataKey="value" label={({ name }) => name.split(' ')[0]} fontSize={10}>
@@ -947,11 +847,11 @@ export const SuperAdminDashboard = () => {
             const step5 = (filteredBookings.length > 0 ? filteredBookings.filter(b => b.ticketStatus === 'Ticketed').length : filteredQuotes.filter(q => q.status === 'Accepted').length) || step4;
 
             return [
-              { step: '1. Inbound Leads', count: step1, conv: '100%', color: '#3F51B5', lightBg: 'var(--wl-EEF2FF, #EEF2FF)' },
-              { step: '2. Contacted & Dialed', count: step2, conv: step1 > 0 ? `${Math.min(100, Math.round((step2 / step1) * 100))}%` : '100%', color: '#0284C7', lightBg: 'var(--wl-F0F9FF, #F0F9FF)' },
-              { step: '3. GDS Quotes Sent', count: step3, conv: step2 > 0 ? `${Math.min(100, Math.round((step3 / step2) * 100))}%` : '100%', color: '#7C3AED', lightBg: 'var(--wl-F5F3FF, #F5F3FF)' },
+              { step: '1. Inbound Leads', count: step1, conv: '0%', color: '#3F51B5', lightBg: 'var(--wl-EEF2FF, #EEF2FF)' },
+              { step: '2. Contacted & Dialed', count: step2, conv: step1 > 0 ? `${Math.min(100, Math.round((step2 / step1) * 100))}%` : '0%', color: '#0284C7', lightBg: 'var(--wl-F0F9FF, #F0F9FF)' },
+              { step: '3. GDS Quotes Sent', count: step3, conv: step2 > 0 ? `${Math.min(100, Math.round((step3 / step2) * 100))}%` : '0%', color: '#7C3AED', lightBg: 'var(--wl-F5F3FF, #F5F3FF)' },
               { step: '4. Payment Received', count: step4, conv: step3 > 0 ? `${Math.min(100, Math.round((step4 / step3) * 100))}%` : '50%', color: '#059669', lightBg: 'var(--wl-ECFDF5, #ECFDF5)' },
-              { step: '5. Ticketed & Flown', count: step5, conv: step4 > 0 ? `${Math.min(100, Math.round((step5 / step4) * 100))}%` : '100%', color: '#16A34A', lightBg: 'var(--wl-F0FDF4, #F0FDF4)' },
+              { step: '5. Ticketed & Flown', count: step5, conv: step4 > 0 ? `${Math.min(100, Math.round((step5 / step4) * 100))}%` : '0%', color: '#16A34A', lightBg: 'var(--wl-F0FDF4, #F0FDF4)' },
             ].map((f, i) => (
               <Paper
                 key={i}
@@ -1032,95 +932,6 @@ export const SuperAdminDashboard = () => {
           Recent bookings, ticketed itineraries & collection status
         </Typography>
         <AppTable columns={financialColumns} data={financialRows} maxHeight={280} />
-      </Paper>
-
-      {/* ─── 5. AI WORKFLOW SIMULATION HUB (TRAVEL SPECIFIC) ─── */}
-      <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 0.5 }}>AI AUTOMATION & FLIGHT INGESTION SIMULATOR</Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-          Interactive simulation of AI passenger quote qualification & GDS routing
-        </Typography>
-
-        <Box sx={{ display: 'flex', gap: 0.5, mb: 2, borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>
-          {['AI WhatsApp Flight Bot', 'AI Lead Auto-Routing', 'AI GDS PNR Parser'].map((tabName, idx) => (
-            <Button
-              key={idx}
-              size="small"
-              onClick={() => setActiveSimTab(idx)}
-              variant={activeSimTab === idx ? 'contained' : 'text'}
-              sx={{ fontSize: '0.72rem', py: 0.5, px: 1.5, borderRadius: 1.5 }}
-            >
-              {tabName}
-            </Button>
-          ))}
-        </Box>
-
-        {activeSimTab === 0 && (
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <Typography variant="body2" color="text.secondary">
-                Simulate an inbound WhatsApp inquiry for international flight tickets:
-              </Typography>
-              <TextField
-                size="small"
-                label="Passenger Full Name"
-                value={chatbotName}
-                onChange={e => setChatbotName(e.target.value)}
-                fullWidth
-              />
-              <Button
-                variant="contained"
-                onClick={handleSimulateChat}
-                sx={{ background: 'linear-gradient(135deg, #2563EB 0%, #14B8A6 100%)' }}
-              >
-                Simulate WhatsApp Flight Qualification
-              </Button>
-            </Box>
-
-            {chatbotLog.length > 0 && (
-              <Box sx={{ p: 1.5, bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderRadius: 2, border: '1px solid', borderColor: 'divider', maxHeight: 200, overflowY: 'auto' }}>
-                {chatbotLog.map((log, i) => (
-                  <Box
-                    key={i}
-                    sx={{
-                      mb: 1,
-                      p: 1,
-                      bgcolor: log.sender === 'client'
-                        ? (isDark ? 'rgba(37, 99, 235, 0.2)' : '#EFF6FF')
-                        : (isDark ? 'rgba(255,255,255,0.05)' : 'white'),
-                      borderRadius: 1.5,
-                      border: '1px solid',
-                      borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0'
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block' }}>
-                      {log.sender === 'client' ? 'Passenger' : 'AI Assistant'} ({log.time})
-                    </Typography>
-                    <Typography variant="caption" sx={{ fontSize: '0.78rem' }}>{log.text}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            )}
-          </Box>
-        )}
-
-        {activeSimTab === 1 && (
-          <Box sx={{ p: 2, bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderRadius: 2 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>AI Lead Auto-Routing Active</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Incoming high-priority leads from Google Ads and WhatsApp are automatically assigned via Round-Robin to active sales executives with the lowest caseload.
-            </Typography>
-          </Box>
-        )}
-
-        {activeSimTab === 2 && (
-          <Box sx={{ p: 2, bgcolor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderRadius: 2 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>GDS PNR Parser Engine</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Sabre and Amadeus flight segments are parsed instantly into clean customer-facing quote summaries with automated profit margin calculations.
-            </Typography>
-          </Box>
-        )}
       </Paper>
 
       {/* ─── 6. BOTTOM: QUICK ACTION BUTTONS (Plan 1 spec) ─── */}

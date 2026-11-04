@@ -238,7 +238,8 @@ export default function Bookings() {
 
   const handleSaveBooking = async () => {
     const newRef = "BK-" + Math.floor(1000 + Math.random() * 9000);
-    const generatedPnr = formData.pnr || "TP-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const generatedPnr = formData.pnr;
+    if (!generatedPnr) {showAlert("Enter the confirmed supplier PNR.", "error");return;}
     const newBookingObj = {
       id: newRef,
       bookingId: newRef,
@@ -321,7 +322,7 @@ export default function Bookings() {
     let generatedTicket = null;
     if (newStatus === "Ticketed") {
       const prefix = selectedBooking?.airlineCode?.toLowerCase().includes("emirates") || selectedBooking?.airline?.toLowerCase().includes("emirates") ? "176" : "016";
-      generatedTicket = `${prefix}-${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+      showAlert("Enter confirmed supplier ticket details.", "error"); return;
     }
 
     setBookings((prev) =>

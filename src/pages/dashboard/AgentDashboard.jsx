@@ -68,129 +68,7 @@ const labelColors = {
 };
 
 // Fallback seed leads if DB is brand new/empty
-const FALLBACK_LEADS = [
-  {
-    id: "LD1001",
-    clientId: "463522372",
-    firstName: "Karan",
-    lastName: "Singh",
-    phone: "+1 212 *** 78",
-    fullPhone: "+12125550199",
-    email: "karan@example.com",
-    labels: ["Hot Lead", "VIP", "Price Sensitive"],
-    country: "India",
-    city: "New Delhi",
-    timeZone: "UTC+05:30 India Standard Time",
-    timezone: "Asia/Kolkata",
-    origin: "DEL",
-    destination: "LHR",
-    travelDate: "15 Oct 2026",
-    returnDate: "22 Oct 2026",
-    cabinClass: "Business",
-    passengers: 2,
-    budget: 2800,
-    status: "New Lead",
-    source: "Google Ads",
-    activities: [
-      { time: "16:16:23", agent: "System", status: "New Dialed", comments: "Initial inquiry submitted" },
-      { time: "17:02:44", agent: "me", status: "Quote Sent", comments: "Sent Option 1 & 2" },
-    ],
-  },
-  {
-    id: "LD1002",
-    clientId: "463522373",
-    firstName: "Ankit",
-    lastName: "Sharma",
-    phone: "+1 212 *** 78",
-    fullPhone: "+12125550200",
-    email: "ankit@example.com",
-    labels: ["Hot Lead", "VIP"],
-    country: "India",
-    city: "New Delhi",
-    timeZone: "UTC+05:30 India Standard Time",
-    timezone: "Asia/Kolkata",
-    origin: "DEL",
-    destination: "DXB",
-    travelDate: "20 Nov 2026",
-    cabinClass: "Economy",
-    passengers: 1,
-    budget: 950,
-    status: "Contacted",
-    source: "Website",
-    activities: [
-      { time: "14:20:12", agent: "me", status: "Quote Sent", comments: "Sent 3 options via WhatsApp" },
-    ],
-  },
-  {
-    id: "LD1003",
-    clientId: "463522374",
-    firstName: "Michael",
-    lastName: "Chen",
-    phone: "+1 212 *** 01",
-    fullPhone: "+12125550201",
-    email: "m.chen@example.com",
-    labels: ["Corporate", "Urgent"],
-    country: "USA",
-    city: "New York",
-    timeZone: "UTC-04:00 Eastern Time",
-    timezone: "America/New_York",
-    origin: "JFK",
-    destination: "LHR",
-    travelDate: "05 Dec 2026",
-    cabinClass: "First",
-    passengers: 1,
-    budget: 4200,
-    status: "Qualified",
-    source: "Referral",
-    activities: [],
-  },
-  {
-    id: "LD1004",
-    clientId: "463522375",
-    firstName: "Sarah",
-    lastName: "Williams",
-    phone: "+44 20 *** 02",
-    fullPhone: "+442055550202",
-    email: "s.williams@example.com",
-    labels: ["Price Sensitive"],
-    country: "UK",
-    city: "London",
-    timeZone: "UTC+01:00 British Summer Time",
-    timezone: "Europe/London",
-    origin: "LHR",
-    destination: "SIN",
-    travelDate: "12 Jan 2027",
-    cabinClass: "Economy",
-    passengers: 4,
-    budget: 3100,
-    status: "Quote Sent",
-    source: "Facebook",
-    activities: [],
-  },
-  {
-    id: "LD1005",
-    clientId: "463522376",
-    firstName: "Rita",
-    lastName: "Verma",
-    phone: "+91 98 *** 88",
-    fullPhone: "+91987650088",
-    email: "rita@example.com",
-    labels: ["VIP"],
-    country: "India",
-    city: "Mumbai",
-    timeZone: "UTC+05:30 India Standard Time",
-    timezone: "Asia/Kolkata",
-    origin: "DEL",
-    destination: "SIN",
-    travelDate: "05 Dec 2026",
-    cabinClass: "Economy",
-    passengers: 2,
-    budget: 1400,
-    status: "Callback",
-    source: "Google Ads",
-    activities: [],
-  },
-];
+const FALLBACK_LEADS = [];
 
 /**
  * City / Timezone resolver from airport code or phone
@@ -431,7 +309,7 @@ export default function AgentDashboard() {
 
   // Selected lead object combined with local activity history
   const activeLead = useMemo(() => {
-    const found = allLeads.find((x) => x.id === selectedId) || allLeads[0] || FALLBACK_LEADS[0];
+    const found = allLeads.find((x) => x.id === selectedId) || allLeads[0] || { id:null, firstName:'', lastName:'', labels:[], activities:[] };
     const local = localActivities[found.id] || [];
     return {
       ...found,
@@ -503,11 +381,7 @@ export default function AgentDashboard() {
     const leadsCount = allLeads.length;
     const quotesCount = rawQuotes.length;
     const bookingsCount = rawBookings.length;
-    const callsCount = Math.max(
-      rawCallLogs.length,
-      allLeads.reduce((acc, l) => acc + (l.activities?.filter((a) => a.status?.includes("Dial") || a.status?.includes("Call")).length || 0), 0),
-      12
-    );
+    const callsCount = rawCallLogs.length;
 
     const conversionRate = leadsCount > 0 ? ((bookingsCount / leadsCount) * 100).toFixed(1) + "%" : "0.0%";
     const totalRevenue = rawBookings.reduce((sum, b) => {
@@ -515,8 +389,8 @@ export default function AgentDashboard() {
       return sum + amt;
     }, 0);
 
-    const revFormatted = totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : "$1,394";
-    const avgBookingValue = bookingsCount > 0 ? `$${Math.round(totalRevenue / bookingsCount).toLocaleString()}` : "$697";
+    const revFormatted = `${totalRevenue.toLocaleString()}`;
+    const avgBookingValue = bookingsCount > 0 ? `$${Math.round(totalRevenue / bookingsCount).toLocaleString()}` : "$0";
 
     return [
       {
@@ -539,21 +413,21 @@ export default function AgentDashboard() {
       },
       {
         id: "quotes",
-        label: "Quotes Sent",
+        label: "Quotes Recorded",
         value: String(quotesCount),
         icon: "📩",
         color: "#6366F1",
         bg: "var(--wl-EEF2FF, #EEF2FF)",
-        desc: "Dispatched flight itineraries",
+        desc: "Saved flight proposals",
       },
       {
         id: "bookings",
-        label: "Confirmed Bookings",
+        label: "Bookings Recorded",
         value: String(bookingsCount),
         icon: "✈️",
         color: "#059669",
         bg: "var(--wl-D1FAE5, #D1FAE5)",
-        desc: "Ticketed & issued bookings in GDS",
+        desc: "Booking records in CRM",
       },
       {
         id: "revenue",
@@ -567,7 +441,7 @@ export default function AgentDashboard() {
       {
         id: "conversion",
         label: "Conversion Rate",
-        value: conversionRate === "0.0%" ? "66.7%" : conversionRate,
+        value: conversionRate,
         icon: "📈",
         color: "#EC4899",
         bg: "var(--wl-FDF2F8, #FDF2F8)",
@@ -585,7 +459,7 @@ export default function AgentDashboard() {
       {
         id: "sla",
         label: "SLA Follow-up Score",
-        value: "98%",
+        value: "Not measured",
         icon: "✅",
         color: "#16A34A",
         bg: "var(--wl-F0FDF4, #F0FDF4)",
@@ -943,6 +817,7 @@ export default function AgentDashboard() {
     }
   };
 
+  if (!allLeads.length && !leadsLoading) return <Box sx={{p:3}}><Typography variant="h5">No assigned leads</Typography><Typography>New leads assigned to you will appear here.</Typography><Button onClick={() => navigate('/agent/leads')}>Open My Leads</Button></Box>;
   return (
     <Box sx={{ minHeight: "100vh", pb: 5 }}>
       {/* ─── TOP COMMAND HEADER (INTEGRATED TITLE + CLOCK + ACTIONS) ─── */}

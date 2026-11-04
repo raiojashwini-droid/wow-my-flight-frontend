@@ -1,3 +1,4 @@
+import { getBackendUrl } from '../../config/backend.js';
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
@@ -8,7 +9,7 @@ import { ChatWindow } from './live-chat/ChatWindow';
 import { CustomerInfoPanel } from './live-chat/CustomerInfoPanel';
 
 // Use same URL as CustomerChatWidget
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const SOCKET_URL = getBackendUrl();
 
 const AgentLiveChatWorkspace = () => {
   const { currentUser } = useAuth();

@@ -15,83 +15,9 @@
  *    └── NDC Supplier Adapter (Air India NDC / Emirates Direct Connect)
  */
 
-export const INITIAL_SUPPLIER_ADAPTERS = [
-  {
-    id: 'ADAPTER-TRAVELOPRO',
-    name: 'TraveloPro (B2B Global Flights)',
-    type: 'Consolidator B2B',
-    protocol: 'REST / JSON API',
-    endpoint: 'https://travelnext.works/api/aeroVE5/availability',
-    status: 'Active',
-    latency: '85ms',
-    uptime: '99.98%',
-    authType: 'API Credential Payload',
-    supportedCabins: ['Economy', 'Premium Economy', 'Business', 'First Class'],
-    features: ['Live Flight Search', 'Net Fare Rules', 'Instant PNR Hold', 'Ticket Order'],
-    lastPing: new Date().toISOString(),
-    description: 'TraveloPro global B2B consolidator connecting 700+ full-service airlines & GDS inventory.'
-  },
-  {
-    id: 'ADAPTER-CONS-A',
-    name: 'Consolidator A (Mystifly B2B)',
-    type: 'Consolidator',
-    protocol: 'REST / JSON API',
-    endpoint: 'https://api.mystifly.com/v2/flight/search',
-    status: 'Active',
-    latency: '120ms',
-    uptime: '99.9%',
-    authType: 'OAuth 2.0 / Bearer',
-    supportedCabins: ['Economy', 'Premium Economy', 'Business', 'First Class'],
-    features: ['Net Fare Rules', 'Instant Ticket Issuance', 'B2B Fare Markup'],
-    lastPing: '2026-08-20T12:00:00Z',
-    description: 'Global flight content consolidator specializing in wholesale B2B fares.'
-  },
-  {
-    id: 'ADAPTER-CONS-B',
-    name: 'Consolidator B (Mondee Travel)',
-    type: 'Consolidator',
-    protocol: 'REST / JSON API',
-    endpoint: 'https://api.mondee.com/v1/flights/avail',
-    status: 'Active',
-    latency: '145ms',
-    uptime: '99.8%',
-    authType: 'API Key + Secret',
-    supportedCabins: ['Economy', 'Business'],
-    features: ['Private Negotiated Fares', 'Tour Operator Tariffs'],
-    lastPing: '2026-08-20T12:05:00Z',
-    description: 'Americas and transatlantic flight content consolidator aggregator.'
-  },
-  {
-    id: 'ADAPTER-GDS',
-    name: 'GDS Adapter (Amadeus & Sabre GDS)',
-    type: 'GDS Gateway',
-    protocol: 'SOAP / XML / EDIFACT',
-    endpoint: 'https://nodeD3.production.amadeus.com/1ASLWM',
-    status: 'Active',
-    latency: '95ms',
-    uptime: '99.99%',
-    authType: 'Session Token / WSS Security',
-    supportedCabins: ['Economy', 'Premium Economy', 'Business', 'First Class'],
-    features: ['Live PNR Build', 'Seat Maps', 'Interline Agreements', 'GDS Queue Sync'],
-    lastPing: '2026-08-20T12:10:00Z',
-    description: 'Core legacy GDS gateway for published, IT, and CAT35 private fares.'
-  },
-  {
-    id: 'ADAPTER-NDC',
-    name: 'NDC Supplier Adapter (Air India & Emirates Direct)',
-    type: 'NDC Direct Connect',
-    protocol: 'IATA NDC 21.3 XML',
-    endpoint: 'https://ndc.airindia.in/ndc/v213/AirShopping',
-    status: 'Active',
-    latency: '110ms',
-    uptime: '99.95%',
-    authType: 'Digital Signature + Certificate',
-    supportedCabins: ['Economy', 'Business', 'First Class'],
-    features: ['Ancillary Dynamic Pricing', 'Free Seat Selection', 'Zero GDS Surcharge'],
-    lastPing: '2026-08-20T12:12:00Z',
-    description: 'Direct NDC connect API bypassing legacy GDS distribution fees.'
-  }
-];
+import { getBackendUrl } from '../config/backend.js';
+
+export const INITIAL_SUPPLIER_ADAPTERS = [{id:'ADAPTER-TRAVELOPRO',name:'TraveloPro (B2B Global Flights)',type:'Consolidator B2B',protocol:'REST / JSON API',endpoint:'/api/travelopro',status:'Not verified',latency:'Not measured',uptime:'Not measured',authType:'Server credentials',supportedCabins:['Economy','Premium Economy','Business','First Class'],features:['Flight Search'],lastPing:null,description:'Provider availability is verified when a search is requested.'}];
 
 class FlightContentService {
   constructor() {
@@ -99,10 +25,7 @@ class FlightContentService {
   }
 
   getBackendUrl() {
-    return (
-      import.meta.env?.VITE_BACKEND_URL ||
-      'https://wow-my-flight-backend-production-2ef6.up.railway.app'
-    );
+    return getBackendUrl();
   }
 
   loadAdapters() {
@@ -145,25 +68,7 @@ class FlightContentService {
     const adapter = this.adapters.find(a => a.id === id);
     if (!adapter) return { success: false, message: 'Adapter not found' };
 
-    // Simulate network round-trip ping latency
-    const pingTime = Math.floor(80 + Math.random() * 70);
-    const updated = {
-      ...adapter,
-      latency: `${pingTime}ms`,
-      lastPing: new Date().toISOString(),
-      status: 'Active'
-    };
-
-    this.adapters = this.adapters.map(a => a.id === id ? updated : a);
-    this.saveAdapters();
-
-    return {
-      success: true,
-      adapterId: id,
-      name: adapter.name,
-      latency: `${pingTime}ms`,
-      timestamp: updated.lastPing
-    };
+    return {success:false, message:'Provider health check is not configured. Run a flight search to verify availability.'};
   }
 
   registerAdapter(newAdapterData) {
@@ -174,9 +79,9 @@ class FlightContentService {
       type: newAdapterData.type || 'Consolidator',
       protocol: newAdapterData.protocol || 'REST / JSON API',
       endpoint: newAdapterData.endpoint || 'https://api.supplier.com/v1/search',
-      status: newAdapterData.status || 'Active',
-      latency: '115ms',
-      uptime: '100%',
+      status: 'Not verified',
+      latency: 'Not measured',
+      uptime: 'Not measured',
       authType: newAdapterData.authType || 'API Key',
       supportedCabins: newAdapterData.supportedCabins || ['Economy', 'Business'],
       features: newAdapterData.features || ['Search', 'Booking'],
@@ -206,13 +111,10 @@ class FlightContentService {
       adapterFilter = 'All'
     } = params;
 
-    const isLocalhost = typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-    let backendUrl = import.meta.env.VITE_BACKEND_URL || (isLocalhost ? 'http://localhost:3001' : 'http://localhost:3001');
+    const backendUrl = this.getBackendUrl();
 
     try {
-      let response = await fetch(`${backendUrl}/api/travelopro/flights/search`, {
+      const response = await fetch(`${backendUrl}/api/travelopro/flights/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -225,29 +127,6 @@ class FlightContentService {
           tripType
         })
       }).catch(() => null);
-
-      // If initial URL failed (e.g. 404 on un-deployed Railway), fallback to alternate
-      if (!response || !response.ok) {
-        const altUrl = backendUrl.includes('3001') ? (import.meta.env.VITE_BACKEND_URL || '') : 'http://localhost:3001';
-        if (altUrl) {
-          const altResponse = await fetch(`${altUrl}/api/travelopro/flights/search`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              origin,
-              destination,
-              departDate,
-              returnDate,
-              cabinClass,
-              passengers,
-              tripType
-            })
-          }).catch(() => null);
-          if (altResponse && altResponse.ok) {
-            response = altResponse;
-          }
-        }
-      }
 
       if (!response || !response.ok) {
         const errorData = response ? await response.json().catch(() => ({})) : {};
@@ -285,13 +164,6 @@ class FlightContentService {
     });
     if (!saved?.success) throw new Error('Supplier confirmed PNR ' + pnr + ', but CRM save failed. Contact your administrator before retrying.');
     return { success: true, pnr, booking: saved.data, details: data };
-  }
-
-  getBackendUrl() {
-    const isLocalhost = typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    if (import.meta.env.VITE_BACKEND_URL) return import.meta.env.VITE_BACKEND_URL;
-    return isLocalhost ? 'http://localhost:3001' : 'http://localhost:3001';
   }
 
   /**

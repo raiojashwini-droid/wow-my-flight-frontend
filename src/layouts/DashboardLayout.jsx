@@ -603,7 +603,6 @@ export const DashboardLayout = () => {
   };
 
   const getDynamicPath = (item) => {
-    if (item.path === '/phone') return '/phone';
     let prefix = getRolePrefix();
     if (!prefix) return item.path;
 
@@ -733,7 +732,6 @@ export const DashboardLayout = () => {
   };
 
   const menuItems = [
-    { section: 'PHASE 1 ? SALES', label: 'Mobile Calls & SMS', icon: <PhoneInTalkIcon />, path: '/phone', roles: ['admin', 'super_admin', 'sales_executive'] },
     // PHASE 1 – SALES (Chronological Sales Lifecycle Order)
     { section: 'PHASE 1 – SALES', label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader', 'flight_expert', 'ticketing_agent'] },
     { section: 'PHASE 1 – SALES', label: 'Duplicate Protection', icon: <SecurityIcon />, path: '/duplicate-leads', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
@@ -1043,7 +1041,7 @@ export const DashboardLayout = () => {
   const renderNavItem = (item) => {
     if (currentUser?.role === 'sales_executive' && ['Permission Control', 'Finance', 'Management Reports', 'Audit Trail', 'Automation', 'Agents Management'].includes(item.label)) return null;
     // Core operational & management items always render for Admin and SuperAdmin
-    const ALWAYS_VISIBLE_MENUS = ['Dashboard', 'Mobile Calls & SMS', 'QA Audits', 'After-Sales', 'Live Web Chat', 'Internal Team Chat'];
+    const ALWAYS_VISIBLE_MENUS = ['Dashboard', 'QA Audits', 'After-Sales', 'Live Web Chat', 'Internal Team Chat'];
     if (['super_admin', 'admin'].includes(currentUser?.role)) {
       ALWAYS_VISIBLE_MENUS.push('Permission Control', 'Management Reports', 'Agents Management');
     }

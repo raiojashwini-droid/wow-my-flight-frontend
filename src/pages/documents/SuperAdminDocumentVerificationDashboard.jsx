@@ -54,7 +54,6 @@ import { useAlert } from '../../contexts/AlertContext';
 import { themeText } from '../../theme/themeColor';
 import { dbService } from '../../services/dbService';
 import { qaService } from '../../services/phase3Service';
-import { getRealisticDocumentVisual, getRealisticDocumentSvgString, renderSvgToDataUrl } from './documentVisualTemplates';
 // ─── SPECIFICATION CONSTANTS ───
 export const DOC_TYPES = [
   { type: 'Passport', purpose: 'Identity + travel eligibility', icon: <BadgeIcon sx={{ color: '#2563EB' }} />, color: '#2563EB', bg: 'var(--wl-EFF6FF, #EFF6FF)' },
@@ -92,32 +91,25 @@ export const SuperAdminDocumentVerificationDashboard = () => {
   React.useEffect(() => {
     let isMounted = true;
     qaService.getDocuments().then(data => {
-      if (isMounted && Array.isArray(data) && data.length > 0) {
+      if (isMounted && Array.isArray(data)) {
         const normalized = data.map(d => ({
           id: d.id,
+          fileData: d.fileUrl || null,
+          fileType: d.fileType,
           type: d.type || d.category || 'Passport',
-          customerName: d.customerName || 'Marcus Vance',
-          customerEmail: d.customerEmail || 'client@wowmyflight.com',
-          bookingRef: d.bookingRef || 'BK-101',
-          pnr: d.pnr || 'WMF-99',
+          customerName: d.customerName || '',
+          customerEmail: d.customerEmail || '',
+          bookingRef: d.bookingRef || '',
+          pnr: d.pnr || '',
           fileName: d.fileName || 'document.pdf',
-          fileSize: d.fileSize || '1.8 MB',
-          uploadDate: d.uploadDate || (d.createdAt ? String(d.createdAt).substring(0, 10) : '2026-10-09'),
-          expiryDate: d.expiryDate || '2031-10-15',
+          fileSize: d.fileSize || '',
+          uploadDate: d.uploadDate || (d.createdAt ? String(d.createdAt).substring(0, 10) : ''),
+          expiryDate: d.expiryDate || '',
           verifiedBy: d.reviewedBy || 'QA Officer',
           status: d.status === 'Verified' ? 'Verified' : (d.status === 'Under Review' ? 'Under Review' : 'Uploaded'),
-          notes: d.comment || d.notes || 'Verified against traveler registry.'
+          notes: d.comment || d.notes || ''
         }));
 
-        try {
-          const localDocs = JSON.parse(localStorage.getItem('wmf_qa_uploaded_docs') || '[]');
-          if (localDocs.length > 0) {
-            setDocuments([...localDocs, ...normalized.filter(d => !localDocs.some(ld => ld.id === d.id))]);
-            return;
-          }
-        } catch (e) {
-          console.warn('Local docs load error:', e);
-        }
         setDocuments(normalized);
       }
     }).catch(e => console.warn('Live documents load warning:', e));
@@ -131,12 +123,12 @@ export const SuperAdminDocumentVerificationDashboard = () => {
 
   // New Document Upload State
   const [newDocForm, setNewDocForm] = useState({
-    customerName: 'Karan Singh',
-    bookingRef: 'BK-001',
-    pnr: 'SAB78K',
+    customerName: '',
+    bookingRef: '',
+    pnr: '',
     type: 'Passport',
     fileName: '',
-    expiryDate: '2031-10-15',
+    expiryDate: '',
     notes: ''
   });
   const [selectedFile, setSelectedFile] = useState(null);
@@ -155,190 +147,15 @@ export const SuperAdminDocumentVerificationDashboard = () => {
     }
   };
 
-  const handleDownloadDocumentPdf = async (doc) => {
-    if (!doc) return;
-
-    // If user uploaded a real file (Image, PDF, Doc), download that EXACT original file!
-    if (doc.fileData) {
-      try {
-        const link = document.createElement('a');
-        link.href = doc.fileData;
-        link.download = doc.fileName || `${(doc.customerName || 'document').replace(/\s+/g, '_')}_${doc.type || 'file'}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        showAlert(`✓ Successfully downloaded real uploaded file: ${doc.fileName}`, 'success');
-        return;
-      } catch (err) {
-        console.error('Real file download error:', err);
-      }
-    }
-    try {
-      const docTypeLower = (doc.type || doc.category || doc.fileName || '').toLowerCase();
-      const isLandscape = docTypeLower.includes('ticket') || docTypeLower.includes('itinerary');
-
-      const pdf = new jsPDF({
-        orientation: isLandscape ? 'landscape' : 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      // Convert our authentic SVG document visual to high-res image
-      const svgString = getRealisticDocumentSvgString(doc);
-      const imgDataUrl = await renderSvgToDataUrl(svgString, 900, 600);
-
-      if (!isLandscape) {
-        // Top Primary Header Banner
-        pdf.setFillColor(15, 23, 42);
-        pdf.rect(0, 0, 210, 20, 'F');
-
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(12);
-        pdf.text('WOW MY FLIGHT CRM · SECURE PASSENGER DOCUMENT VAULT', 15, 11);
-
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(8);
-        pdf.text(`OFFICIAL CERTIFIED TRAVEL ARCHIVE · ${doc.fileName}`, 15, 16);
-        pdf.text(`STATUS: ${(doc.status || 'VERIFIED').toUpperCase()}`, 195, 13, { align: 'right' });
-
-        // Embed the REALISTIC SCANNED DOCUMENT (Schengen Visa Sticker / Passport Bio Page)
-        if (imgDataUrl) {
-          pdf.addImage(imgDataUrl, 'JPEG', 15, 26, 180, 122);
-        }
-
-        // Section: Verification Specifications below the real document
-        pdf.setFillColor(248, 250, 252);
-        pdf.setDrawColor(203, 213, 225);
-        pdf.roundedRect(15, 154, 180, 68, 2, 2, 'FD');
-
-        pdf.setTextColor(15, 23, 42);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(10);
-        pdf.text('PASSENGER & BOOKING VERIFICATION SPECIFICATIONS', 22, 163);
-
-        const details = [
-          ['Passenger Full Name', doc.customerName || 'Traveler'],
-          ['Customer Email', doc.customerEmail || 'client@wowmyflight.com'],
-          ['Booking Reference', doc.bookingRef || 'BK-101'],
-          ['Sabre / Amadeus PNR', doc.pnr || 'WMF-99'],
-          ['Document Classification', doc.type || doc.category || 'Visa'],
-          ['Document Expiry Date', doc.expiryDate || '2031-10-15'],
-          ['Verified By Authority', doc.verifiedBy || 'Super Admin (QA Lead)'],
-          ['Security Checksum', 'SHA-256: 4f8b2c1e7a9d3... (AWS S3 Encrypted)']
-        ];
-
-        details.forEach(([label, value], idx) => {
-          const y = 171 + idx * 6;
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(8);
-          pdf.setTextColor(71, 85, 105);
-          pdf.text(label + ':', 22, y);
-
-          pdf.setFont('helvetica', 'normal');
-          pdf.setTextColor(15, 23, 42);
-          pdf.text(String(value), 75, y);
-        });
-
-        // Section: Official Seal
-        pdf.setDrawColor(37, 99, 235);
-        pdf.setLineWidth(0.8);
-        pdf.roundedRect(130, 226, 65, 26, 3, 3, 'D');
-
-        pdf.setTextColor(37, 99, 235);
-        pdf.setFontSize(8.5);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('WOWMYFLIGHT QA VAULT', 162.5, 234, { align: 'center' });
-        pdf.setFontSize(7);
-        pdf.text('DIGITALLY CERTIFIED & VERIFIED', 162.5, 240, { align: 'center' });
-        pdf.text(new Date().toISOString().split('T')[0], 162.5, 246, { align: 'center' });
-
-        // Footer
-        pdf.setDrawColor(226, 232, 240);
-        pdf.line(15, 275, 195, 275);
-
-        pdf.setFontSize(7.5);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setTextColor(148, 163, 184);
-        pdf.text('Confidential - For authorized travel agency operations only. WowMyFlight Travel CRM.', 15, 282);
-        pdf.text(`Downloaded: ${new Date().toLocaleString()}`, 195, 282, { align: 'right' });
-      } else {
-        // Landscape A4 for E-Tickets
-        pdf.setFillColor(15, 23, 42);
-        pdf.rect(0, 0, 297, 18, 'F');
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(12);
-        pdf.text('WOW MY FLIGHT CRM · ELECTRONIC FLIGHT TICKET & ITINERARY', 15, 11);
-        pdf.text(`FILE: ${doc.fileName}`, 282, 11, { align: 'right' });
-
-        if (imgDataUrl) {
-          pdf.addImage(imgDataUrl, 'JPEG', 15, 24, 267, 165);
-        }
-      }
-
-      const safeFilename = (doc.fileName || `${doc.customerName || 'document'}_${doc.type || 'file'}`).replace(/[/\\?%*:|"<>]/g, '_');
-      const filename = safeFilename.endsWith('.pdf') ? safeFilename : `${safeFilename}.pdf`;
-
-      pdf.save(filename);
-      showAlert(`✓ Successfully downloaded real certified ${doc.type || 'document'}: ${filename}!`, 'success');
-      return;
-    } catch (err) {
-      console.error('PDF generation error:', err);
-      showAlert(`Download failed: ${err.message}`, 'error');
-    }
-  };
+  const handleDownloadDocumentPdf = async doc => {if (!doc?.fileData) {showAlert('Original file is unavailable. Upload the document first.', 'error');return;}const link=document.createElement('a');link.href=doc.fileData;link.download=doc.fileName;document.body.appendChild(link);link.click();link.remove();};
 
 
-  const handleUpdateStatus = async (docId, newStatus) => {
-    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status: newStatus, verifiedBy: 'Super Admin (CEO)' } : d));
-    if (selectedDoc && selectedDoc.id === docId) {
-      setSelectedDoc(prev => ({ ...prev, status: newStatus, verifiedBy: 'Super Admin (CEO)' }));
-    }
-    await qaService.updateDocumentStatus(docId, newStatus);
-    showAlert(`Document ${docId} marked as ${newStatus}!`, 'success');
-  };
+  const handleUpdateStatus = async (docId,newStatus) => {try {const result=await qaService.updateDocumentStatus(docId,newStatus);setDocuments(prev=>prev.map(d=>d.id===docId?{...d,status:result.data.status,verifiedBy:result.data.reviewedBy}:d));if(selectedDoc?.id===docId)setSelectedDoc(prev=>({...prev,status:result.data.status,verifiedBy:result.data.reviewedBy}));showAlert('Document review saved','success');}catch(error){showAlert(error.message,'error');}};
 
   const handleUploadNewDoc = async () => {
-    const newId = 'DOC-' + (documents.length + 101);
-    const sizeStr = selectedFile ? (selectedFile.size / (1024 * 1024)).toFixed(1) + ' MB' : '1.9 MB';
-    const newDoc = {
-      id: newId,
-      type: newDocForm.type,
-      customerName: newDocForm.customerName,
-      customerEmail: 'karan@example.com',
-      bookingRef: newDocForm.bookingRef,
-      pnr: newDocForm.pnr,
-      fileName: selectedFile ? selectedFile.name : (newDocForm.fileName || `${newDocForm.customerName.replace(' ', '_')}_${newDocForm.type.replace(' ', '_')}.pdf`),
-      fileSize: sizeStr,
-      uploadDate: new Date().toISOString().split('T')[0],
-      expiryDate: newDocForm.expiryDate,
-      verifiedBy: 'Pending Review',
-      status: 'Uploaded',
-      notes: newDocForm.notes || 'Uploaded via Super Admin console.',
-      fileData: selectedFileDataUrl,
-      fileType: selectedFile ? selectedFile.type : 'application/pdf'
-    };
-
-    setDocuments([newDoc, ...documents]);
-    try {
-      const existingLocal = JSON.parse(localStorage.getItem('wmf_qa_uploaded_docs') || '[]');
-      const updated = [newDoc, ...existingLocal.filter(d => d.id !== newDoc.id)].slice(0, 5);
-      localStorage.setItem('wmf_qa_uploaded_docs', JSON.stringify(updated));
-    } catch (err) {
-      console.warn('LocalStorage save failed:', err);
-    }
-    const { fileData, ...docMetadata } = newDoc;
-    try {
-      await qaService.uploadDocument(docMetadata);
-    } catch (err) {
-      console.warn('Cloud sync note:', err);
-    }
-    showAlert(`📄 Document ${newId} (${newDocForm.type}) uploaded successfully!`, 'success');
-    setSelectedFile(null);
-    setSelectedFileDataUrl(null);
-    setUploadModalOpen(false);
-  };
+  if (!newDocForm.customerName.trim() || !selectedFileDataUrl) {showAlert('Select a file and enter the customer name.','error');return;}
+  try {const result=await qaService.uploadDocument({...newDocForm,category:newDocForm.type,fileName:selectedFile.name,fileSize:selectedFile.size+' B',fileType:selectedFile.type,fileUrl:selectedFileDataUrl,comment:newDocForm.notes});const saved=result.data;setDocuments(prev=>[{...saved,type:saved.category,fileData:saved.fileUrl},...prev]);showAlert('Document saved to database','success');setSelectedFile(null);setSelectedFileDataUrl(null);setUploadModalOpen(false);}catch(error){showAlert(error.message,'error');}
+ };
 
   const filteredDocuments = useMemo(() => {
     return documents.filter(d => {
@@ -1005,7 +822,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                       REAL DOCUMENT VIEW ({selectedDoc.type})
                     </Typography>
                     <Chip
-                      label={selectedDoc.fileData ? 'USER UPLOADED' : 'OFFICIAL ARCHIVE'}
+                      label={selectedDoc.fileData ? 'USER UPLOADED' : 'FILE UNAVAILABLE'}
                       size="small"
                       color={selectedDoc.fileData ? 'success' : 'primary'}
                       variant="outlined"
@@ -1037,7 +854,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                       />
                     ) : (
                       <img
-                        src={getRealisticDocumentVisual(selectedDoc)}
+                        src={selectedDoc.fileData || undefined}
                         alt={selectedDoc.fileName}
                         style={{
                           maxWidth: '100%',

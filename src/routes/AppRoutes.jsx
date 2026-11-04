@@ -1,4 +1,3 @@
-import MobilePhone from '../pages/social/MobilePhone';
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { dbService } from '../services/dbService';
@@ -377,9 +376,6 @@ const RootRedirect = () => {
 export const AppRoutes = () => {
   return (
     <Routes>
-      <Route element={<ProtectedRoute allowedRoles={['super_admin', 'admin', 'sales_executive']}><DashboardLayout /></ProtectedRoute>}>
-        <Route path="/phone" element={<MobilePhone />} />
-      </Route>
       {/* Root Route - Direct Login / Authenticated Dashboard */}
       <Route path="/" element={<RootRedirect />} />
       <Route path="/landing" element={<Navigate to="/" replace />} />

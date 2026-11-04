@@ -1,3 +1,4 @@
+import { getBackendUrl } from '../../config/backend.js';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -415,7 +416,7 @@ export default function Quotes() {
   // Load quotes from real backend database on mount
   const fetchQuotesFromApi = async () => {
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = getBackendUrl();
       const res = await fetch(`${backendUrl}/api/quotes`);
       if (res.ok) {
         const json = await res.json();
@@ -530,7 +531,7 @@ export default function Quotes() {
 
     // Persist to backend database via API
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = getBackendUrl();
       const primary = finalQuoteObj.options?.[0] || {};
       const res = await fetch(`${backendUrl}/api/quotes`, {
         method: 'POST',
@@ -582,7 +583,7 @@ export default function Quotes() {
     }
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = getBackendUrl();
       fetch(`${backendUrl}/api/quotes/${quoteId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -653,7 +654,7 @@ export default function Quotes() {
     MOCK_BOOKINGS.unshift(newBooking);
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = getBackendUrl();
       const res = await fetch(`${backendUrl}/api/bookings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

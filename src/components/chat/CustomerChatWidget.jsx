@@ -1,9 +1,10 @@
+import { getBackendUrl } from '../../config/backend.js';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, ChevronDown, Send, User, Smile, Paperclip, MoreVertical, Volume2, VolumeX, WifiOff, ArrowDown, X } from 'lucide-react';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const SOCKET_URL = getBackendUrl();
 
 const COMMON_EMOJIS = ['😊','😂','🥰','😎','🤔','👍','🙏','🔥','✈️','🌍','💼','🎉'];
 const QUICK_REPLIES = ["Flight Booking Help", "Check PNR Status", "CRM Demo Request", "API Documentation"];

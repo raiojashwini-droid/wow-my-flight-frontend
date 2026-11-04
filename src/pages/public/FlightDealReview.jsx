@@ -1,3 +1,4 @@
+import { getBackendUrl } from '../../config/backend.js';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -146,7 +147,7 @@ export default function FlightDealReview({ quote: propQuote }) {
     setBookingConfirmed(true);
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = getBackendUrl();
       const newBookingId = `BK-${Math.floor(1000 + Math.random() * 9000)}`;
       const paxName = activeQuote?.customerName || (passengers[0] ? `${passengers[0].firstName} ${passengers[0].lastName}` : 'Valued Passenger');
       const totalCost = (activeQuote?.totalPrice || 474) + ancillaryAddonCost;

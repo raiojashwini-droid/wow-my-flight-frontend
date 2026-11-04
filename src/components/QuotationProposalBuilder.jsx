@@ -1,3 +1,4 @@
+import { getBackendUrl } from '../config/backend.js';
 import React, { useState } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -334,7 +335,7 @@ export default function QuotationProposalBuilder({ quote, clientInfo, initialOpt
 
   const handleSendEmail = async () => {
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = getBackendUrl();
       const quoteId = quote?.id || quote?.quoteId;
       if (quoteId) {
         await fetch(`${backendUrl}/api/quotes/${quoteId}/send`, {

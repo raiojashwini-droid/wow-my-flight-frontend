@@ -21,9 +21,10 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <PermissionProvider>
-        <QueryClientProvider client={queryClient}>
+
           <ThemeModeProvider>
             <AlertProvider>
               <TelnyxProvider>
@@ -33,9 +34,10 @@ function App() {
               </TelnyxProvider>
             </AlertProvider>
           </ThemeModeProvider>
-        </QueryClientProvider>
+
       </PermissionProvider>
     </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

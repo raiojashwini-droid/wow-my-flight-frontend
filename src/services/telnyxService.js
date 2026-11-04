@@ -1,3 +1,4 @@
+import { getBackendUrl } from '../config/backend.js';
 /**
  * src/services/telnyxService.js
  * Axios-based wrapper for all Telnyx backend API calls.
@@ -7,7 +8,7 @@
 import axios from 'axios';
 import { getAuthToken } from './dbService';
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+const BASE_URL = getBackendUrl();
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api/telnyx`,

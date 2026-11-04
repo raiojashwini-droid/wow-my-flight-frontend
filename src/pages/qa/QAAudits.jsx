@@ -47,12 +47,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { qaService } from '../../services/phase3Service';
 
 import { themeText } from '../../theme/themeColor';
-export const QA_AGENTS = [
-  { id: 'ag-1', name: 'Maria Santos', role: 'Senior Sales Agent', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', callCount: 14, bookingCount: 9 },
-  { id: 'ag-2', name: 'Abu', role: 'Ticketing Expert', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', callCount: 18, bookingCount: 12 },
-  { id: 'ag-3', name: 'Karan Singh', role: 'Flight Specialist', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', callCount: 11, bookingCount: 7 },
-  { id: 'ag-4', name: 'Sarah Jenkins', role: 'Consultant', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', callCount: 16, bookingCount: 10 },
-];
+export const QA_AGENTS = [];
 
 export const DEMO_CALL_TRANSCRIPT = [];
 

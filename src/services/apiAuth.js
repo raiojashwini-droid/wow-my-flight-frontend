@@ -1,6 +1,7 @@
+import { getBackendUrl } from '../config/backend.js';
 // Attach the logged-in credential only to our CRM API origin.
 export function installApiAuth() {
-  const backend = new URL(import.meta.env.VITE_BACKEND_URL || 'https://wow-my-flight-backend-production-2ef6.up.railway.app');
+  const backend = new URL(getBackendUrl());
   const originalFetch = window.fetch.bind(window);
   window.fetch = (input, options = {}) => {
     const url = new URL(input instanceof Request ? input.url : input, window.location.href);

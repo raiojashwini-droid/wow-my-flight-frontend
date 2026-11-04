@@ -179,7 +179,7 @@ export const Login = () => {
             </motion.button>
           </form>
 
-          <section className="mt-6 border-t border-slate-300/30 pt-5" aria-label="Quick account selection">
+          {import.meta.env.DEV && <section className="mt-6 border-t border-slate-300/30 pt-5" aria-label="Quick account selection">
             <p className={`text-sm font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Quick login</p>
             <p className={`text-xs mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Temporary demo access: choose an account to log in.</p>
             <div className="grid grid-cols-2 gap-2">
@@ -201,7 +201,7 @@ export const Login = () => {
                 );
               })}
             </div>
-          </section>
+          </section>}
       </motion.div>
         <style dangerouslySetInnerHTML={{__html: `
           @keyframes shimmer {

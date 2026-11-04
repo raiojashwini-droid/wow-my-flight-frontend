@@ -1,3 +1,4 @@
+import { getBackendUrl } from '../../config/backend.js';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -167,7 +168,7 @@ export default function MandatoryCallDispositionEngine() {
 
   // Real-time Socket.io updates for new dispositions
   useEffect(() => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = getBackendUrl();
     const socket = io(backendUrl, { withCredentials: true });
 
     socket.on('telnyx:disposition_created', (newLog) => {

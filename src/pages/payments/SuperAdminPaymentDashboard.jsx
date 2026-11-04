@@ -1,3 +1,4 @@
+import { getBackendUrl } from '../../config/backend.js';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -106,7 +107,7 @@ export const SuperAdminPaymentDashboard = () => {
     let isMounted = true;
     const loadRealFinancialRecords = async () => {
       try {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        const backendUrl = getBackendUrl();
         const [bookingsRes, paymentsRes] = await Promise.all([
           fetch(`${backendUrl}/api/bookings`).then(r => r.json()).catch(() => ({ data: [] })),
           fetch(`${backendUrl}/api/payments`).then(r => r.json()).catch(() => ({ data: [] }))

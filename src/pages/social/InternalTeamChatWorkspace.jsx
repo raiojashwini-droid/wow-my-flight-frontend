@@ -1,3 +1,6 @@
+import { useAlert } from '../../contexts/AlertContext';
+import { dbService } from '../../services/dbService';
+import { getBackendUrl } from '../../config/backend.js';
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,248 +36,18 @@ import useAuth from '../../hooks/useAuth';
 import JitsiMeetingModal from '../../components/JitsiMeetingModal';
 import { generateInternalTeamRoom } from '../../services/jitsiService';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const SOCKET_URL = getBackendUrl();
 
 // Exact Wow My Flight CRM Staff Roster & Roles (AuthContext & Project Standards)
-const INITIAL_DIALOGS = [
-  {
-    id: 'usr-team-leader',
-    name: 'George (Sales TL)',
-    username: '@david.vance',
-    role: 'team_leader',
-    roleLabel: 'Sales Team Leader',
-    department: 'Phase 1 – Sales Desk',
-    phone: '+1 (850) 332-9685',
-    email: 'teamleader@wowmyflight.com',
-    location: 'Executive Desk #2, Sales Floor',
-    status: 'online',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
-    time: '18:46',
-    unread: 0,
-    lastMessage: 'Sabre GDS ticket queue for London flight verified',
-    assignedBooking: { pnr: 'WMF-BA782', airline: 'British Airways', route: 'JFK → LHR (Business)', total: '$3,450' },
-    milestones: [
-      { date: 'Today', label: 'Shift Briefing Completed', color: 'border-emerald-300 bg-emerald-50 text-emerald-700' },
-      { date: '11/08/24', label: 'VIP Lead Escalation Handled', color: 'border-blue-300 bg-blue-50 text-blue-700' },
-      { date: '09/03/24', label: 'Daily Target Exceeded', color: 'border-purple-300 bg-purple-50 text-purple-700' },
-    ]
-  },
-  {
-    id: 'usr-flight-expert',
-    name: 'Issac (GDS Expert)',
-    username: '@priya.sharma',
-    role: 'flight_expert',
-    roleLabel: 'Flight & GDS Expert',
-    department: 'Phase 2 – Flight Desk',
-    phone: '+1 (850) 332-9688',
-    email: 'expert@wowmyflight.com',
-    location: 'GDS Console Desk #1',
-    status: 'online',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop&crop=faces',
-    time: '19:00',
-    unread: 2,
-    lastMessage: 'Amadeus PNR confirmed with baggage add-on',
-    assignedBooking: { pnr: 'WMF-EK991', airline: 'Emirates', route: 'DXB → DEL (Economy Y)', total: '$890' },
-    milestones: [
-      { date: 'Today', label: 'GDS Queue Cleared', color: 'border-emerald-300 bg-emerald-50 text-emerald-700' },
-      { date: 'Yesterday', label: 'Schedule Change Disruption Alert', color: 'border-amber-300 bg-amber-50 text-amber-700' },
-    ]
-  },
-  {
-    id: 'usr-ticketing-agent',
-    name: 'Abu (Ticketing)',
-    username: '@omar.farouq',
-    role: 'ticketing_agent',
-    roleLabel: 'Ticketing & Issuance Agent',
-    department: 'Phase 2 – Ticketing Operations',
-    phone: '+1 (850) 332-9689',
-    email: 'ticketing@wowmyflight.com',
-    location: 'Ticketing Console #4',
-    status: 'online',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=faces',
-    time: '18:46',
-    unread: 0,
-    lastMessage: 'E-Ticket PDF dispatched to passenger email',
-    assignedBooking: { pnr: 'WMF-QR332', airline: 'Qatar Airways', route: 'DOH → JFK (Qsuite)', total: '$5,120' },
-    milestones: [
-      { date: 'Today', label: 'Ticket Issued & Validated', color: 'border-blue-300 bg-blue-50 text-blue-700' },
-    ]
-  },
-  {
-    id: 'usr-consultant',
-    name: 'Issac (Sales)',
-    username: '@sofia.rodriguez',
-    role: 'consultant',
-    roleLabel: 'Travel Sales Consultant',
-    department: 'Phase 1 – Sales Desk',
-    phone: '+1 (850) 332-9681',
-    email: 'sales@wowmyflight.com',
-    location: 'Sales Desk #6',
-    status: 'online',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&crop=faces',
-    time: '18:12',
-    unread: 0,
-    lastMessage: 'New inquiry quote created for Dubai corporate pax',
-    assignedBooking: { pnr: 'WMF-AI402', airline: 'Air India', route: 'DEL → LHR (Prem Eco)', total: '$1,480' },
-    milestones: [
-      { date: 'Today', label: 'Quote Accepted by Client', color: 'border-emerald-300 bg-emerald-50 text-emerald-700' },
-    ]
-  },
-  {
-    id: 'usr-operations',
-    name: 'Abu (Ops)',
-    username: '@carlos.gomez',
-    role: 'operations',
-    roleLabel: 'Operations Specialist',
-    department: 'Phase 2 – Booking Operations',
-    phone: '+1 (850) 332-9684',
-    email: 'ops@wowmyflight.com',
-    location: 'Operations Terminal #2',
-    status: 'away',
-    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&crop=faces',
-    time: '17:35',
-    unread: 0,
-    lastMessage: 'After-sales baggage protection added to booking',
-    assignedBooking: { pnr: 'WMF-LH104', airline: 'Lufthansa', route: 'FRA → ORD (Economy)', total: '$1,120' },
-    milestones: []
-  },
-  {
-    id: 'usr-expert-tl',
-    name: 'Adam (Escalation TL)',
-    username: '@michael.chang',
-    role: 'expert_team_leader',
-    roleLabel: 'Escalation Team Leader',
-    department: 'Phase 3 – Management & Escalations',
-    phone: '+1 (850) 332-9686',
-    email: 'expertlead@wowmyflight.com',
-    location: 'Supervisor Suite #3',
-    status: 'online',
-    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop&crop=faces',
-    time: '16:00',
-    unread: 0,
-    lastMessage: 'Airline strike re-routing handled successfully',
-    assignedBooking: { pnr: 'WMF-AF660', airline: 'Air France', route: 'CDG → JFK (Business)', total: '$4,200' },
-    milestones: [
-      { date: 'Today', label: 'SLA Escalation Resolved', color: 'border-purple-300 bg-purple-50 text-purple-700' }
-    ]
-  },
-  {
-    id: 'usr-finance',
-    name: 'George (Finance)',
-    username: '@elena.rostova',
-    role: 'finance',
-    roleLabel: 'Finance & Refunds Lead',
-    department: 'Phase 3 – Finance',
-    phone: '+1 (850) 332-9683',
-    email: 'finance@wowmyflight.com',
-    location: 'Finance Office #1',
-    status: 'online',
-    avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=100&h=100&fit=crop&crop=faces',
-    time: '15:20',
-    unread: 0,
-    lastMessage: 'Refund calculation approved: $650 net refund',
-    assignedBooking: { pnr: 'WMF-UA220', airline: 'United Airlines', route: 'SFO → NRT (Economy)', total: '$1,350' },
-    milestones: [
-      { date: 'Today', label: 'Refund Audit Cleared', color: 'border-emerald-300 bg-emerald-50 text-emerald-700' }
-    ]
-  },
-  {
-    id: 'usr-admin',
-    name: 'Alex Turner (GM)',
-    username: '@alex.turner',
-    role: 'admin',
-    roleLabel: 'General Manager',
-    department: 'Phase 3 – Management',
-    phone: '+1 (850) 332-9680',
-    email: 'admin@wowmyflight.com',
-    location: 'Executive Suite #1',
-    status: 'online',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-    time: '14:50',
-    unread: 0,
-    lastMessage: 'All agent conversion metrics posted to Sales Dashboard',
-    assignedBooking: { pnr: 'WMF-CORP01', airline: 'British Airways', route: 'JFK → LHR (First Class)', total: '$12,500' },
-    milestones: []
-  }
-];
-
-const INITIAL_MESSAGES_BY_DIALOG = {
-  'usr-team-leader': [
-    {
-      id: 'm1',
-      senderType: 'agent',
-      senderId: 'current-user',
-      senderName: 'Parminder (Super Admin)',
-      senderAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-      text: 'Good evening David, please share the status of today\'s transatlantic GDS queues and high-value bookings.',
-      timestamp: '18:30',
-      attachment: null,
-      isOutgoing: true
-    },
-    {
-      id: 'm2',
-      senderType: 'agent',
-      senderId: 'current-user',
-      senderName: 'Parminder (Super Admin)',
-      senderAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-      text: null,
-      timestamp: '18:45',
-      attachment: { name: 'Airline_GDS_Circular_BA.pdf', size: '720.89 Kb', ext: 'pdf' },
-      isOutgoing: true
-    },
-    {
-      id: 'm3',
-      senderType: 'staff',
-      senderId: 'usr-team-leader',
-      senderName: 'George (Sales TL)',
-      senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
-      text: 'All queues are cleared sir! PNR #WMF-BA782 for British Airways JFK → LHR is ticketed and verified in Sabre.',
-      timestamp: '19:00',
-      attachment: null,
-      isOutgoing: false,
-      taskMeta: 'Today 17:09 • Ticketing Team • PNR #WMF-BA782 • Status: Ticketed & Dispatched'
-    },
-    {
-      id: 'm4',
-      senderType: 'staff',
-      senderId: 'usr-team-leader',
-      senderName: 'George (Sales TL)',
-      senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
-      text: 'Priya from GDS desk has verified the baggage allowance and E-ticket numbers with the airline.',
-      timestamp: '19:01',
-      attachment: null,
-      isOutgoing: false
-    },
-    {
-      id: 'm5',
-      senderType: 'staff',
-      senderId: 'usr-team-leader',
-      senderName: 'George (Sales TL)',
-      senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
-      text: 'We are also monitoring the overnight Dubai flight bookings for any schedule changes.',
-      timestamp: '19:02',
-      attachment: null,
-      isOutgoing: false
-    },
-    {
-      id: 'm6',
-      senderType: 'agent',
-      senderId: 'current-user',
-      senderName: 'Parminder (Super Admin)',
-      senderAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-      text: 'Excellent work team. Make sure overnight ticketing desk remains on high alert for Sabre queue auto-cancellations.',
-      timestamp: '19:05',
-      attachment: null,
-      isOutgoing: true
-    }
-  ]
-};
+const INITIAL_DIALOGS = [];
+const INITIAL_MESSAGES_BY_DIALOG = {};
 
 export default function InternalTeamChatWorkspace() {
   const { currentUser } = useAuth();
+  const {showAlert}=useAlert();
 
   const [dialogs, setDialogs] = useState(INITIAL_DIALOGS);
-  const [selectedDialogId, setSelectedDialogId] = useState('cbb5c474-8802-4e60-8e34-3373766821c7');
+  const [selectedDialogId, setSelectedDialogId] = useState('');
   const [messagesMap, setMessagesMap] = useState(INITIAL_MESSAGES_BY_DIALOG);
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -295,7 +68,9 @@ export default function InternalTeamChatWorkspace() {
   const fileInputRef = useRef(null);
   const scopeDropdownRef = useRef(null);
 
-  const selectedDialog = dialogs.find((d) => d.id === selectedDialogId) || dialogs[0];
+  const selectedDialog = dialogs.find((d) => d.id === selectedDialogId) || dialogs[0] || {name:'Select a team member',roleLabel:'',department:'',lastMessage:''};
+  useEffect(()=>{dbService.getAgents().then(users=>{const roster=users.filter(u=>u.id!==currentUser?.id&&u.status==='active').map(u=>({...u,username:u.email,roleLabel:u.role.replaceAll('_',' '),department:'CRM',lastMessage:'',unread:0,status:'unknown',time:'',location:''}));setDialogs(roster);setSelectedDialogId(roster[0]?.id||'');}).catch(()=>{});},[currentUser?.id]);
+  useEffect(()=>{if(!selectedDialogId||!socketRef.current)return;socketRef.current.emit('team:get_messages',{channelId:selectedDialogId},result=>{if(result?.success)setMessagesMap(prev=>({...prev,[selectedDialogId]:result.messages.map(m=>({...m,senderType:'staff',isOutgoing:m.senderId===currentUser?.id}))}));});},[selectedDialogId,currentUser?.id]);
   const activeMessages = messagesMap[selectedDialogId] || [];
 
   // Close scope dropdown on outside click
@@ -329,7 +104,7 @@ export default function InternalTeamChatWorkspace() {
 
     s.on('team:receive_message', (incoming) => {
       if (!incoming) return;
-      const targetId = incoming.channelId || 'usr-team-leader';
+      const targetId = incoming.channelId === currentUser?.id ? incoming.senderId : incoming.channelId;
       const formatted = {
         id: incoming.id || `sock-${Date.now()}`,
         senderType: 'staff',
@@ -358,52 +133,15 @@ export default function InternalTeamChatWorkspace() {
   }, [activeMessages]);
 
   const handleSend = () => {
-    const text = inputText.trim();
-    if (!text && !attachedFile) return;
-
-    const currentUserName = currentUser?.name || 'Parminder (Super Admin)';
-    const currentUserAvatar = currentUser?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150';
-
-    const newMsg = {
-      id: `msg-${Date.now()}`,
-      senderType: 'agent',
-      senderId: currentUser?.id || 'current-user',
-      senderName: currentUserName,
-      senderAvatar: currentUserAvatar,
-      text: text || null,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      attachment: attachedFile ? { name: attachedFile.name, size: `${Math.round(attachedFile.size / 1024)} Kb`, ext: attachedFile.name.split('.').pop() } : null,
-      isOutgoing: true
-    };
-
-    // Update local state
-    setMessagesMap((prev) => ({
-      ...prev,
-      [selectedDialogId]: [...(prev[selectedDialogId] || []), newMsg],
-    }));
-
-    // Update last message in dialogs list
-    setDialogs((prev) =>
-      prev.map((d) =>
-        d.id === selectedDialogId
-          ? { ...d, lastMessage: text || attachedFile?.name || 'Attachment sent', time: newMsg.timestamp, unread: 0 }
-          : d
-      )
-    );
-
-    // Emit over socket strictly to staff room
-    if (socketRef.current && socketRef.current.connected) {
-      socketRef.current.emit('team:send_message', {
-        channelId: selectedDialogId,
-        senderId: currentUser?.id || 'usr-super-admin',
-        senderName: currentUserName,
-        senderRole: currentUser?.role || 'super_admin',
-        text: text || (attachedFile ? `[Sent Attachment: ${attachedFile.name}]` : ''),
-      });
-    }
-
-    setInputText('');
-    setAttachedFile(null);
+    const text=inputText.trim();
+    if(attachedFile){showAlert('File attachments are not configured. Send a text message instead.','error');return;}
+    if(!text || !selectedDialogId)return;
+    if(!socketRef.current?.connected){showAlert('Chat is disconnected. Please reconnect before sending.','error');return;}
+    socketRef.current.timeout(10000).emit('team:send_message',{channelId:selectedDialogId,text},(error,result)=>{
+      if(error || !result?.success){showAlert(result?.error || 'Message was not saved. Please retry.','error');return;}
+      setInputText('');
+      setDialogs(prev=>prev.map(d=>d.id===selectedDialogId?{...d,lastMessage:text,time:new Date().toLocaleTimeString(),unread:0}:d));
+    });
   };
 
   const handleFileSelect = (e) => {

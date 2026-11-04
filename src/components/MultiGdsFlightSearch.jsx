@@ -75,8 +75,8 @@ export default function MultiGdsFlightSearch({
   const [tripType, setTripType] = useState(externalParams?.tripType || 'Round Trip');
   const [origin, setOrigin] = useState(externalParams?.origin || 'DEL');
   const [destination, setDestination] = useState(externalParams?.destination || 'LHR');
-  const [departDate, setDepartDate] = useState(externalParams?.departDate || '2026-10-15');
-  const [returnDate, setReturnDate] = useState(externalParams?.returnDate || '2026-10-25');
+  const [departDate, setDepartDate] = useState(externalParams?.departDate || new Date(Date.now() + 7 * 86400000).toISOString().slice(0,10));
+  const [returnDate, setReturnDate] = useState(externalParams?.returnDate || new Date(Date.now() + 14 * 86400000).toISOString().slice(0,10));
   const [cabinClass, setCabinClass] = useState(externalParams?.cabinClass || 'Business');
   const [passengers, setPassengers] = useState(externalParams?.passengers || 2);
   const [isSearching, setIsSearching] = useState(false);
@@ -98,7 +98,7 @@ export default function MultiGdsFlightSearch({
 
   // Auto-fetch live TraveloPro GDS flights on component mount or trigger
   useEffect(() => {
-    handleSearch();
+    if (searchTrigger > 0) handleSearch();
   }, [searchTrigger]);
 
   // Point of Sale (POS) Filter Tabs (Screenshot 5)
@@ -111,7 +111,7 @@ export default function MultiGdsFlightSearch({
   const [quoteFlight, setQuoteFlight] = useState(null);
   const [bookFlight, setBookFlight] = useState(null);
   const [quoteMarkup, setQuoteMarkup] = useState(250);
-  const [paxName, setPaxName] = useState('John Doe');
+  const [paxName, setPaxName] = useState('');
   const [isBooking, setIsBooking] = useState(false);
 
   const copyWhatsAppQuote = (flight) => {
@@ -147,8 +147,8 @@ export default function MultiGdsFlightSearch({
       const data = await flightContentService.searchFlightsAcrossAdapters({
         origin: sOrigin ? sOrigin.trim().toUpperCase() : 'DEL',
         destination: sDest ? sDest.trim().toUpperCase() : 'LHR',
-        departDate: sDepart || '2026-10-15',
-        returnDate: isRound ? (sReturn || '2026-10-25') : null,
+        departDate: sDepart || new Date(Date.now() + 7 * 86400000).toISOString().slice(0,10),
+        returnDate: isRound ? (sReturn || new Date(Date.now() + 14 * 86400000).toISOString().slice(0,10)) : null,
         cabinClass: sCabin || 'Business',
         passengers: typeof sPax === 'object' ? (sPax.adults || 1) : (sPax || 1),
         tripType: isRound ? 'roundtrip' : 'oneway'

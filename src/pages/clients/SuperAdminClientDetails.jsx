@@ -43,7 +43,7 @@ import CurrencyExchangeIcon from '@mui/icons-material/CurrencyExchange';
 import AddTaskIcon from '@mui/icons-material/AddTask';
 
 // Services & Components
-import { dbService } from '../../services/dbService';
+import { dbService, getBackendUrl } from '../../services/dbService';
 import PageHeader from '../../components/PageHeader';
 import AppCard from '../../components/AppCard';
 import AppModal from '../../components/AppModal';
@@ -209,7 +209,7 @@ export const SuperAdminClientDetails = () => {
         const localQuotes = stored ? JSON.parse(stored) : [];
         let remoteQuotes = [];
         try {
-          const backendUrl = dbService.getBackendUrl ? dbService.getBackendUrl() : 'http://localhost:3001';
+          const backendUrl = getBackendUrl();
           const res = await fetch(`${backendUrl}/api/quotes`);
           if (res.ok) {
             const json = await res.json();

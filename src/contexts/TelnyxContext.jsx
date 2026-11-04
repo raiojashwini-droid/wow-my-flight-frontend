@@ -1,3 +1,4 @@
+import { getBackendUrl } from '../config/backend.js';
 /**
  * src/contexts/TelnyxContext.jsx
  *
@@ -25,7 +26,7 @@ import { useAuth } from './AuthContext';
 
 const TelnyxContext = createContext(null);
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = getBackendUrl();
 
 // Call state machine values
 export const CALL_STATE = {

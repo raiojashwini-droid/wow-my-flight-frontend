@@ -1,12 +1,16 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { getBackendUrl } from '../config/backend.js';
 ﻿import React, { createContext, useContext, useEffect, useState } from 'react';
 const AuthContext = createContext(null);
-const backend = import.meta.env.VITE_BACKEND_URL || 'https://wow-my-flight-backend-production-2ef6.up.railway.app';
+const backend = getBackendUrl();
+const clearBusinessCache = () => { for (const key of Object.keys(localStorage)) if (/^crm-(leads|clients|consultations|payments|documents|quotes|bookings|conversations|notifications|agents-list|consultants-list)/.test(key)) localStorage.removeItem(key); };
 export const AuthProvider = ({ children }) => {
+  const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(() => {
     try { const user=JSON.parse(localStorage.getItem('crm-auth-user')); return user?.token ? user : null; } catch { return null; }
   });
-  const login = user => { localStorage.setItem('crm-auth-user', JSON.stringify(user)); setCurrentUser(user); };
-  const logout = () => { localStorage.removeItem('crm-auth-user'); setCurrentUser(null); };
+  const login = user => { if (currentUser?.id !== user.id) { queryClient.clear(); clearBusinessCache(); } localStorage.setItem('crm-auth-user', JSON.stringify(user)); setCurrentUser(user); };
+  const logout = () => { queryClient.clear(); clearBusinessCache(); localStorage.removeItem('crm-auth-user'); setCurrentUser(null); };
   useEffect(() => {
     if (!currentUser?.token) return;
     let cancelled=false;

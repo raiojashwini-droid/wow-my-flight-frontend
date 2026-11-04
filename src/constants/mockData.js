@@ -1,11 +1,5 @@
 // Cabin classes for flight bookings
-export const SERVICES = [
-  { id: 'economy', name: 'Economy Class', category: 'Economy', basePrice: 500 },
-  { id: 'premium_eco', name: 'Premium Economy', category: 'Economy', basePrice: 900 },
-  { id: 'business', name: 'Business Class', category: 'Business', basePrice: 3500 },
-  { id: 'first', name: 'First Class', category: 'First', basePrice: 8000 },
-  { id: 'charter', name: 'Private Charter', category: 'Charter', basePrice: 25000 },
-];
+export const SERVICES = [];
 
 export const CABIN_CLASSES = [
   { id: 'economy', name: 'Economy', code: 'Y', multiplier: 1.0 },
@@ -103,36 +97,7 @@ export const DOCUMENT_TYPES = [
   'E-Sign Authorization'
 ];
 
-export const PACKAGES = [
-  {
-    id: 'flight_only',
-    name: 'Flight Only',
-    description: 'Best airfare found from our GDS system with competitive markup pricing.',
-    includes: [
-      'GDS Fare Search (Sabre/Amadeus)',
-      'Best Price Guarantee',
-      'E-Ticket Issuance',
-      'Official Itinerary PDF',
-      'PNR Flight Tracking',
-      'Schedule Change Alerts',
-      'Email & WhatsApp Notifications',
-    ]
-  },
-  {
-    id: 'full_package',
-    name: 'Full Travel Package',
-    description: 'Complete end-to-end travel arrangement including flights, hotel, and transfers.',
-    includes: [
-      'All Flight Only features',
-      'Hotel Booking (Partner Hotels)',
-      'Airport Transfer (Private Car)',
-      'Travel Insurance',
-      'Priority Check-in Assistance',
-      'Airport Lounge Access',
-      'Dedicated Travel Consultant',
-    ]
-  }
-];
+export const PACKAGES = [];
 
 export const RELOCATION_SERVICES = [
   { id: 'travel_insurance', name: 'Comprehensive Travel Insurance' },
