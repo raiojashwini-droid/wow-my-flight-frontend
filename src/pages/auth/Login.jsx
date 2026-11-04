@@ -10,7 +10,14 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAlert } from '../../contexts/AlertContext';
 import { useThemeMode } from '../../contexts/ThemeContext';
 
-// Icons for roles
+const quickAccounts = [
+  { name: 'Parminder', role: 'Super Admin' },
+  { name: 'Xavier', role: 'Admin' },
+  { name: 'Issac', role: 'Sales Executive' },
+  { name: 'George', role: 'Sales Executive' },
+  { name: 'Adam', role: 'Sales Executive' },
+  { name: 'Abu', role: 'Sales Executive' },
+];
 
 const schema = yup.object().shape({
   email: yup.string().email('Enter a valid email').required('Email is required'),
@@ -38,7 +45,7 @@ export const Login = () => {
   }, [isAuthenticated, currentUser, navigate]);
 
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, setValue, setFocus, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: { email: '', password: '' },
   });
@@ -103,7 +110,9 @@ export const Login = () => {
               </div>
               <input
                 {...register('email')}
-                type="text"
+                type="email"
+                autoComplete="username"
+                aria-label="Email address"
                 placeholder="Email Address"
                 className={`w-full pl-11 pr-4 py-3.5 rounded-xl border text-sm transition-all outline-none bg-transparent ${
                   errors.email
@@ -124,6 +133,8 @@ export const Login = () => {
               <input
                 {...register('password')}
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                aria-label="Password"
                 placeholder="Password"
                 className={`w-full pl-11 pr-12 py-3.5 rounded-xl border text-sm transition-all outline-none bg-transparent ${
                   errors.password
@@ -168,7 +179,29 @@ export const Login = () => {
             </motion.button>
           </form>
 
-          {/* Quick Login Divider */}
+          <section className="mt-6 border-t border-slate-300/30 pt-5" aria-label="Quick account selection">
+            <p className={`text-sm font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Quick login</p>
+            <p className={`text-xs mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Choose your account, then enter your password.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {quickAccounts.map(({ name, role }) => {
+                const email = `${name.toLowerCase()}@wowmyflight.com`;
+                const selected = watch('email') === email;
+                return (
+                  <button key={name} type="button" disabled={isSubmitting} aria-pressed={selected}
+                    onClick={() => {
+                      setValue('email', email, { shouldValidate: true, shouldDirty: true });
+                      setValue('password', '');
+                      setShowPassword(false);
+                      setFocus('password');
+                    }}
+                    className={`rounded-xl border px-3 py-2 text-left disabled:opacity-50 ${selected ? 'border-indigo-500 bg-indigo-500/10' : isDark ? 'border-slate-700 hover:border-indigo-400' : 'border-slate-200 hover:border-indigo-400'} ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    <span className="block text-sm font-semibold">{name}</span>
+                    <span className={`block text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{role}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
       </motion.div>
         <style dangerouslySetInnerHTML={{__html: `
           @keyframes shimmer {
