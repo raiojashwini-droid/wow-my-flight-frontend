@@ -45,7 +45,7 @@ export const Login = () => {
   }, [isAuthenticated, currentUser, navigate]);
 
 
-  const { register, handleSubmit, setValue, setFocus, watch, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: { email: '', password: '' },
   });
@@ -181,7 +181,7 @@ export const Login = () => {
 
           <section className="mt-6 border-t border-slate-300/30 pt-5" aria-label="Quick account selection">
             <p className={`text-sm font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Quick login</p>
-            <p className={`text-xs mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Choose your account, then enter your password.</p>
+            <p className={`text-xs mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Temporary demo access: choose an account to log in.</p>
             <div className="grid grid-cols-2 gap-2">
               {quickAccounts.map(({ name, role }) => {
                 const email = `${name.toLowerCase()}@wowmyflight.com`;
@@ -190,9 +190,9 @@ export const Login = () => {
                   <button key={name} type="button" disabled={isSubmitting} aria-pressed={selected}
                     onClick={() => {
                       setValue('email', email, { shouldValidate: true, shouldDirty: true });
-                      setValue('password', '');
+                      setValue('password', '123456', { shouldValidate: true, shouldDirty: true });
                       setShowPassword(false);
-                      setFocus('password');
+                      void handleSubmit(onSubmit)();
                     }}
                     className={`rounded-xl border px-3 py-2 text-left disabled:opacity-50 ${selected ? 'border-indigo-500 bg-indigo-500/10' : isDark ? 'border-slate-700 hover:border-indigo-400' : 'border-slate-200 hover:border-indigo-400'} ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     <span className="block text-sm font-semibold">{name}</span>
