@@ -179,9 +179,15 @@ export const Login = () => {
             </motion.button>
           </form>
 
-          {import.meta.env.DEV && <section className="mt-6 border-t border-slate-300/30 pt-5" aria-label="Quick account selection">
-            <p className={`text-sm font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Quick login</p>
-            <p className={`text-xs mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Temporary demo access: choose an account to log in.</p>
+          {/* Quick Login Accounts Section (Visible on both Local and Live) */}
+          <section className="mt-6 border-t border-slate-300/30 pt-5" aria-label="Quick account selection">
+            <div className="flex items-center justify-between mb-1">
+              <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Quick Login / Demo Accounts</p>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 font-medium border border-indigo-500/20">
+                Password: 123456
+              </span>
+            </div>
+            <p className={`text-xs mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Click any staff account below to auto-fill & login instantly:</p>
             <div className="grid grid-cols-2 gap-2">
               {quickAccounts.map(({ name, role }) => {
                 const email = `${name.toLowerCase()}@wowmyflight.com`;
@@ -194,14 +200,14 @@ export const Login = () => {
                       setShowPassword(false);
                       void handleSubmit(onSubmit)();
                     }}
-                    className={`rounded-xl border px-3 py-2 text-left disabled:opacity-50 ${selected ? 'border-indigo-500 bg-indigo-500/10' : isDark ? 'border-slate-700 hover:border-indigo-400' : 'border-slate-200 hover:border-indigo-400'} ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    className={`rounded-xl border px-3 py-2 text-left transition-all disabled:opacity-50 ${selected ? 'border-indigo-500 bg-indigo-500/10' : isDark ? 'border-slate-700/80 bg-slate-800/40 hover:border-indigo-400 hover:bg-slate-800/80' : 'border-slate-200 bg-slate-50/60 hover:border-indigo-400 hover:bg-indigo-50/40'} ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     <span className="block text-sm font-semibold">{name}</span>
                     <span className={`block text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{role}</span>
                   </button>
                 );
               })}
             </div>
-          </section>}
+          </section>
       </motion.div>
         <style dangerouslySetInnerHTML={{__html: `
           @keyframes shimmer {
