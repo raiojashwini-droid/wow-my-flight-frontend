@@ -32,7 +32,7 @@ import AppModal from './AppModal';
 import AppTable from './AppTable';
 import { TICKETING_STATUSES } from '../constants/mockData';
 import { useAlert } from '../contexts/AlertContext';
-
+
 import { themeText } from '../theme/themeColor';
 export const TICKETING_STATUS_CONFIG = {
   'Pending Ticketing': { bg: 'var(--wl-FEF3C7, #FEF3C7)', color: '#D97706', borderColor: '#FCD34D' },
@@ -341,7 +341,7 @@ export default function IssuanceQueue({
       label: 'Issuing Agent',
       render: (row) => (
         <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--wd-475569, #475569)' }}>
-          {row.issuingAgent || 'Omar Farouq'}
+          {row.issuingAgent || 'Abu'}
         </Typography>
       ),
     },
@@ -637,7 +637,7 @@ export default function IssuanceQueue({
                         Issuing Agent:
                       </Typography>
                       <Typography variant="caption" sx={{ fontWeight: 800 }}>
-                        {item.issuingAgent || 'Omar Farouq'}
+                        {item.issuingAgent || 'Abu'}
                       </Typography>
                     </Box>
                   </Box>
@@ -806,7 +806,7 @@ export default function IssuanceQueue({
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>12. Issuing Agent:</Typography>
                   <Typography variant="body1" sx={{ fontWeight: 800 }}>
-                    👤 {reviewItem.issuingAgent || 'Omar Farouq'}
+                    👤 {reviewItem.issuingAgent || 'Abu'}
                   </Typography>
                 </Box>
 

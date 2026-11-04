@@ -455,7 +455,7 @@ export default function Quotes() {
               expiryDateTime: q.validUntil || '24 Hours',
               validity: q.validUntil || '24 Hours',
               createdBy: q.agentName || 'Flight Expert',
-              agentName: q.agentName || 'Wael Madi (CEO)',
+              agentName: q.agentName || 'Parminder (Super Admin)',
               status: q.status || 'Draft',
               createdDate: (q.createdAt || '').split('T')[0] || new Date().toISOString().split('T')[0],
               flightReqRef: q.leadId || 'REQ-9901',
@@ -551,7 +551,7 @@ export default function Quotes() {
           netPrice: finalQuoteObj.primarySupplierCost || 0,
           markup: finalQuoteObj.primaryProfit || 0,
           serviceFee: primary.serviceFee || 0,
-          agentName: currentUser?.name || 'Wael Madi (CEO)',
+          agentName: currentUser?.name || 'Parminder (Super Admin)',
           validUntil: `${engineData.expiryHours} hours`,
           status,
           options: finalQuoteObj.options || []

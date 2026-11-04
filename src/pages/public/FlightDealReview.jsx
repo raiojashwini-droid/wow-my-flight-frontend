@@ -219,7 +219,7 @@ export default function FlightDealReview({ quote: propQuote }) {
   const destination = activeQuote.destination || 'DXB';
   const departureDate = activeQuote.departureDate || '2026-10-16';
   const returnDate = activeQuote.returnDate || null;
-  const agentName = activeQuote.agentName || 'Wael Madi (CEO)';
+  const agentName = activeQuote.agentName || 'Parminder (Super Admin)';
 
   const netPrice = Number(activeQuote.netPrice || primaryOpt.supplierCost || 372);
   const taxes = Number(primaryOpt.taxes || Math.round(netPrice * 0.15));

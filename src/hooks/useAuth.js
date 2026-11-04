@@ -1,7 +1,7 @@
 import { useAuthContext } from '../contexts/AuthContext';
 
 export const useAuth = () => {
-  const { currentUser, isAuthenticated, login, logout, changeRole, refreshUser } = useAuthContext();
+  const { currentUser, isAuthenticated, login, logout, refreshUser } = useAuthContext();
 
   const hasRole = (allowedRoles) => {
     if (!currentUser) return false;
@@ -9,7 +9,7 @@ export const useAuth = () => {
   };
 
   const isAdmin = currentUser?.role === 'admin';
-  const isSalesAgent = currentUser?.role === 'sales_agent' || currentUser?.role === 'consultant'; // Keep consultant fallback for existing mock data
+  const isSalesAgent = currentUser?.role === 'sales_agent' || currentUser?.role === 'sales_executive'; // Keep consultant fallback for existing mock data
   const isFinance = currentUser?.role === 'finance';
   const isOperations = currentUser?.role === 'operations';
   const isSuperAdmin = currentUser?.role === 'super_admin';
@@ -23,7 +23,6 @@ export const useAuth = () => {
     currentUser,
     isAuthenticated,
     hasRole,
-    changeRole,
     logout,
     login,
     refreshUser,

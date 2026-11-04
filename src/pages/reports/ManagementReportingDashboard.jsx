@@ -315,23 +315,23 @@ export default function ManagementReportingDashboard() {
   // Sales Agent Leaderboard from Real DB Users & Entities
   const agentLeaderboard = useMemo(() => {
     const defaultAgents = [
-      { id: 'usr-consultant', name: 'Sofia Rodriguez (Sales)', role: 'Senior Travel Specialist' },
-      { id: 'usr-super-admin', name: 'Wael Madi (CEO)', role: 'Executive Operations' },
-      { id: 'usr-admin', name: 'Alex Turner (GM)', role: 'General Manager' }
+      { id: 'usr-consultant', name: 'Issac (Sales Executive)', role: 'Senior Travel Specialist' },
+      { id: 'usr-super-admin', name: 'Parminder (Super Admin)', role: 'Executive Operations' },
+      { id: 'usr-admin', name: 'Xavier (Admin)', role: 'General Manager' }
     ];
 
     const sourceUsers = users.length > 0 ? users : defaultAgents;
 
     return sourceUsers.map((u, idx) => {
       // Find bookings associated with agent
-      const agentBookings = bookings.filter(b => 
+      const agentBookings = bookings.filter(b =>
         (b.issuingAgent && b.issuingAgent.toLowerCase().includes(u.name.toLowerCase().split(' ')[0])) ||
         (u.role === 'consultant' && idx === 0)
       );
 
       // Find leads associated with agent
-      const agentLeads = leads.filter(l => 
-        l.assignedAgentId === u.id || 
+      const agentLeads = leads.filter(l =>
+        l.assignedAgentId === u.id ||
         (l.assignedAgent?.name && l.assignedAgent.name.toLowerCase().includes(u.name.toLowerCase().split(' ')[0]))
       );
 
@@ -615,14 +615,14 @@ export default function ManagementReportingDashboard() {
       </Box>
 
       {/* ─── 3. NAVIGATION TABS (NO-SCROLL SEGMENTED MATRIX) ─── */}
-      <Box 
-        sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { 
-            xs: 'repeat(1, 1fr)', 
-            sm: 'repeat(2, 1fr)', 
-            md: 'repeat(4, 1fr)' 
-          }, 
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: 'repeat(1, 1fr)',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(4, 1fr)'
+          },
           gap: 1.5,
           mb: 3.5
         }}
@@ -650,8 +650,8 @@ export default function ManagementReportingDashboard() {
                 border: '1px solid',
                 borderColor: isActive ? 'primary.main' : 'divider',
                 borderRadius: 2.2,
-                bgcolor: isActive 
-                  ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main' 
+                bgcolor: isActive
+                  ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main'
                   : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
                 color: isActive ? '#FFFFFF' : 'text.primary',
                 cursor: 'pointer',
@@ -661,29 +661,29 @@ export default function ManagementReportingDashboard() {
                 boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.22)' : 'none',
                 '&:hover': {
                   borderColor: 'primary.main',
-                  bgcolor: isActive 
-                    ? 'primary.dark' 
+                  bgcolor: isActive
+                    ? 'primary.dark'
                     : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#EFF6FF',
                   color: isActive ? '#FFFFFF' : 'primary.main'
                 }
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
-                <Box 
-                  sx={{ 
-                    color: isActive ? '#FFFFFF' : 'primary.main', 
-                    display: 'flex', 
+                <Box
+                  sx={{
+                    color: isActive ? '#FFFFFF' : 'primary.main',
+                    display: 'flex',
                     alignItems: 'center',
                     flexShrink: 0
                   }}
                 >
                   {tab.icon}
                 </Box>
-                <Typography 
-                  variant="body2" 
+                <Typography
+                  variant="body2"
                   noWrap
-                  sx={{ 
-                    fontWeight: isActive ? 800 : 700, 
+                  sx={{
+                    fontWeight: isActive ? 800 : 700,
                     fontSize: { xs: '0.74rem', sm: '0.78rem', md: '0.82rem' },
                     color: 'inherit',
                     overflow: 'hidden',
@@ -694,22 +694,22 @@ export default function ManagementReportingDashboard() {
                 </Typography>
               </Box>
               {tab.badge !== undefined && (
-                <Chip 
-                  label={tab.badge} 
-                  size="small" 
-                  sx={{ 
-                    height: 20, 
-                    minWidth: 20, 
-                    px: 0.6, 
-                    fontWeight: 900, 
+                <Chip
+                  label={tab.badge}
+                  size="small"
+                  sx={{
+                    height: 20,
+                    minWidth: 20,
+                    px: 0.6,
+                    fontWeight: 900,
                     fontSize: '0.65rem',
-                    bgcolor: isActive 
-                      ? 'rgba(255,255,255,0.25)' 
+                    bgcolor: isActive
+                      ? 'rgba(255,255,255,0.25)'
                       : (theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#E2E8F0'),
                     color: isActive ? '#FFFFFF' : 'text.secondary',
                     borderRadius: '10px',
                     flexShrink: 0
-                  }} 
+                  }}
                 />
               )}
             </Box>
@@ -919,7 +919,7 @@ export default function ManagementReportingDashboard() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 800 }}>{b.passenger || b.name}</Typography>
-                        <Typography variant="caption" color="text.secondary">Agent: {b.issuingAgent || 'Sofia Rodriguez'}</Typography>
+                        <Typography variant="caption" color="text.secondary">Agent: {b.issuingAgent || 'Issac'}</Typography>
                       </TableCell>
                       <TableCell>
                         <Chip label={b.route || `${b.origin || 'DEL'} → ${b.destination || 'LHR'}`} size="small" color="primary" sx={{ fontWeight: 800 }} />

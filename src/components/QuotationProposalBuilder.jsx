@@ -232,7 +232,7 @@ export default function QuotationProposalBuilder({ quote, clientInfo, initialOpt
   };
 
   // Agent Personalization Info
-  const [agentName, setAgentName] = useState(quote?.agentName || 'Wael Madi (CEO)');
+  const [agentName, setAgentName] = useState(quote?.agentName || 'Parminder (Super Admin)');
   const [agentTitle, setAgentTitle] = useState('Senior Private Flight Consultant');
   const [agentPhone, setAgentPhone] = useState('+1 (800) 555-0199');
   const [agentEmail, setAgentEmail] = useState('support@wowmyflight.com');

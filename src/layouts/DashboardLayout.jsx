@@ -221,7 +221,7 @@ const ROLE_NOTIFICATION_CONFIG = {
       { id: 'document', label: 'QA Docs' },
     ],
   },
-  consultant: {
+  sales_executive: {
     title: 'Sales Agent Alerts',
     roleLabel: 'Sales Agent',
     allowedTypes: ['lead', 'booking', 'call', 'sla', 'chat'],
@@ -364,7 +364,7 @@ const ROLE_NOTIFICATION_CONFIG = {
 
 export const DashboardLayout = () => {
   const { mode, toggleTheme } = useThemeMode();
-  const { currentUser, changeRole, logout, isAdmin, isConsultant, isFinance, isOperations } = useAuth();
+  const { currentUser, logout, isAdmin, isConsultant, isFinance, isOperations } = useAuth();
   const { incomingChatRequest } = useTelnyx();
   const { showAlert } = useAlert();
   const navigate = useNavigate();
@@ -529,25 +529,6 @@ export const DashboardLayout = () => {
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
-  const handleRoleChange = (event) => {
-    const role = event.target.value;
-    changeRole(role);
-    showAlert(`Role switched to ${role.toUpperCase()}`, 'info');
-    // Navigate to the role-specific dashboard
-    const roleDashboardMap = {
-      super_admin: '/super_admin/dashboard',
-      admin: '/admin/dashboard',
-      team_leader: '/team_leader/dashboard',
-      consultant: '/agent/dashboard',
-      flight_expert: '/flight_expert/dashboard',
-      ticketing_agent: '/ticketing_agent/dashboard',
-      finance: '/finance/dashboard',
-      operations: '/operations/dashboard',
-      marketing: '/marketing-manager/dashboard',
-    };
-    navigate(roleDashboardMap[role] || '/dashboard');
-  };
-
   const navigateTo = (path) => {
     localStorage.setItem('routing-click-log', `Clicked: ${path} at ${new Date().toLocaleTimeString()}`);
     // If navigating to main client lists, clear their sessionStorage filters
@@ -611,7 +592,7 @@ export const DashboardLayout = () => {
 
   const getRolePrefix = () => {
     if (!currentUser) return '';
-    if (currentUser.role === 'consultant') return 'agent';
+    if (currentUser.role === 'sales_executive') return 'agent';
     if (currentUser.role === 'super_admin') return 'super_admin';
     if (currentUser.role === 'marketing') return 'marketing-manager';
     if (currentUser.role === 'team_leader') return 'team_leader';
@@ -622,6 +603,7 @@ export const DashboardLayout = () => {
   };
 
   const getDynamicPath = (item) => {
+    if (item.path === '/phone') return '/phone';
     let prefix = getRolePrefix();
     if (!prefix) return item.path;
 
@@ -751,26 +733,27 @@ export const DashboardLayout = () => {
   };
 
   const menuItems = [
+    { section: 'PHASE 1 ? SALES', label: 'Mobile Calls & SMS', icon: <PhoneInTalkIcon />, path: '/phone', roles: ['admin', 'super_admin', 'sales_executive'] },
     // PHASE 1 – SALES (Chronological Sales Lifecycle Order)
-    { section: 'PHASE 1 – SALES', label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader', 'flight_expert', 'ticketing_agent'] },
-    { section: 'PHASE 1 – SALES', label: 'Duplicate Protection', icon: <SecurityIcon />, path: '/duplicate-leads', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Lead Distribution', icon: <SwapHorizIcon />, path: '/lead-distribution', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Leads', icon: <PeopleIcon />, path: '/leads', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Lead Lifecycle', icon: <AutoFixHighIcon />, path: '/lead-lifecycle', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Live Web Chat', icon: <ChatIcon />, path: '/live-chat', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Internal Team Chat', icon: <GroupsIcon />, path: '/internal-team-chat', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader', 'flight_expert', 'ticketing_agent', 'finance'] },
-    { section: 'PHASE 1 – SALES', label: 'Calling & Softphone', icon: <PhoneInTalkIcon />, path: '/calling-desk', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Call Dispositions', icon: <NoteAltIcon />, path: '/call-dispositions', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Follow-ups', icon: <CalendarMonthIcon />, path: '/consultations/calendar', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Communication Hub', icon: <ForumIcon />, path: '/communication-center', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Quotes', icon: <RequestQuoteIcon />, path: '/quotes', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'consultant', 'flight_expert'] },
-    { section: 'PHASE 1 – SALES', label: 'Customer 360', icon: <BusinessCenterIcon />, path: '/customers', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Agents Management', icon: <SupportAgentIcon />, path: '/agents', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 1 – SALES', label: 'Sales Dashboard', icon: <AssessmentIcon />, path: '/agents/performance', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'consultant'] },
+    { section: 'PHASE 1 – SALES', label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader', 'flight_expert', 'ticketing_agent'] },
+    { section: 'PHASE 1 – SALES', label: 'Duplicate Protection', icon: <SecurityIcon />, path: '/duplicate-leads', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Lead Distribution', icon: <SwapHorizIcon />, path: '/lead-distribution', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Leads', icon: <PeopleIcon />, path: '/leads', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Lead Lifecycle', icon: <AutoFixHighIcon />, path: '/lead-lifecycle', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Live Web Chat', icon: <ChatIcon />, path: '/live-chat', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Internal Team Chat', icon: <GroupsIcon />, path: '/internal-team-chat', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader', 'flight_expert', 'ticketing_agent', 'finance'] },
+    { section: 'PHASE 1 – SALES', label: 'Calling & Softphone', icon: <PhoneInTalkIcon />, path: '/calling-desk', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Call Dispositions', icon: <NoteAltIcon />, path: '/call-dispositions', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Follow-ups', icon: <CalendarMonthIcon />, path: '/consultations/calendar', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Communication Hub', icon: <ForumIcon />, path: '/communication-center', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Quotes', icon: <RequestQuoteIcon />, path: '/quotes', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'sales_executive', 'flight_expert'] },
+    { section: 'PHASE 1 – SALES', label: 'Customer 360', icon: <BusinessCenterIcon />, path: '/customers', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Agents Management', icon: <SupportAgentIcon />, path: '/agents', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 1 – SALES', label: 'Sales Dashboard', icon: <AssessmentIcon />, path: '/agents/performance', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'sales_executive'] },
 
     // PHASE 2 – BOOKING OPERATIONS
-    { section: 'PHASE 2 – BOOKING OPERATIONS', label: 'Flight Search', icon: <FlightIcon />, path: '/flights', roles: ['super_admin', 'admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'consultant', 'flight_expert'] },
-    { section: 'PHASE 2 – BOOKING OPERATIONS', label: 'Bookings', icon: <AirplaneTicketIcon />, path: '/bookings', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'consultant', 'flight_expert', 'ticketing_agent'] },
+    { section: 'PHASE 2 – BOOKING OPERATIONS', label: 'Flight Search', icon: <FlightIcon />, path: '/flights', roles: ['super_admin', 'admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'sales_executive', 'flight_expert'] },
+    { section: 'PHASE 2 – BOOKING OPERATIONS', label: 'Bookings', icon: <AirplaneTicketIcon />, path: '/bookings', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_agent', 'sales_executive', 'flight_expert', 'ticketing_agent'] },
     { section: 'PHASE 2 – BOOKING OPERATIONS', label: 'Ticketing', icon: <ConfirmationNumberIcon />, path: '/ticketing', roles: ['super_admin', 'admin', 'team_leader', 'expert_team_leader', 'ticketing_agent', 'operations'] },
     { section: 'PHASE 2 – BOOKING OPERATIONS', label: 'Payments', icon: <MonetizationOnIcon />, path: '/payments', roles: ['admin', 'finance', 'super_admin'] },
     { section: 'PHASE 2 – BOOKING OPERATIONS', label: 'After-Sales', icon: <ConnectingAirportsIcon />, path: '/after-sales', roles: ['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'ticketing_agent', 'operations'] },
@@ -779,12 +762,12 @@ export const DashboardLayout = () => {
     // PHASE 3 – MANAGEMENT
     { section: 'PHASE 3 – MANAGEMENT', label: 'Team Leader Dashboard', icon: <GroupsIcon />, path: '/team-leader-dashboard', roles: ['admin', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 3 – MANAGEMENT', label: 'QA', icon: <AssignmentTurnedInIcon />, path: '/qa', roles: ['admin', 'operations', 'super_admin', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 3 – MANAGEMENT', label: 'SLA Management', icon: <AssessmentIcon />, path: '/sla-management', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 3 – MANAGEMENT', label: 'Automation', icon: <AutoFixHighIcon />, path: '/automation', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 3 – MANAGEMENT', label: 'SLA Management', icon: <AssessmentIcon />, path: '/sla-management', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 3 – MANAGEMENT', label: 'Automation', icon: <AutoFixHighIcon />, path: '/automation', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
     { section: 'PHASE 3 – MANAGEMENT', label: 'Finance', icon: <CurrencyExchangeIcon />, path: '/finance', roles: ['admin', 'super_admin', 'finance'] },
-    { section: 'PHASE 3 – MANAGEMENT', label: 'Management Reports', icon: <AssessmentIcon />, path: '/management-reports', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 3 – MANAGEMENT', label: 'Permission Control', icon: <SecurityIcon />, path: '/permission-control', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
-    { section: 'PHASE 3 – MANAGEMENT', label: 'Audit Trail', icon: <HistoryIcon />, path: '/audit-trail', roles: ['admin', 'consultant', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 3 – MANAGEMENT', label: 'Management Reports', icon: <AssessmentIcon />, path: '/management-reports', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 3 – MANAGEMENT', label: 'Permission Control', icon: <SecurityIcon />, path: '/permission-control', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
+    { section: 'PHASE 3 – MANAGEMENT', label: 'Audit Trail', icon: <HistoryIcon />, path: '/audit-trail', roles: ['admin', 'sales_executive', 'sales_agent', 'operations', 'finance', 'super_admin', 'marketing', 'team_leader', 'expert_team_leader'] },
 
     // PHASE 4 – SCALE
     { section: 'PHASE 4 – SCALE', label: 'Marketing Dashboard', icon: <TrendingUpIcon />, path: '/marketing-manager/dashboard', roles: ['admin', 'super_admin', 'marketing'] },
@@ -878,7 +861,7 @@ export const DashboardLayout = () => {
     }
   ];
 
-  const isSalesWorkspace = ['consultant', 'sales_agent', 'team_leader'].includes(currentUser?.role);
+  const isSalesWorkspace = ['sales_executive', 'sales_agent', 'team_leader'].includes(currentUser?.role);
   const subItems = isSalesWorkspace
     ? ALL_SUB_ITEMS.filter(item => ['whatsapp', 'facebook', 'instagram', 'telegram'].includes(item.channel))
     : ALL_SUB_ITEMS.filter(item => connectedPlatforms[item.channel]);
@@ -1058,8 +1041,9 @@ export const DashboardLayout = () => {
 
   // Render navigation item
   const renderNavItem = (item) => {
+    if (currentUser?.role === 'sales_executive' && ['Permission Control', 'Finance', 'Management Reports', 'Audit Trail', 'Automation', 'Agents Management'].includes(item.label)) return null;
     // Core operational & management items always render for Admin and SuperAdmin
-    const ALWAYS_VISIBLE_MENUS = ['Dashboard', 'QA Audits', 'After-Sales', 'Live Web Chat', 'Internal Team Chat'];
+    const ALWAYS_VISIBLE_MENUS = ['Dashboard', 'Mobile Calls & SMS', 'QA Audits', 'After-Sales', 'Live Web Chat', 'Internal Team Chat'];
     if (['super_admin', 'admin'].includes(currentUser?.role)) {
       ALWAYS_VISIBLE_MENUS.push('Permission Control', 'Management Reports', 'Agents Management');
     }
@@ -1149,8 +1133,8 @@ export const DashboardLayout = () => {
         {sidebarOpen && (
           <ListItemText
             primary={
-              currentUser?.role === 'consultant' && item.label === 'Leads' ? 'My Leads' :
-                currentUser?.role === 'consultant' && item.label === 'Customers' ? 'My Customers' :
+              currentUser?.role === 'sales_executive' && item.label === 'Leads' ? 'My Leads' :
+                currentUser?.role === 'sales_executive' && item.label === 'Customers' ? 'My Customers' :
                   item.label
             }
             sx={{ m: 0 }}

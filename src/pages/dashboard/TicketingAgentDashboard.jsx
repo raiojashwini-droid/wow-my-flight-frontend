@@ -22,6 +22,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import { flightContentService } from '../../services/flightContentService';
 import { useAlert } from '../../contexts/AlertContext';
+
 import {
   BarChart,
   Bar,

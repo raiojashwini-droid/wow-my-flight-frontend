@@ -331,7 +331,7 @@ export default function AutomationEngine() {
   const handleTestTriggerWorkflow = async (wf) => {
     const targetLead = leads[0] || { id: 'LD-1001', firstName: 'Customer', lastName: 'Live' };
     const customerName = `${targetLead.firstName || ''} ${targetLead.lastName || ''}`.trim() || 'Valued Customer';
-    const repName = targetLead.assignedAgent?.name || 'Sofia Rodriguez (Sales)';
+    const repName = targetLead.assignedAgent?.name || 'Issac (Sales Executive)';
     const phone = targetLead.phone || '+18503329681';
 
     try {
@@ -504,7 +504,7 @@ export default function AutomationEngine() {
     // Real DB Lead assignment
     leads.forEach(l => {
       const customer = `${l.firstName || ''} ${l.lastName || ''}`.trim() || 'New Traveler';
-      const rep = l.assignedAgent?.name || 'Sofia Rodriguez (Sales)';
+      const rep = l.assignedAgent?.name || 'Issac (Sales Executive)';
       const dateStr = l.createdAt ? new Date(l.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Today';
       list.push({
         id: `HIS-LD-${l.id}`,
@@ -521,7 +521,7 @@ export default function AutomationEngine() {
     // Real DB Booking Confirmation & Ticket Issued
     bookings.forEach(b => {
       const passenger = b.passenger || b.name || 'Rajesh Sharma';
-      const rep = b.issuingAgent || 'Sofia Rodriguez (Sales)';
+      const rep = b.issuingAgent || 'Issac (Sales Executive)';
       const dateStr = b.createdAt ? new Date(b.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Today';
       list.push({
         id: `HIS-BKG-${b.bookingId || 'BK'}`,
@@ -874,16 +874,16 @@ export default function AutomationEngine() {
       </Box>
 
       {/* ─── 3. NAVIGATION TABS (2 NEAT ROWS OF 3 - NO CUTOFF) ─── */}
-      <Box 
-        sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { 
-            xs: 'repeat(1, 1fr)', 
-            sm: 'repeat(2, 1fr)', 
-            md: 'repeat(3, 1fr)', 
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: 'repeat(1, 1fr)',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
             lg: 'repeat(3, 1fr)',
-            xl: 'repeat(3, 1fr)' 
-          }, 
+            xl: 'repeat(3, 1fr)'
+          },
           gap: 1.5,
           mb: 3.5
         }}
@@ -892,12 +892,12 @@ export default function AutomationEngine() {
           { id: 0, label: '1. Workflow Dashboard', icon: <SpeedIcon sx={{ fontSize: '1.1rem' }} /> },
           { id: 1, label: '2. Workflow Builder', badge: workflows.length, icon: <AccountTreeIcon sx={{ fontSize: '1.1rem' }} /> },
           { id: 2, label: '3. Active Automations', badge: activeWfCount, badgeColor: '#10B981', icon: <AutoFixHighIcon sx={{ fontSize: '1.1rem' }} /> },
-          { 
-            id: 3, 
-            label: '4. Live SLA Monitor', 
-            badge: slaBreachesCount, 
+          {
+            id: 3,
+            label: '4. Live SLA Monitor',
+            badge: slaBreachesCount,
             badgeColor: slaBreachesCount > 0 ? '#EF4444' : undefined,
-            icon: <TimerIcon sx={{ fontSize: '1.1rem' }} /> 
+            icon: <TimerIcon sx={{ fontSize: '1.1rem' }} />
           },
           { id: 4, label: '5. Notification Center', badge: liveNotifications.length, icon: <NotificationsActiveIcon sx={{ fontSize: '1.1rem' }} /> },
           { id: 5, label: '6. Automation Audit', badge: filteredHistory.length, icon: <HistoryIcon sx={{ fontSize: '1.1rem' }} /> },
@@ -919,8 +919,8 @@ export default function AutomationEngine() {
                 border: '1px solid',
                 borderColor: isActive ? 'primary.main' : 'divider',
                 borderRadius: 2.2,
-                bgcolor: isActive 
-                  ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main' 
+                bgcolor: isActive
+                  ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main'
                   : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
                 color: isActive ? '#FFFFFF' : 'text.primary',
                 cursor: 'pointer',
@@ -930,29 +930,29 @@ export default function AutomationEngine() {
                 boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.22)' : 'none',
                 '&:hover': {
                   borderColor: 'primary.main',
-                  bgcolor: isActive 
-                    ? 'primary.dark' 
+                  bgcolor: isActive
+                    ? 'primary.dark'
                     : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#EFF6FF',
                   color: isActive ? '#FFFFFF' : 'primary.main'
                 }
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
-                <Box 
-                  sx={{ 
-                    color: isActive ? '#FFFFFF' : 'primary.main', 
-                    display: 'flex', 
+                <Box
+                  sx={{
+                    color: isActive ? '#FFFFFF' : 'primary.main',
+                    display: 'flex',
                     alignItems: 'center',
                     flexShrink: 0
                   }}
                 >
                   {tab.icon}
                 </Box>
-                <Typography 
-                  variant="body2" 
+                <Typography
+                  variant="body2"
                   noWrap
-                  sx={{ 
-                    fontWeight: isActive ? 800 : 700, 
+                  sx={{
+                    fontWeight: isActive ? 800 : 700,
                     fontSize: { xs: '0.74rem', sm: '0.78rem', md: '0.8rem' },
                     color: 'inherit',
                     overflow: 'hidden',
@@ -963,22 +963,22 @@ export default function AutomationEngine() {
                 </Typography>
               </Box>
               {tab.badge !== undefined && (
-                <Chip 
-                  label={tab.badge} 
-                  size="small" 
-                  sx={{ 
-                    height: 20, 
-                    minWidth: 20, 
-                    px: 0.6, 
-                    fontWeight: 900, 
+                <Chip
+                  label={tab.badge}
+                  size="small"
+                  sx={{
+                    height: 20,
+                    minWidth: 20,
+                    px: 0.6,
+                    fontWeight: 900,
                     fontSize: '0.65rem',
-                    bgcolor: isActive 
-                      ? 'rgba(255,255,255,0.25)' 
+                    bgcolor: isActive
+                      ? 'rgba(255,255,255,0.25)'
                       : (tab.badgeColor || (theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#E2E8F0')),
                     color: isActive ? '#FFFFFF' : (tab.badgeColor ? '#FFFFFF' : 'text.secondary'),
                     borderRadius: '10px',
                     flexShrink: 0
-                  }} 
+                  }}
                 />
               )}
             </Box>
@@ -1348,12 +1348,12 @@ export default function AutomationEngine() {
           </Box>
 
           {/* Telnyx SMS Gateway Status Banner */}
-          <Alert 
-            severity="info" 
+          <Alert
+            severity="info"
             icon={<SmsIcon />}
             sx={{ mb: 2.5, borderRadius: 2, fontWeight: 700 }}
           >
-            <b>Telnyx SMS Gateway Connected:</b> Sender ID <code>{telnyxInfo.defaultFromNumber || '+18503329681'}</code> (Profile: <i>{telnyxInfo.profileName || 'Wow My flight LLC'}</i>). 
+            <b>Telnyx SMS Gateway Connected:</b> Sender ID <code>{telnyxInfo.defaultFromNumber || '+18503329681'}</code> (Profile: <i>{telnyxInfo.profileName || 'Wow My flight LLC'}</i>).
             <b> Safe Mode is ACTIVE:</b> Outgoing SMS dispatches are safely simulated and blocked from sending to real customer phones so no unwanted messages are delivered.
           </Alert>
 

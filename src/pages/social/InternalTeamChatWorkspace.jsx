@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Users, 
-  Hash, 
-  Video, 
-  Send, 
-  Smile, 
-  Paperclip, 
-  Shield, 
-  Search, 
+import {
+  Users,
+  Hash,
+  Video,
+  Send,
+  Smile,
+  Paperclip,
+  Shield,
+  Search,
   MessageSquare,
   Phone,
   Mail,
@@ -39,7 +39,7 @@ const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const INITIAL_DIALOGS = [
   {
     id: 'usr-team-leader',
-    name: 'David Vance (Sales TL)',
+    name: 'George (Sales TL)',
     username: '@david.vance',
     role: 'team_leader',
     roleLabel: 'Sales Team Leader',
@@ -61,7 +61,7 @@ const INITIAL_DIALOGS = [
   },
   {
     id: 'usr-flight-expert',
-    name: 'Priya Sharma (GDS Expert)',
+    name: 'Issac (GDS Expert)',
     username: '@priya.sharma',
     role: 'flight_expert',
     roleLabel: 'Flight & GDS Expert',
@@ -82,7 +82,7 @@ const INITIAL_DIALOGS = [
   },
   {
     id: 'usr-ticketing-agent',
-    name: 'Omar Farouq (Ticketing)',
+    name: 'Abu (Ticketing)',
     username: '@omar.farouq',
     role: 'ticketing_agent',
     roleLabel: 'Ticketing & Issuance Agent',
@@ -102,7 +102,7 @@ const INITIAL_DIALOGS = [
   },
   {
     id: 'usr-consultant',
-    name: 'Sofia Rodriguez (Sales)',
+    name: 'Issac (Sales)',
     username: '@sofia.rodriguez',
     role: 'consultant',
     roleLabel: 'Travel Sales Consultant',
@@ -122,7 +122,7 @@ const INITIAL_DIALOGS = [
   },
   {
     id: 'usr-operations',
-    name: 'Carlos Gomez (Ops)',
+    name: 'Abu (Ops)',
     username: '@carlos.gomez',
     role: 'operations',
     roleLabel: 'Operations Specialist',
@@ -140,7 +140,7 @@ const INITIAL_DIALOGS = [
   },
   {
     id: 'usr-expert-tl',
-    name: 'Michael Chang (Escalation TL)',
+    name: 'Adam (Escalation TL)',
     username: '@michael.chang',
     role: 'expert_team_leader',
     roleLabel: 'Escalation Team Leader',
@@ -160,7 +160,7 @@ const INITIAL_DIALOGS = [
   },
   {
     id: 'usr-finance',
-    name: 'Elena Rostova (Finance)',
+    name: 'George (Finance)',
     username: '@elena.rostova',
     role: 'finance',
     roleLabel: 'Finance & Refunds Lead',
@@ -204,7 +204,7 @@ const INITIAL_MESSAGES_BY_DIALOG = {
       id: 'm1',
       senderType: 'agent',
       senderId: 'current-user',
-      senderName: 'Wael Madi (CEO)',
+      senderName: 'Parminder (Super Admin)',
       senderAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
       text: 'Good evening David, please share the status of today\'s transatlantic GDS queues and high-value bookings.',
       timestamp: '18:30',
@@ -215,7 +215,7 @@ const INITIAL_MESSAGES_BY_DIALOG = {
       id: 'm2',
       senderType: 'agent',
       senderId: 'current-user',
-      senderName: 'Wael Madi (CEO)',
+      senderName: 'Parminder (Super Admin)',
       senderAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
       text: null,
       timestamp: '18:45',
@@ -226,7 +226,7 @@ const INITIAL_MESSAGES_BY_DIALOG = {
       id: 'm3',
       senderType: 'staff',
       senderId: 'usr-team-leader',
-      senderName: 'David Vance (Sales TL)',
+      senderName: 'George (Sales TL)',
       senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
       text: 'All queues are cleared sir! PNR #WMF-BA782 for British Airways JFK → LHR is ticketed and verified in Sabre.',
       timestamp: '19:00',
@@ -238,7 +238,7 @@ const INITIAL_MESSAGES_BY_DIALOG = {
       id: 'm4',
       senderType: 'staff',
       senderId: 'usr-team-leader',
-      senderName: 'David Vance (Sales TL)',
+      senderName: 'George (Sales TL)',
       senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
       text: 'Priya from GDS desk has verified the baggage allowance and E-ticket numbers with the airline.',
       timestamp: '19:01',
@@ -249,7 +249,7 @@ const INITIAL_MESSAGES_BY_DIALOG = {
       id: 'm5',
       senderType: 'staff',
       senderId: 'usr-team-leader',
-      senderName: 'David Vance (Sales TL)',
+      senderName: 'George (Sales TL)',
       senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
       text: 'We are also monitoring the overnight Dubai flight bookings for any schedule changes.',
       timestamp: '19:02',
@@ -260,7 +260,7 @@ const INITIAL_MESSAGES_BY_DIALOG = {
       id: 'm6',
       senderType: 'agent',
       senderId: 'current-user',
-      senderName: 'Wael Madi (CEO)',
+      senderName: 'Parminder (Super Admin)',
       senderAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
       text: 'Excellent work team. Make sure overnight ticketing desk remains on high alert for Sabre queue auto-cancellations.',
       timestamp: '19:05',
@@ -274,7 +274,7 @@ export default function InternalTeamChatWorkspace() {
   const { currentUser } = useAuth();
 
   const [dialogs, setDialogs] = useState(INITIAL_DIALOGS);
-  const [selectedDialogId, setSelectedDialogId] = useState('usr-team-leader');
+  const [selectedDialogId, setSelectedDialogId] = useState('cbb5c474-8802-4e60-8e34-3373766821c7');
   const [messagesMap, setMessagesMap] = useState(INITIAL_MESSAGES_BY_DIALOG);
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -284,12 +284,12 @@ export default function InternalTeamChatWorkspace() {
   const [filterType, setFilterType] = useState('all'); // 'all' | 'unread'
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [attachedFile, setAttachedFile] = useState(null);
-  
+
   // Call Modals
   const [huddleOpen, setHuddleOpen] = useState(false);
   const [huddleRoom, setHuddleRoom] = useState('');
   const [callTypeLabel, setCallTypeLabel] = useState('Internal Staff Video Consultation');
-  
+
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -312,6 +312,7 @@ export default function InternalTeamChatWorkspace() {
   // Socket Connection for Real-Time Staff Sync
   useEffect(() => {
     const s = io(SOCKET_URL, {
+      auth: { token: currentUser?.token },
       transports: ['websocket', 'polling'],
       withCredentials: true,
     });
@@ -320,7 +321,7 @@ export default function InternalTeamChatWorkspace() {
     s.on('connect', () => {
       s.emit('agent:register', {
         agentId: currentUser?.id || 'usr-super-admin',
-        agentName: currentUser?.name || 'Wael Madi (CEO)',
+        agentName: currentUser?.name || 'Parminder (Super Admin)',
         role: currentUser?.role || 'super_admin',
         status: 'available',
       });
@@ -360,7 +361,7 @@ export default function InternalTeamChatWorkspace() {
     const text = inputText.trim();
     if (!text && !attachedFile) return;
 
-    const currentUserName = currentUser?.name || 'Wael Madi (CEO)';
+    const currentUserName = currentUser?.name || 'Parminder (Super Admin)';
     const currentUserAvatar = currentUser?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150';
 
     const newMsg = {
@@ -454,12 +455,12 @@ export default function InternalTeamChatWorkspace() {
 
   return (
     <div className="flex h-[calc(100vh-64px)] w-full overflow-hidden bg-[#F8FAFC] font-sans antialiased text-slate-800">
-      
+
       {/* ══════════════════════════════════════════════════════════════════
           1. LEFT COLUMN: MY CHATS / DIALOGS LIST
       ══════════════════════════════════════════════════════════════════ */}
       <div className="w-[310px] sm:w-[330px] flex-shrink-0 bg-white border-r border-slate-200/80 flex flex-col h-full shadow-[1px_0_4px_rgba(0,0,0,0.02)]">
-        
+
         {/* Top Header */}
         <div className="p-4 pb-3 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -469,7 +470,7 @@ export default function InternalTeamChatWorkspace() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={() => setFilterType(filterType === 'all' ? 'unread' : 'all')}
               className={`text-xs font-semibold px-2 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${
                 filterType === 'unread' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-slate-100'
@@ -477,7 +478,7 @@ export default function InternalTeamChatWorkspace() {
             >
               <Filter size={12} /> Filters
             </button>
-            <button 
+            <button
               onClick={() => setIsNewChatModalOpen(true)}
               className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
               title="Start New Staff Chat"
@@ -491,14 +492,14 @@ export default function InternalTeamChatWorkspace() {
         <div className="px-3.5 pt-3 pb-2 border-b border-slate-100/80">
           <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1.5 focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
             <Search size={14} className="text-slate-400 flex-shrink-0" />
-            <input 
-              type="text" 
-              placeholder={searchScope === 'messages' ? 'Search in messages...' : searchScope === 'staff' ? 'Search staff by name/role...' : 'Search PNR, airline, route...'} 
+            <input
+              type="text"
+              placeholder={searchScope === 'messages' ? 'Search in messages...' : searchScope === 'staff' ? 'Search staff by name/role...' : 'Search PNR, airline, route...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-transparent text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none"
             />
-            
+
             {/* Interactive Search Scope Dropdown */}
             <div className="relative" ref={scopeDropdownRef}>
               <button
@@ -566,16 +567,16 @@ export default function InternalTeamChatWorkspace() {
                   );
                 }}
                 className={`flex items-start gap-3 p-3.5 cursor-pointer transition-all ${
-                  isSelected 
-                    ? 'bg-blue-500 text-white shadow-sm' 
+                  isSelected
+                    ? 'bg-blue-500 text-white shadow-sm'
                     : 'hover:bg-slate-50/90 text-slate-700'
                 }`}
               >
                 {/* Avatar with Status Dot */}
                 <div className="relative flex-shrink-0">
-                  <img 
-                    src={dialog.avatar} 
-                    alt={dialog.name} 
+                  <img
+                    src={dialog.avatar}
+                    alt={dialog.name}
                     className="w-10 h-10 rounded-full object-cover shadow-sm border border-black/5"
                   />
                   <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 ${
@@ -595,7 +596,7 @@ export default function InternalTeamChatWorkspace() {
                       {dialog.time}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between gap-1">
                     <p className={`text-[11px] truncate leading-tight ${isSelected ? 'text-blue-50' : 'text-slate-500'}`}>
                       {dialog.lastMessage}
@@ -616,7 +617,7 @@ export default function InternalTeamChatWorkspace() {
         <div className="p-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between text-xs text-slate-500">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span className="font-semibold text-slate-700">{currentUser?.name || 'Wael Madi (CEO)'}</span>
+            <span className="font-semibold text-slate-700">{currentUser?.name || 'Parminder (Super Admin)'}</span>
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200/70 text-slate-600 uppercase">
             {currentUser?.role || 'Super Admin'}
@@ -628,13 +629,13 @@ export default function InternalTeamChatWorkspace() {
           2. MIDDLE COLUMN: CHAT CONVERSATION WINDOW
       ══════════════════════════════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col h-full bg-[#FAFAFA] min-w-0 relative">
-        
+
         {/* Chat Window Header */}
         <div className="h-16 px-6 bg-white border-b border-slate-200/80 flex items-center justify-between z-10 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
           <div className="flex items-center gap-3 min-w-0">
-            <img 
-              src={selectedDialog.avatar} 
-              alt={selectedDialog.name} 
+            <img
+              src={selectedDialog.avatar}
+              alt={selectedDialog.name}
               className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm flex-shrink-0"
             />
             <div className="min-w-0">
@@ -653,7 +654,7 @@ export default function InternalTeamChatWorkspace() {
 
           {/* Action Tools: Pure Icon Buttons (Audio Call + Video Call, text removed) */}
           <div className="flex items-center gap-2">
-            
+
             {/* Audio Call Icon Button */}
             <button
               onClick={handleStartAudioCall}
@@ -685,7 +686,7 @@ export default function InternalTeamChatWorkspace() {
 
         {/* Message Thread Scroll Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-          
+
           {/* Date Separator Pill */}
           <div className="text-center my-2">
             <span className="inline-block px-3 py-1 rounded-full text-[11px] font-semibold bg-white border border-slate-200 text-slate-500 shadow-sm">
@@ -699,28 +700,28 @@ export default function InternalTeamChatWorkspace() {
             return (
               <div key={msg.id || index} className="space-y-1">
                 <div className={`flex gap-3 ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
-                  
+
                   {/* Incoming Avatar */}
                   {!isOutgoing && (
-                    <img 
-                      src={msg.senderAvatar || selectedDialog.avatar} 
-                      alt={msg.senderName} 
+                    <img
+                      src={msg.senderAvatar || selectedDialog.avatar}
+                      alt={msg.senderName}
                       className="w-8 h-8 rounded-full object-cover border border-slate-200 mt-1 flex-shrink-0"
                     />
                   )}
 
                   <div className={`max-w-[85%] sm:max-w-[70%] flex flex-col ${isOutgoing ? 'items-end' : 'items-start'}`}>
-                    
+
                     {/* Sender Name Header */}
                     <span className="text-[11px] font-bold text-slate-500 mb-1 px-1">
-                      {isOutgoing ? (currentUser?.name || 'Wael Madi (CEO)') : selectedDialog.name}
+                      {isOutgoing ? (currentUser?.name || 'Parminder (Super Admin)') : selectedDialog.name}
                     </span>
 
                     {/* Bubble Content */}
                     {msg.text && (
                       <div className={`p-3.5 rounded-2xl text-[13.5px] leading-relaxed shadow-sm break-words ${
-                        isOutgoing 
-                          ? 'bg-[#E7F8E8] text-slate-900 border border-[#D0F0D2] rounded-tr-sm' 
+                        isOutgoing
+                          ? 'bg-[#E7F8E8] text-slate-900 border border-[#D0F0D2] rounded-tr-sm'
                           : 'bg-white text-slate-900 border border-slate-200/90 rounded-tl-sm'
                       }`}>
                         {msg.text}
@@ -766,9 +767,9 @@ export default function InternalTeamChatWorkspace() {
 
                   {/* Outgoing Avatar */}
                   {isOutgoing && (
-                    <img 
-                      src={msg.senderAvatar || currentUser?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'} 
-                      alt="Current User" 
+                    <img
+                      src={msg.senderAvatar || currentUser?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'}
+                      alt="Current User"
                       className="w-8 h-8 rounded-full object-cover border border-slate-200 mt-1 flex-shrink-0"
                     />
                   )}
@@ -776,7 +777,7 @@ export default function InternalTeamChatWorkspace() {
               </div>
             );
           })}
-          
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -784,10 +785,10 @@ export default function InternalTeamChatWorkspace() {
             COMPOSER (Matching reference photo bottom bar)
         ══════════════════════════════════════════════════════════════ */}
         <div className="p-3 sm:p-4 bg-white border-t border-slate-200/90 shadow-sm">
-          
+
           {/* Responding As Banner */}
           <div className="text-[11px] font-semibold text-slate-500 mb-1.5 px-1 flex items-center gap-1">
-            <span className="text-indigo-600 font-bold">{currentUser?.name || 'Wael Madi (CEO)'}</span>
+            <span className="text-indigo-600 font-bold">{currentUser?.name || 'Parminder (Super Admin)'}</span>
             <span>responding in internal staff desk</span>
           </div>
 
@@ -805,9 +806,9 @@ export default function InternalTeamChatWorkspace() {
 
           {/* Input Box with icons */}
           <div className="flex items-center gap-2 p-2 rounded-2xl border border-slate-200 bg-slate-50/80 focus-within:bg-white focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
-            <input 
-              type="text" 
-              placeholder={`Message ${selectedDialog.name}...`} 
+            <input
+              type="text"
+              placeholder={`Message ${selectedDialog.name}...`}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => {
@@ -822,8 +823,8 @@ export default function InternalTeamChatWorkspace() {
             {/* Action Tools */}
             <div className="flex items-center gap-1 text-slate-400">
               <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-              
-              <button 
+
+              <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="p-1.5 hover:text-indigo-600 transition-colors rounded-lg hover:bg-slate-100 cursor-pointer"
@@ -831,8 +832,8 @@ export default function InternalTeamChatWorkspace() {
               >
                 <Paperclip size={17} />
               </button>
-              
-              <button 
+
+              <button
                 type="button"
                 onClick={() => setInputText((prev) => prev + ' 👍')}
                 className="p-1.5 hover:text-indigo-600 transition-colors rounded-lg hover:bg-slate-100 cursor-pointer"
@@ -864,7 +865,7 @@ export default function InternalTeamChatWorkspace() {
       ══════════════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {isRightPanelOpen && (
-          <motion.div 
+          <motion.div
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: 290, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
@@ -874,9 +875,9 @@ export default function InternalTeamChatWorkspace() {
             {/* Staff Card Header */}
             <div className="p-5 flex flex-col items-center text-center">
               <div className="relative mb-3">
-                <img 
-                  src={selectedDialog.avatar} 
-                  alt={selectedDialog.name} 
+                <img
+                  src={selectedDialog.avatar}
+                  alt={selectedDialog.name}
                   className="w-16 h-16 rounded-full object-cover border-2 border-indigo-100 shadow-sm"
                 />
                 <span className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${
@@ -889,13 +890,13 @@ export default function InternalTeamChatWorkspace() {
 
               {/* Instant Audio / Video Call Tools */}
               <div className="w-full mt-3.5 flex gap-2">
-                <button 
+                <button
                   onClick={handleStartAudioCall}
                   className="flex-1 py-2 px-2.5 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-bold rounded-xl border border-slate-200 hover:border-emerald-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
                 >
                   <Phone size={13} className="text-emerald-600" /> Audio
                 </button>
-                <button 
+                <button
                   onClick={handleStartVideoCall}
                   className="flex-1 py-2 px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
                 >
@@ -929,8 +930,8 @@ export default function InternalTeamChatWorkspace() {
               <div className="space-y-1.5">
                 {selectedDialog.milestones && selectedDialog.milestones.length > 0 ? (
                   selectedDialog.milestones.map((m, idx) => (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border flex items-center justify-between ${m.color}`}
                     >
                       <span>{m.date}</span>
@@ -1061,7 +1062,7 @@ export default function InternalTeamChatWorkspace() {
         onClose={() => setHuddleOpen(false)}
         roomName={huddleRoom}
         clientName="Internal Team Desk"
-        agentName={currentUser?.name || 'Wael Madi (CEO)'}
+        agentName={currentUser?.name || 'Parminder (Super Admin)'}
         dateTime={callTypeLabel}
       />
 

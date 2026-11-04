@@ -113,7 +113,7 @@ const ROLE_DEFAULTS = {
     menus: ['Dashboard', 'Priority Roadmap', 'Leads', 'Customer 360', 'Calling System', 'Follow-ups', 'Quotes', 'Lead Distribution', 'Lead Lifecycle', 'Duplicate Protection', 'Communication Hub', 'Calling & Softphone', 'Call Dispositions', 'Sales Dashboard', 'Bookings', 'Team Leader Dashboard', 'QA', 'SLA Management', 'Automation', 'Management Reports', 'Permission Control', 'Audit Trail', 'Social Inbox'],
     cards: ['Total Clients', 'Today\'s Clients', 'Total Consultations', 'Today\'s Consultations', 'Upcoming Meetings', 'Active Cases', 'Completed Cases']
   },
-  consultant: {
+  sales_executive: {
     menus: ['Dashboard', 'Priority Roadmap', 'Leads', 'Customer 360', 'Calling System', 'Follow-ups', 'Quotes', 'Lead Distribution', 'Lead Lifecycle', 'Duplicate Protection', 'Communication Hub', 'Calling & Softphone', 'Call Dispositions', 'Sales Dashboard', 'Bookings', 'SLA Management', 'Automation', 'Management Reports', 'Permission Control', 'Audit Trail', 'Social Inbox'],
     cards: ['Upcoming Meetings', 'Active Cases']
   }
@@ -151,7 +151,7 @@ export const SuperAdminAgents = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('consultant');
+  const [role, setRole] = useState('sales_executive');
   const [avatarBase64, setAvatarBase64] = useState('');
   const [languages, setLanguages] = useState('');
   const [nationalities, setNationalities] = useState('');
@@ -367,7 +367,7 @@ export const SuperAdminAgents = () => {
     setEmail('');
     setPassword('');
     setPhone('');
-    setRole('consultant');
+    setRole('sales_executive');
     setAvatarBase64('');
     setLanguages('');
     setNationalities('');
@@ -389,7 +389,7 @@ export const SuperAdminAgents = () => {
     setName(agent.name || '');
     setEmail(agent.email || '');
     setPhone(agent.phone || '');
-    setRole(agent.role || 'consultant');
+    setRole(agent.role || 'sales_executive');
     setAvatarBase64(agent.avatar || '');
     setLanguages(agent.languages ? agent.languages.join(', ') : '');
     setNationalities(agent.nationalities ? agent.nationalities.join(', ') : '');
@@ -616,7 +616,7 @@ export const SuperAdminAgents = () => {
 
     // Agent Commission (dynamic rate from agent.commissionRate or fallback to 10)
     const rate = agent.commissionRate !== undefined ? agent.commissionRate : 10;
-    
+
     // Monthly Agent Commission (current month)
     const currentMonthStr = new Date().toISOString().slice(0, 7);
     const monthlyRevenue = allPayments.filter(p => clientIds.includes(p.clientId))
@@ -646,9 +646,9 @@ export const SuperAdminAgents = () => {
 
   const getAgentHistory = (agent) => {
     if (!agent) return [];
-    
+
     const list = [];
-    
+
     // 1. Join event
     list.push({
       id: 'join',
@@ -658,7 +658,7 @@ export const SuperAdminAgents = () => {
       type: 'system',
       icon: 'person'
     });
-    
+
     // 2. Consultations
     const agentConsultations = allConsultations.filter(c => c.assignedConsultantId === agent.id);
     agentConsultations.forEach(c => {
@@ -671,7 +671,7 @@ export const SuperAdminAgents = () => {
         icon: 'meeting'
       });
     });
-    
+
     // 3. Client Cases
     const agentClients = allClients.filter(cl => cl.assignedConsultantId === agent.id);
     agentClients.forEach(cl => {
@@ -683,7 +683,7 @@ export const SuperAdminAgents = () => {
         type: 'case',
         icon: 'case'
       });
-      
+
       if (cl.status === 'Completed' || cl.visaStatus === 'Approved') {
         list.push({
           id: `cl_close_${cl.id}`,
@@ -695,7 +695,7 @@ export const SuperAdminAgents = () => {
         });
       }
     });
-    
+
     // 4. Payments
     const clientIds = agentClients.map(cl => cl.id);
     const agentPayments = allPayments.filter(p => clientIds.includes(p.clientId));
@@ -709,7 +709,7 @@ export const SuperAdminAgents = () => {
         icon: 'payment'
       });
     });
-    
+
     return list.sort((a, b) => b.date.localeCompare(a.date));
   };
 
@@ -722,7 +722,7 @@ export const SuperAdminAgents = () => {
     const rawConsultations = allConsultations.filter((c) => c.assignedConsultantId === activeAgent.id);
     const rawClients = allClients.filter((cl) => cl.assignedConsultantId === activeAgent.id);
     const rawLeads = allLeads.filter((ld) => ld.assignedConsultantId === activeAgent.id);
-    
+
     const agentConsultations = rawConsultations.filter(
       (c) => timeRange === 'All Time' || (c.meetingDate >= start && c.meetingDate <= end)
     );
@@ -915,7 +915,7 @@ export const SuperAdminAgents = () => {
                         const revenue = stats.revenue;
                         const conversion = stats.conversion;
                         const isOnline = agent.status === 'Active' || agent.status === 'Online';
-                        
+
                         return (
                           <TableRow key={agent.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                             <TableCell>
@@ -942,10 +942,10 @@ export const SuperAdminAgents = () => {
                             <TableCell sx={{ fontWeight: 600 }}>{conversion}%</TableCell>
                             <TableCell align="center">
                               <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                                <Button 
-                                  size="small" 
-                                  variant="contained" 
-                                  color="primary" 
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="primary"
                                   sx={{ borderRadius: 1.5, fontSize: '0.72rem', py: 0.2 }}
                                   onClick={() => {
                                     setActiveAgentId(agent.id);
@@ -1168,7 +1168,7 @@ export const SuperAdminAgents = () => {
                     <Box className="grid grid-cols-12 gap-2" sx={{ mb: 3 }}>
                       {/* 1. Total Consultations */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Total Consultations')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1179,7 +1179,7 @@ export const SuperAdminAgents = () => {
 
                       {/* 2. Today's Consultations */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick("Today's Consultations")}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1190,7 +1190,7 @@ export const SuperAdminAgents = () => {
 
                       {/* 3. Upcoming Consultations */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Upcoming Consultations')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1201,7 +1201,7 @@ export const SuperAdminAgents = () => {
 
                       {/* 4. Pending Payments */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Pending Payments')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1212,7 +1212,7 @@ export const SuperAdminAgents = () => {
 
                       {/* 5. Total Revenue (Closed) */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Total Revenue')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1223,7 +1223,7 @@ export const SuperAdminAgents = () => {
 
                       {/* 6. Active Cases */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Active Cases')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1234,7 +1234,7 @@ export const SuperAdminAgents = () => {
 
                       {/* 7. Closed Cases */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Closed Cases')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1245,7 +1245,7 @@ export const SuperAdminAgents = () => {
 
                       {/* 8. Client No-Show / Cancelled */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Client No-Show / Cancelled')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1256,7 +1256,7 @@ export const SuperAdminAgents = () => {
 
                       {/* 9. Agent No-Show */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Agent No-Show')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1267,7 +1267,7 @@ export const SuperAdminAgents = () => {
 
                       {/* 10. Agent Cancelled Meetings */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Agent Cancelled Meetings')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1279,7 +1279,7 @@ export const SuperAdminAgents = () => {
                       {/* 11. Agent Leads */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
                         <Tooltip title="This displays lead entries initialized from digital QR business card scans for this agent reference. Click to view detailed leads directory." placement="top">
-                          <Paper 
+                          <Paper
                             onClick={() => handleKPIBoxClick('Agent Leads')}
                             sx={{ p: 2, border: '2px dashed', borderColor: 'primary.main', bgcolor: 'primary.neutral', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' }, position: 'relative' }}
                           >
@@ -1292,7 +1292,7 @@ export const SuperAdminAgents = () => {
 
                        {/* 12. Conversion Rate */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Conversion Rate')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'secondary.main', bgcolor: 'secondary.neutral', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1303,7 +1303,7 @@ export const SuperAdminAgents = () => {
 
                       {/* 13. Monthly Agent Commission Earned */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Monthly Agent Commission')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1314,7 +1314,7 @@ export const SuperAdminAgents = () => {
 
                       {/* 14. Total Commission Since Joining */}
                       <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                        <Paper 
+                        <Paper
                           onClick={() => handleKPIBoxClick('Total Commission')}
                           sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                         >
@@ -1341,10 +1341,10 @@ export const SuperAdminAgents = () => {
                     <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
                         Complete Activity Logs & History ({getAgentHistory(activeAgent).filter(item => {
-                          const matchesSearch = item.title.toLowerCase().includes(historySearch.toLowerCase()) || 
+                          const matchesSearch = item.title.toLowerCase().includes(historySearch.toLowerCase()) ||
                                                 item.description.toLowerCase().includes(historySearch.toLowerCase()) ||
                                                 item.date.includes(historySearch);
-                          const matchesFilter = historyFilter === 'all' || 
+                          const matchesFilter = historyFilter === 'all' ||
                                                 (historyFilter === 'consultations' && item.type === 'consultation') ||
                                                 (historyFilter === 'cases' && item.type === 'case') ||
                                                 (historyFilter === 'payments' && item.type === 'payment');
@@ -1375,10 +1375,10 @@ export const SuperAdminAgents = () => {
                     </Box>
 
                     {getAgentHistory(activeAgent).filter(item => {
-                      const matchesSearch = item.title.toLowerCase().includes(historySearch.toLowerCase()) || 
+                      const matchesSearch = item.title.toLowerCase().includes(historySearch.toLowerCase()) ||
                                             item.description.toLowerCase().includes(historySearch.toLowerCase()) ||
                                             item.date.includes(historySearch);
-                      const matchesFilter = historyFilter === 'all' || 
+                      const matchesFilter = historyFilter === 'all' ||
                                             (historyFilter === 'consultations' && item.type === 'consultation') ||
                                             (historyFilter === 'cases' && item.type === 'case') ||
                                             (historyFilter === 'payments' && item.type === 'payment');
@@ -1390,10 +1390,10 @@ export const SuperAdminAgents = () => {
                     ) : (
                       <Box sx={{ position: 'relative', pl: 4, '&::before': { content: '""', position: 'absolute', left: 15, top: 8, bottom: 8, width: 2, bgcolor: 'divider' } }}>
                         {getAgentHistory(activeAgent).filter(item => {
-                          const matchesSearch = item.title.toLowerCase().includes(historySearch.toLowerCase()) || 
+                          const matchesSearch = item.title.toLowerCase().includes(historySearch.toLowerCase()) ||
                                                 item.description.toLowerCase().includes(historySearch.toLowerCase()) ||
                                                 item.date.includes(historySearch);
-                          const matchesFilter = historyFilter === 'all' || 
+                          const matchesFilter = historyFilter === 'all' ||
                                                 (historyFilter === 'consultations' && item.type === 'consultation') ||
                                                 (historyFilter === 'cases' && item.type === 'case') ||
                                                 (historyFilter === 'payments' && item.type === 'payment');
@@ -1415,17 +1415,17 @@ export const SuperAdminAgents = () => {
                           return (
                             <Box key={item.id} sx={{ position: 'relative', mb: 3 }}>
                               {/* Timeline Dot Icon */}
-                              <Box 
-                                sx={{ 
-                                  position: 'absolute', 
-                                  left: -33, 
-                                  top: 2, 
-                                  width: 24, 
-                                  height: 24, 
-                                  borderRadius: '50%', 
-                                  bgcolor: dotColor, 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  left: -33,
+                                  top: 2,
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: '50%',
+                                  bgcolor: dotColor,
+                                  display: 'flex',
+                                  alignItems: 'center',
                                   justifyContent: 'center',
                                   color: 'white',
                                   fontSize: '0.75rem',
@@ -1440,12 +1440,12 @@ export const SuperAdminAgents = () => {
                                 {item.icon === 'payment' && '💶'}
                               </Box>
 
-                              <Paper 
-                                sx={{ 
-                                  p: 2, 
-                                  border: '1px solid', 
-                                  borderColor: 'divider', 
-                                  boxShadow: 'none', 
+                              <Paper
+                                sx={{
+                                  p: 2,
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                  boxShadow: 'none',
                                   borderRadius: 2.5,
                                   bgcolor: bgLight,
                                   '&:hover': {
@@ -1534,7 +1534,7 @@ export const SuperAdminAgents = () => {
           </Box>
           <TextField label="Full Name *" value={name} onChange={(e) => setName(e.target.value)} fullWidth required />
           <TextField label="Email Address *" type="email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth required />
-          <TextField label="Password *" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth required helperText="Provide credentials for the agent login." />
+          <TextField label="Password *" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth required helperText="Use a unique password with at least 12 characters." />
           <TextField label="Hotline Number *" value={phone} onChange={(e) => setPhone(e.target.value)} fullWidth required />
           <TextField
             select
@@ -1545,11 +1545,9 @@ export const SuperAdminAgents = () => {
             required
             helperText="Assign the system role determining permissions and sidebar access."
           >
-            <MenuItem value="admin">Admin (General Manager)</MenuItem>
-            <MenuItem value="operations">Operations Manager</MenuItem>
-            <MenuItem value="finance">Finance Manager</MenuItem>
-            <MenuItem value="consultant">Agent (Spain Visa Expert)</MenuItem>
-            <MenuItem value="marketing">Marketing Executive</MenuItem>
+            {isSuperAdmin && <MenuItem value="super_admin">Super Admin</MenuItem>}
+            <MenuItem value="admin">Admin</MenuItem>
+            <MenuItem value="sales_executive">Sales Executive</MenuItem>
           </TextField>
           <TextField label="Spoken Languages (comma-separated) *" placeholder="English, Spanish" value={languages} onChange={(e) => setLanguages(e.target.value)} fullWidth required />
           <TextField label="Nationalities (comma-separated)" placeholder="British" value={nationalities} onChange={(e) => setNationalities(e.target.value)} fullWidth />
@@ -1562,8 +1560,8 @@ export const SuperAdminAgents = () => {
             required
             helperText="Specify the commission percentage of total closed revenue (e.g. 10)."
           />
-          <TextField label="Immigration Bio Description" multiline rows={3} value={bio} onChange={(e) => setBio(e.target.value)} fullWidth />
-          
+          <TextField label="Team member bio" multiline rows={3} value={bio} onChange={(e) => setBio(e.target.value)} fullWidth />
+
           <FormControlLabel
             control={
               <Switch
@@ -1699,11 +1697,9 @@ export const SuperAdminAgents = () => {
             required
             helperText="Update the user system role determining permissions and sidebar access."
           >
-            <MenuItem value="admin">Admin (General Manager)</MenuItem>
-            <MenuItem value="operations">Operations Manager</MenuItem>
-            <MenuItem value="finance">Finance Manager</MenuItem>
-            <MenuItem value="consultant">Agent (Spain Visa Expert)</MenuItem>
-            <MenuItem value="marketing">Marketing Executive</MenuItem>
+            {isSuperAdmin && <MenuItem value="super_admin">Super Admin</MenuItem>}
+            <MenuItem value="admin">Admin</MenuItem>
+            <MenuItem value="sales_executive">Sales Executive</MenuItem>
           </TextField>
           <TextField label="Spoken Languages (comma-separated) *" placeholder="English, Spanish" value={languages} onChange={(e) => setLanguages(e.target.value)} fullWidth required />
           <TextField label="Nationalities (comma-separated)" placeholder="British" value={nationalities} onChange={(e) => setNationalities(e.target.value)} fullWidth />
@@ -1715,8 +1711,8 @@ export const SuperAdminAgents = () => {
             fullWidth
             required
           />
-          <TextField label="Immigration Bio Description" multiline rows={3} value={bio} onChange={(e) => setBio(e.target.value)} fullWidth />
-          
+          <TextField label="Team member bio" multiline rows={3} value={bio} onChange={(e) => setBio(e.target.value)} fullWidth />
+
           <FormControlLabel
             control={
               <Switch

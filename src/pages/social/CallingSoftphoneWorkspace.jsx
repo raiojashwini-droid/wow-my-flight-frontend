@@ -479,10 +479,10 @@ export default function CallingSoftphoneWorkspace() {
 
     try {
       showAlert(`📞 Dialing ${cleanNumber}... Waiting for answer`, 'info');
-      await makeCall({ toNumber: cleanNumber });
+      const placedCall = await makeCall({ toNumber: cleanNumber });
 
       // Reset dismissed state and save to last dialed storage immediately
-      const callId = `call_${Date.now()}`;
+      const callId = placedCall.id;
       activeCallIdRef.current = callId;
 
       setDismissedLastCall(false);
@@ -1412,7 +1412,7 @@ export default function CallingSoftphoneWorkspace() {
 
         {/* ── Right Column: Workspace Tabs & Real-Time Data ────────────── */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          
+
           {/* Navigation Tabs Bar */}
           <Paper
             elevation={0}

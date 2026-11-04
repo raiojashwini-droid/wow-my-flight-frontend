@@ -191,7 +191,7 @@ export default function LeadManagementSuite() {
 
   return (
     <Box sx={{ pb: 6, minHeight: '100vh' }}>
-      
+
       {/* Top Executive Header */}
       <Paper elevation={0} sx={{ p: 2.5, px: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: 'background.paper' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -477,7 +477,7 @@ export default function LeadManagementSuite() {
             WebkitOverflowScrolling: 'touch'
           }}
         >
-          
+
           {/* SECTION 1: CUSTOMER INFORMATION */}
           {formStep === 1 && (
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2, pt: 1 }}>
@@ -516,7 +516,7 @@ export default function LeadManagementSuite() {
               </TextField>
               <TextField label="Campaign Name" size="small" value={formData.campaign} onChange={(e) => handleInputChange('campaign', e.target.value)} fullWidth />
               <TextField select label="Assigned Agent" size="small" value={formData.assignedAgent} onChange={(e) => handleInputChange('assignedAgent', e.target.value)} fullWidth>
-                {['Sarah Jenkins', 'Alex Miller', 'Michael Chang', 'Unassigned (Auto-Assign)'].map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+                {['Sarah Jenkins', 'Alex Miller', 'Adam', 'Unassigned (Auto-Assign)'].map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
               </TextField>
               <TextField select label="Priority" size="small" value={formData.priority} onChange={(e) => handleInputChange('priority', e.target.value)} fullWidth>
                 {['Low', 'Medium', 'High', 'VIP'].map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}

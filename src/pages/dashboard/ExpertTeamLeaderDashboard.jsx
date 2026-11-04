@@ -95,43 +95,17 @@ const INITIAL_EXPERT_KPIS = [
   { id: 'resolved', title: 'Resolved Today', value: '23', change: '99.1% executive SLA', isUp: true, icon: <CheckCircleIcon sx={{ color: 'var(--wd-059669, #059669)' }} />, color: '#ECFDF5', border: '#059669' }
 ];
 
-const INITIAL_ESCALATION_QUEUE = [
-  { id: 'ESC-901', bookingId: 'BK-10892', customer: 'Ambassador Harold Vance', type: 'VIP First Class', reason: 'British Airways Schedule Change - Missed Concorde Room Connection', priority: 'Critical', agent: 'Sarah Jenkins', tl: 'Michael Chang', date: '2026-08-20 11:30', status: 'In Review' },
-  { id: 'ESC-902', bookingId: 'BK-10895', customer: 'Global Tech Corp (24 Pax)', type: 'Corporate Group', reason: 'Airline Tariff Increase of $180/pax post-deposit waiver request', priority: 'Critical', agent: 'Alex Miller', tl: 'Sofia Rodriguez', date: '2026-08-20 10:15', status: 'Pending Expert' },
-  { id: 'ESC-903', bookingId: 'BK-10901', customer: 'Dr. Alistair Finch', type: 'Multi-City RTW', reason: 'Married Segment Disruption across Qatar Airways & Cathay Pacific', priority: 'High', agent: 'David Ross', tl: 'Michael Chang', date: '2026-08-19 16:40', status: 'In Review' },
-  { id: 'ESC-904', bookingId: 'BK-10912', customer: 'Elena Rostova', type: 'Voluntary Reissue', reason: 'Medical emergency date shift requesting penalty fee waiver', priority: 'High', agent: 'Rita Verma', tl: 'Sofia Rodriguez', date: '2026-08-19 14:10', status: 'Pending Expert' },
-  { id: 'ESC-905', bookingId: 'BK-10920', customer: 'Marcus Sterling', type: 'Executive Complaint', reason: 'Chauffeur airport transfer no-show in Dubai (Emirates First)', priority: 'Medium', agent: 'James Cooper', tl: 'David Ross', date: '2026-08-18 19:20', status: 'Resolved' }
-];
+const INITIAL_ESCALATION_QUEUE = [];
 
-const INITIAL_COMPLEX_BOOKINGS = [
-  { id: 'CB-501', bookingId: 'BK-10892', customer: 'Ambassador Harold Vance', itinerary: 'JFK → LHR → DXB → SIN → SYD → LAX → JFK', paxCount: 2, cabin: 'First & Business', totalFare: 28500, supplier: 'Amadeus 1A (BA/EK/QF)', ticketStatus: 'ISSUED', paymentStatus: 'PAID ($28,500)', type: 'Multi-City RTW' },
-  { id: 'CB-502', bookingId: 'BK-10895', customer: 'TechSummit 2026 Group', itinerary: 'SFO → FRA → MUC (Group Block)', paxCount: 24, cabin: 'Economy Plus', totalFare: 43200, supplier: 'Sabre 1S (Lufthansa Group)', ticketStatus: 'PARTIAL (18/24)', paymentStatus: 'DEPOSIT PAID ($20,000)', type: 'Group 24 Pax' },
-  { id: 'CB-503', bookingId: 'BK-10933', customer: 'Apex Energy Partners', itinerary: 'IAH → DOH → LOS → LHR → IAH', paxCount: 4, cabin: 'Business Class', totalFare: 36400, supplier: 'Travelport 1G (Qatar/Virgin)', ticketStatus: 'ISSUED', paymentStatus: 'CORPORATE INVOICE', type: 'Corporate Travel' }
-];
+const INITIAL_COMPLEX_BOOKINGS = [];
 
-const INITIAL_VIP_CUSTOMERS = [
-  { id: 'VIP-01', name: 'Ambassador Harold Vance', level: 'Tier 1 Black Diamond', lifetimeRevenue: '$148,500', tripsCount: 14, assignedAgent: 'Sarah Jenkins', specialRequests: 'Row 1A always, Chauffeur meet-and-greet at airbridge, Halal meal', priorityStatus: 'Immediate 24/7 Executive SLA' },
-  { id: 'VIP-02', name: 'Lady Eleanor Montague', level: 'Platinum Elite', lifetimeRevenue: '$94,200', tripsCount: 9, assignedAgent: 'Alex Miller', specialRequests: 'Direct aisle access, Quiet zone, Champagne pre-order on boarding', priorityStatus: 'Top Priority' },
-  { id: 'VIP-03', name: 'Vikram & Sunita Singhania', level: 'Platinum Elite', lifetimeRevenue: '$86,000', tripsCount: 8, assignedAgent: 'Sofia Rodriguez', specialRequests: 'Wheelchair assistance for Mrs. Singhania, Jain Meal (VJML)', priorityStatus: 'Top Priority' },
-  { id: 'VIP-04', name: 'Charles Montgomery Burns', level: 'Gold Concierge', lifetimeRevenue: '$62,400', tripsCount: 6, assignedAgent: 'Michael Chang', specialRequests: 'Helicopter transfer Monaco to Nice airport, Excess baggage waiver', priorityStatus: 'Priority Desk' }
-];
+const INITIAL_VIP_CUSTOMERS = [];
 
-const INITIAL_REISSUES = [
-  { id: 'REIS-201', bookingId: 'BK-10892', customer: 'Ambassador Harold Vance', originalFare: 12400, newFare: 13850, fareDifference: 1450, penalty: 0, refundAmount: 0, airlineRules: 'BA INVOL SCHEDULE CHANGE: WAIVER CODE W/BA-99120 APPLIED', status: 'Awaiting Expert Approval', airline: 'British Airways' },
-  { id: 'REIS-202', bookingId: 'BK-10912', customer: 'Elena Rostova', originalFare: 3200, newFare: 3600, fareDifference: 400, penalty: 250, refundAmount: 0, airlineRules: 'Emirates Med Waiver pending hospital certificate verification', status: 'Pending Review', airline: 'Emirates' },
-  { id: 'REIS-203', bookingId: 'BK-10940', customer: 'Arthur Pendelton', originalFare: 5600, newFare: 4800, fareDifference: -800, penalty: 150, refundAmount: 650, airlineRules: 'Air France Voluntary Downgrade from First to Business (EMD Credit)', status: 'Approved', airline: 'Air France' }
-];
+const INITIAL_REISSUES = [];
 
-const INITIAL_COMPLAINTS = [
-  { id: 'CMP-101', customer: 'Marcus Sterling', bookingId: 'BK-10920', category: 'Concierge Ground Transfer Failure', severity: 'Critical', assignedExpert: 'Expert Team Leader Desk', deadline: '2h remaining', slaStatus: 'URGENT', notes: 'Passenger had to hire private limousine for $350. Recommending $350 refund + $200 travel voucher.' },
-  { id: 'CMP-102', customer: 'Fatima Al-Subaie', bookingId: 'BK-10944', category: 'Baggage Inclusion Dispute', severity: 'High', assignedExpert: 'Expert Team Leader Desk', deadline: '5h remaining', slaStatus: 'ON TRACK', notes: 'Customer charged $150 at Heathrow check-in because basic economy code was issued without luggage.' }
-];
+const INITIAL_COMPLAINTS = [];
 
-const INITIAL_SALES_EXCEPTIONS = [
-  { id: 'EXC-301', bookingId: 'BK-10892', customerPrice: 28500, supplierPrice: 25800, requestedDiscount: 1200, requestedMarkup: '$1,500 (5.8%)', agent: 'Sarah Jenkins', reason: 'High-Value VIP Retention. Client matching corporate Amex rate.' },
-  { id: 'EXC-302', bookingId: 'BK-10895', customerPrice: 43200, supplierPrice: 40000, requestedDiscount: 1800, requestedMarkup: '$1,400 (3.5%)', agent: 'Alex Miller', reason: '24-passenger group booking. Client paying 100% upfront via wire.' },
-  { id: 'EXC-303', bookingId: 'BK-10955', customerPrice: 9400, supplierPrice: 8900, requestedDiscount: 400, requestedMarkup: '$100 (1.1%)', agent: 'David Ross', reason: 'Repeat luxury flyer. Waiving margin to secure upcoming annual corporate contract.' }
-];
+const INITIAL_SALES_EXCEPTIONS = [];
 
 const ESCALATION_CATEGORY_DATA = [
   { name: 'GDS Schedule Changes', count: 8, color: '#DC2626' },
@@ -345,7 +319,7 @@ export default function ExpertTeamLeaderDashboard() {
 
   return (
     <Box sx={{ pb: 6, minHeight: '100vh' }}>
-      
+
       {/* Top Executive Header */}
       <Paper elevation={0} sx={{ p: { xs: 1.5, sm: 2.5 }, px: { xs: 2, sm: 3 }, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: 'background.paper' }}>
         <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 1.5, flexWrap: 'wrap', minWidth: 0, width: '100%' }}>
@@ -1047,7 +1021,7 @@ export default function ExpertTeamLeaderDashboard() {
             <Select value={targetExpert} label="Target Senior Specialist" onChange={e => setTargetExpert(e.target.value)}>
               <MenuItem value="Sarah Jenkins (Senior Specialist)">Sarah Jenkins (Senior Specialist - VIP)</MenuItem>
               <MenuItem value="Alex Miller (Corporate Specialist)">Alex Miller (Corporate Specialist - Groups)</MenuItem>
-              <MenuItem value="Michael Chang (Luxury Expert)">Michael Chang (Luxury Expert - RTW)</MenuItem>
+              <MenuItem value="Adam (Luxury Expert)">Adam (Luxury Expert - RTW)</MenuItem>
             </Select>
           </FormControl>
         </DialogContent>

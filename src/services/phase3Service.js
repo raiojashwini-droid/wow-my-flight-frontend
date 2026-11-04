@@ -1,7 +1,7 @@
 /**
  * src/services/phase3Service.js
  * WowMyFlight CRM — Phase 3: Management Integration API Services
- * 
+ *
  * Each service communicates directly with its backend endpoint:
  * 1. Team Leader Dashboard -> /api/team-leader-dashboard
  * 2. QA -> /api/qa
@@ -13,7 +13,7 @@
  * 8. Audit Trail -> /api/audit-trail
  */
 
-const PRIMARY_PROD_URL = 'https://wow-my-flight-backend-production.up.railway.app';
+const PRIMARY_PROD_URL = 'https://wow-my-flight-backend-production-2ef6.up.railway.app';
 
 const getBackendUrl = () => {
   if (import.meta.env.VITE_BACKEND_URL) {

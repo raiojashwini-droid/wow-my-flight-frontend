@@ -45,173 +45,20 @@ import AppModal from '../../components/AppModal';
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
 import { qaService } from '../../services/phase3Service';
-
+
 import { themeText } from '../../theme/themeColor';
 export const QA_AGENTS = [
   { id: 'ag-1', name: 'Maria Santos', role: 'Senior Sales Agent', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', callCount: 14, bookingCount: 9 },
-  { id: 'ag-2', name: 'Omar Farouq', role: 'Ticketing Expert', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', callCount: 18, bookingCount: 12 },
+  { id: 'ag-2', name: 'Abu', role: 'Ticketing Expert', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', callCount: 18, bookingCount: 12 },
   { id: 'ag-3', name: 'Karan Singh', role: 'Flight Specialist', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', callCount: 11, bookingCount: 7 },
   { id: 'ag-4', name: 'Sarah Jenkins', role: 'Consultant', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', callCount: 16, bookingCount: 10 },
 ];
 
-export const DEMO_CALL_TRANSCRIPT = [
-  { time: '00:05', speaker: 'Agent (Maria)', text: 'Thank you for calling Wow My Flight! My name is Maria. May I have your full name and booking reference, please?' },
-  { time: '00:15', speaker: 'Customer (M. Chen)', text: 'Hi Maria, this is Michael Chen. My PNR is ABC12D. I wanted to verify my flight date for JFK to London Heathrow.' },
-  { time: '00:28', speaker: 'Agent (Maria)', text: 'Thank you Mr. Chen! For verification, could you confirm your date of birth and billing zip code on file?' },
-  { time: '00:40', speaker: 'Customer (M. Chen)', text: 'Sure, DOB is May 14, 1985 and zip code is 10001.' },
-  { time: '00:52', speaker: 'Agent (Maria)', text: 'Perfect, verification complete! I see your booking on British Airways BA-117 departing Oct 15th in Business Class. Let me walk you through the fare rules and baggage allowance.' },
-  { time: '01:20', speaker: 'Agent (Maria)', text: 'Your ticket includes 2 checked bags up to 32kg each, seat selection, and complimentary lounge access. Is there anything else I can assist with today?' },
-  { time: '02:05', speaker: 'Customer (M. Chen)', text: 'That covers everything, Maria. Thank you so much for the clear explanation!' },
-  { time: '02:20', speaker: 'Agent (Maria)', text: 'It was my pleasure! Have a wonderful day and thank you for choosing Wow My Flight!' }
-];
+export const DEMO_CALL_TRANSCRIPT = [];
 
-export const INITIAL_CALL_AUDITS = [
-  {
-    id: 'CALL-8801',
-    agentId: 'ag-1',
-    agentName: 'Maria Santos',
-    customerName: 'Michael Chen',
-    pnr: 'ABC12D',
-    date: '2026-08-20 10:15',
-    duration: '04:35',
-    audioUrl: 'https://actions.google.com/sounds/v1/ambiences/office_noise.ogg',
-    scores: {
-      greeting: 10,
-      customerVerification: 9,
-      requirementUnderstanding: 10,
-      productKnowledge: 9,
-      fareExplanation: 9,
-      accuracy: 10,
-      compliance: 9,
-      salesTechnique: 10,
-      closing: 9,
-      documentation: 10,
-    },
-    auditorNotes: 'Flawless call control, excellent fare explanation, full compliance adherence.',
-    status: 'Audited'
-  },
-  {
-    id: 'CALL-8802',
-    agentId: 'ag-2',
-    agentName: 'Omar Farouq',
-    customerName: 'Amit Lee',
-    pnr: 'LMN78F',
-    date: '2026-08-19 14:20',
-    duration: '03:10',
-    audioUrl: 'https://actions.google.com/sounds/v1/ambiences/office_noise.ogg',
-    scores: {
-      greeting: 8,
-      customerVerification: 8,
-      requirementUnderstanding: 8,
-      productKnowledge: 8,
-      fareExplanation: 8,
-      accuracy: 8,
-      compliance: 8,
-      salesTechnique: 8,
-      closing: 8,
-      documentation: 8,
-    },
-    auditorNotes: 'Good ticket status explanation, missed explaining bag allowance details.',
-    status: 'Audited'
-  },
-  {
-    id: 'CALL-8803',
-    agentId: 'ag-3',
-    agentName: 'Karan Singh',
-    customerName: 'Rajesh Sharma',
-    pnr: 'SAB89X',
-    date: '2026-08-18 16:45',
-    duration: '05:20',
-    audioUrl: 'https://actions.google.com/sounds/v1/ambiences/office_noise.ogg',
-    scores: {
-      greeting: 7,
-      customerVerification: 7,
-      requirementUnderstanding: 7,
-      productKnowledge: 7,
-      fareExplanation: 7,
-      accuracy: 7,
-      compliance: 7,
-      salesTechnique: 7,
-      closing: 7,
-      documentation: 6,
-    },
-    auditorNotes: 'Needs improvement on baggage fee explanation & passport name double-check.',
-    status: 'Audited'
-  },
-  {
-    id: 'CALL-8804',
-    agentId: 'ag-4',
-    agentName: 'Sarah Jenkins',
-    customerName: 'H. Miller',
-    pnr: 'LH441P',
-    date: '2026-08-17 11:30',
-    duration: '02:45',
-    audioUrl: 'https://actions.google.com/sounds/v1/ambiences/office_noise.ogg',
-    scores: {
-      greeting: 6,
-      customerVerification: 6,
-      requirementUnderstanding: 6,
-      productKnowledge: 6,
-      fareExplanation: 6,
-      accuracy: 6,
-      compliance: 6,
-      salesTechnique: 6,
-      closing: 6,
-      documentation: 6,
-    },
-    auditorNotes: 'Critical: Forgot mandatory cardholder authorization disclosure during call.',
-    status: 'Audited'
-  }
-];
+export const INITIAL_CALL_AUDITS = [];
 
-export const INITIAL_BOOKING_AUDITS = [
-  {
-    id: 'BK-AUD-901',
-    bookingId: 'BK-1001',
-    pnr: 'ABC12D',
-    agentName: 'Maria Santos',
-    customerName: 'M. Chen',
-    airline: 'British Airways',
-    date: '2026-08-20 11:00',
-    scores: {
-      greeting: 10,
-      customerVerification: 10,
-      requirementUnderstanding: 9,
-      productKnowledge: 9,
-      fareExplanation: 10,
-      accuracy: 10,
-      compliance: 9,
-      salesTechnique: 9,
-      closing: 9,
-      documentation: 10,
-    },
-    auditorNotes: 'All passenger passport numbers, e-tickets, and GDS OSI remarks verified.',
-    status: 'Audited'
-  },
-  {
-    id: 'BK-AUD-902',
-    bookingId: 'BK-1002',
-    pnr: 'LMN78F',
-    agentName: 'Karan Singh',
-    customerName: 'A. Lee',
-    airline: 'Singapore Airlines',
-    date: '2026-08-19 16:30',
-    scores: {
-      greeting: 8,
-      customerVerification: 8,
-      requirementUnderstanding: 8,
-      productKnowledge: 8,
-      fareExplanation: 8,
-      accuracy: 8,
-      compliance: 8,
-      salesTechnique: 8,
-      closing: 8,
-      documentation: 8,
-    },
-    auditorNotes: 'Valid fare markup applied, itinerary PDF dispatches sent correctly.',
-    status: 'Audited'
-  }
-];
+export const INITIAL_BOOKING_AUDITS = [];
 
 // Helper to calculate total score (out of 100) & automated classification
 export const calculateQAScore = (scores) => {

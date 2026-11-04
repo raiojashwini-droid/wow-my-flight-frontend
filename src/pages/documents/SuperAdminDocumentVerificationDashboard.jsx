@@ -50,7 +50,7 @@ import PageHeader from '../../components/PageHeader';
 import AppTable from '../../components/AppTable';
 import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
-
+
 import { themeText } from '../../theme/themeColor';
 import { dbService } from '../../services/dbService';
 import { qaService } from '../../services/phase3Service';
@@ -77,83 +77,7 @@ const STATUS_CONFIG = {
 };
 
 // Initial Mock Documents (aligned to spec)
-const INITIAL_DOCUMENTS = [
-  {
-    id: 'DOC-101',
-    type: 'Passport',
-    customerName: 'Karan Singh',
-    customerEmail: 'karan@example.com',
-    bookingRef: 'BK-001',
-    pnr: 'SAB78K',
-    fileName: 'Karan_Singh_US_Passport_2031.pdf',
-    fileSize: '2.4 MB',
-    uploadDate: '2026-06-18',
-    expiryDate: '2031-08-15',
-    verifiedBy: 'Super Admin (CEO)',
-    status: 'Verified',
-    notes: 'US Citizen Passport verified valid (> 6 months validity for UK entry).'
-  },
-  {
-    id: 'DOC-102',
-    type: 'E-Ticket (PDF)',
-    customerName: 'Karan Singh',
-    customerEmail: 'karan@example.com',
-    bookingRef: 'BK-001',
-    pnr: 'SAB78K',
-    fileName: 'BA_ClubWorld_eTicket_1259834102941.pdf',
-    fileSize: '1.1 MB',
-    uploadDate: '2026-06-18',
-    expiryDate: '2026-10-15',
-    verifiedBy: 'Ticketing Desk',
-    status: 'Verified',
-    notes: 'British Airways 13-digit GDS e-ticket confirmed and active.'
-  },
-  {
-    id: 'DOC-103',
-    type: 'Auth Form',
-    customerName: 'Karan Singh',
-    customerEmail: 'karan@example.com',
-    bookingRef: 'BK-001',
-    pnr: 'SAB78K',
-    fileName: 'CreditCard_Auth_Form_Signed.pdf',
-    fileSize: '840 KB',
-    uploadDate: '2026-06-18',
-    expiryDate: '2026-12-31',
-    verifiedBy: 'Finance Team',
-    status: 'Verified',
-    notes: 'Digital signature verified against Visa cardholder name.'
-  },
-  {
-    id: 'DOC-104',
-    type: 'Visa Copy',
-    customerName: 'Alexander Pavlov',
-    customerEmail: 'alex.p@example.ru',
-    bookingRef: 'BK-002',
-    pnr: 'DXB44P',
-    fileName: 'UAE_Tourist_Visa_Approval.pdf',
-    fileSize: '1.8 MB',
-    uploadDate: '2026-06-17',
-    expiryDate: '2026-11-20',
-    verifiedBy: 'Pending Specialist',
-    status: 'Under Review',
-    notes: 'UAE eVisa copy submitted. Checking entry barcode validity.'
-  },
-  {
-    id: 'DOC-105',
-    type: 'Official Itinerary',
-    customerName: 'Chloe Dupont',
-    customerEmail: 'chloe.dupont@example.com',
-    bookingRef: 'BK-003',
-    pnr: 'JFK99L',
-    fileName: 'Official_Travel_Itinerary_JFK_LHR.pdf',
-    fileSize: '950 KB',
-    uploadDate: '2026-06-16',
-    expiryDate: '2026-10-22',
-    verifiedBy: 'Agent Alex',
-    status: 'Uploaded',
-    notes: 'Generated trip itinerary with baggage guidelines.'
-  }
-];
+const INITIAL_DOCUMENTS = [];
 
 export const SuperAdminDocumentVerificationDashboard = () => {
   const { showAlert } = useAlert();
@@ -365,7 +289,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
     }
   };
 
-      
+
   const handleUpdateStatus = async (docId, newStatus) => {
     setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status: newStatus, verifiedBy: 'Super Admin (CEO)' } : d));
     if (selectedDoc && selectedDoc.id === docId) {
@@ -501,11 +425,11 @@ export const SuperAdminDocumentVerificationDashboard = () => {
         const item = DOC_TYPES.find(t => t.type === row.type) || DOC_TYPES[0];
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-            <Box 
-              sx={{ 
-                p: 0.6, 
-                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : item.bg, 
-                borderRadius: 1.8, 
+            <Box
+              sx={{
+                p: 0.6,
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : item.bg,
+                borderRadius: 1.8,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -535,12 +459,12 @@ export const SuperAdminDocumentVerificationDashboard = () => {
       minWidth: '165px',
       render: (row) => (
         <Box sx={{ minWidth: 0 }}>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              fontWeight: 800, 
-              fontSize: '0.82rem', 
-              color: 'text.primary', 
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              color: 'text.primary',
               textTransform: 'capitalize',
               lineHeight: 1.2
             }}
@@ -548,8 +472,8 @@ export const SuperAdminDocumentVerificationDashboard = () => {
             {row.customerName}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mt: 0.3, flexWrap: 'wrap' }}>
-            <Box 
-              sx={{ 
+            <Box
+              sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 px: 0.8,
@@ -579,10 +503,10 @@ export const SuperAdminDocumentVerificationDashboard = () => {
         return (
           <Box sx={{ minWidth: 0, maxWidth: 210 }}>
             <Tooltip title={row.fileName} arrow placement="top">
-              <Box 
-                sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
                   gap: 0.6,
                   cursor: 'pointer',
                   '&:hover Typography': { textDecoration: 'underline' }
@@ -593,12 +517,12 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                 ) : (
                   <InsertDriveFileIcon sx={{ fontSize: 14, color: 'primary.main', flexShrink: 0 }} />
                 )}
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontWeight: 700, 
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 700,
                     fontSize: '0.78rem',
-                    color: 'primary.main', 
+                    color: 'primary.main',
                     fontFamily: 'monospace',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -625,10 +549,10 @@ export const SuperAdminDocumentVerificationDashboard = () => {
         return (
           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6 }}>
             <CalendarTodayIcon sx={{ fontSize: 12, color: isExpired ? 'error.main' : 'text.disabled' }} />
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                fontWeight: 700, 
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 700,
                 fontSize: '0.78rem',
                 color: isExpired ? 'error.main' : 'text.primary',
                 fontFamily: 'monospace'
@@ -651,11 +575,11 @@ export const SuperAdminDocumentVerificationDashboard = () => {
             size="small"
             icon={cfg.icon}
             label={row.status}
-            sx={{ 
-              bgcolor: cfg.bg, 
-              color: (theme) => themeText(theme, cfg.color), 
-              fontWeight: 800, 
-              fontSize: '0.68rem', 
+            sx={{
+              bgcolor: cfg.bg,
+              color: (theme) => themeText(theme, cfg.color),
+              fontWeight: 800,
+              fontSize: '0.68rem',
               height: 24,
               borderRadius: 1.5,
               border: '1px solid',
@@ -671,14 +595,14 @@ export const SuperAdminDocumentVerificationDashboard = () => {
   return (
     <Box sx={{ pb: 6, minHeight: '100vh', width: '100%' }}>
       {/* Top QA Command Header Card */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: { xs: 2.2, sm: 2.8, md: 3 }, 
-          mb: 3.5, 
-          border: '1px solid', 
-          borderColor: 'divider', 
-          borderRadius: 3.5, 
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 2.2, sm: 2.8, md: 3 },
+          mb: 3.5,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 3.5,
           bgcolor: 'background.paper',
           boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
           display: 'flex',
@@ -688,11 +612,11 @@ export const SuperAdminDocumentVerificationDashboard = () => {
       >
         {/* Top: Avatar & Identity */}
         <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
-          <Avatar 
-            sx={{ 
-              width: 48, 
-              height: 48, 
-              fontWeight: 900, 
+          <Avatar
+            sx={{
+              width: 48,
+              height: 48,
+              fontWeight: 900,
               fontSize: '1.1rem',
               background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
               color: '#FFFFFF',
@@ -704,49 +628,49 @@ export const SuperAdminDocumentVerificationDashboard = () => {
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
-              <Typography 
-                variant="h5" 
-                sx={{ 
-                  fontWeight: 900, 
-                  color: 'text.primary', 
-                  fontFamily: 'Outfit, sans-serif', 
-                  fontSize: { xs: '1.1rem', sm: '1.4rem' }, 
-                  letterSpacing: '-0.01em' 
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 900,
+                  color: 'text.primary',
+                  fontFamily: 'Outfit, sans-serif',
+                  fontSize: { xs: '1.1rem', sm: '1.4rem' },
+                  letterSpacing: '-0.01em'
                 }}
               >
                 Travel Documents Verification
               </Typography>
-              <Chip 
-                label="PHASE 3: QA OVERSIGHT" 
-                size="small" 
-                sx={{ 
-                  fontWeight: 900, 
-                  fontSize: '0.65rem', 
+              <Chip
+                label="PHASE 3: QA OVERSIGHT"
+                size="small"
+                sx={{
+                  fontWeight: 900,
+                  fontSize: '0.65rem',
                   height: 22,
                   bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.2)' : '#ECFDF5',
                   color: '#059669',
                   border: '1px solid',
                   borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.4)' : '#A7F3D0'
-                }} 
+                }}
               />
               <Chip
                 icon={
-                  <Box 
-                    sx={{ 
-                      width: 8, 
-                      height: 8, 
-                      borderRadius: '50%', 
-                      bgcolor: '#10B981', 
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: '#10B981',
                       ml: 1,
-                      boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.25)' 
-                    }} 
+                      boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.25)'
+                    }}
                   />
                 }
-                label="LIVE VAULT SECURE" 
+                label="LIVE VAULT SECURE"
                 size="small"
-                sx={{ 
-                  fontWeight: 800, 
-                  fontSize: '0.65rem', 
+                sx={{
+                  fontWeight: 800,
+                  fontSize: '0.65rem',
                   height: 22,
                   bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#F0FDF4',
                   color: '#047857',
@@ -763,13 +687,13 @@ export const SuperAdminDocumentVerificationDashboard = () => {
         </Box>
 
         {/* Bottom: Action Button & DualClock */}
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            gap: 1.5, 
-            alignItems: 'center', 
-            flexWrap: 'wrap', 
-            width: '100%' 
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1.5,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            width: '100%'
           }}
         >
           <Button
@@ -777,11 +701,11 @@ export const SuperAdminDocumentVerificationDashboard = () => {
             color="primary"
             startIcon={<CloudUploadIcon />}
             onClick={() => setUploadModalOpen(true)}
-            sx={{ 
-              borderRadius: 2.2, 
-              fontSize: '0.82rem', 
-              fontWeight: 800, 
-              px: 2.5, 
+            sx={{
+              borderRadius: 2.2,
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              px: 2.5,
               height: 38,
               textTransform: 'none',
               boxShadow: '0 4px 14px rgba(37,99,235,0.25)'
@@ -895,10 +819,10 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                 variant="outlined"
                 color="primary"
                 onClick={() => { setSelectedDoc(row); setDrawerOpen(true); }}
-                sx={{ 
-                  py: 0.35, 
-                  px: 1.2, 
-                  fontSize: '0.72rem', 
+                sx={{
+                  py: 0.35,
+                  px: 1.2,
+                  fontSize: '0.72rem',
                   fontWeight: 800,
                   borderRadius: 1.5,
                   textTransform: 'none',
@@ -917,18 +841,18 @@ export const SuperAdminDocumentVerificationDashboard = () => {
 
             <Tooltip title="Mark as Verified">
               <span>
-                <IconButton 
-                  size="small" 
-                  color="success" 
+                <IconButton
+                  size="small"
+                  color="success"
                   disabled={row.status === 'Verified'}
                   onClick={() => handleUpdateStatus(row.id, 'Verified')}
-                  sx={{ 
+                  sx={{
                     p: 0.5,
                     borderRadius: 1.5,
                     border: '1px solid',
                     borderColor: row.status === 'Verified' ? 'divider' : '#A7F3D0',
-                    bgcolor: row.status === 'Verified' 
-                      ? 'transparent' 
+                    bgcolor: row.status === 'Verified'
+                      ? 'transparent'
                       : (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5',
                     '&:hover': { bgcolor: '#D1FAE5' }
                   }}
@@ -939,11 +863,11 @@ export const SuperAdminDocumentVerificationDashboard = () => {
             </Tooltip>
 
             <Tooltip title="Download Certified PDF / Real File">
-              <IconButton 
-                size="small" 
-                color="primary" 
+              <IconButton
+                size="small"
+                color="primary"
                 onClick={() => handleDownloadDocumentPdf(row)}
-                sx={{ 
+                sx={{
                   p: 0.5,
                   borderRadius: 1.5,
                   border: '1px solid',

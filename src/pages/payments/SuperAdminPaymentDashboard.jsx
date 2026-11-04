@@ -77,170 +77,7 @@ const PIPELINE_LINKS = [
 ];
 
 // 10-Point Booking Financial Records Mock Data
-export const DEMO_BOOKING_FINANCIAL_RECORDS = [
-  {
-    id: 'BK-1001',
-    pnr: 'ABC12D',
-    customerName: 'M. Chen',
-    route: 'JFK → LHR',
-    agentName: 'Maria Santos (Senior Consultant)',
-    supplierName: 'British Airways (Sabre GDS)',
-    
-    // Formula components: Customer Price − Supplier Cost − Payment Processing Fee − Refunds − Discounts = Gross Profit
-    customerPrice: 10350.00,
-    supplierCost: 8200.00,
-    processingFee: 258.75,
-    refunds: 0.00,
-    discounts: 100.00,
-    grossProfit: 1791.25,
-    profitMarginPct: 17.3,
-    
-    // 10 Tracking Elements
-    paymentStatus: 'Payment Successful',
-    webhookEventId: 'evt_stripe_9923841',
-    webhookSignature: 'hmac_sha256_valid_0x9f82',
-    webhookTimestamp: '2026-08-12 14:32:05 EST',
-    
-    invoice: { id: 'INV-9001', issueDate: '2026-08-12', amount: '$10,350.00', status: 'Payment Successful' },
-    payment: { amountPaid: '$10,350.00', method: 'Card (Visa 3DS •••• 4242)', date: '2026-08-12 14:32', txnRef: 'TXN-882341' },
-    refund: { amount: '$0.00', status: 'None', reason: 'N/A' },
-    chargeback: { status: 'Protected (3DS Verified)', riskLevel: 'LOW 🟢', eSignSigned: true },
-    supplierPayable: { netAmount: '$8,200.00', supplier: 'British Airways (BSP Link)', dueDate: '2026-09-01' },
-    commission: { grossCommission: '$1,150.00', rate: '11.1%' },
-    agentCommission: { agentShare: '$268.68 (15%)', agentName: 'Maria Santos' },
-    markup: { amount: '$650.00', pct: '6.7%' },
-    serviceFee: { amount: '$150.00', type: 'Ticketing & Concierge Fee' },
-    tax: { amount: '$350.00', breakdown: 'GDS Airport Tax ($280) + Govt VAT ($70)' }
-  },
-  {
-    id: 'BK-1002',
-    pnr: 'LMN78F',
-    customerName: 'A. Lee',
-    route: 'DEL → SIN',
-    agentName: 'Karan Singh (Flight Expert)',
-    supplierName: 'Singapore Airlines (Amadeus 1A)',
-    
-    customerPrice: 3200.00,
-    supplierCost: 2600.00,
-    processingFee: 64.00,
-    refunds: 0.00,
-    discounts: 50.00,
-    grossProfit: 486.00,
-    profitMarginPct: 15.2,
-    
-    paymentStatus: 'Payment Processing',
-    webhookEventId: 'evt_stripe_9923842',
-    webhookSignature: 'hmac_sha256_valid_0x3a71',
-    webhookTimestamp: '2026-08-14 11:15:20 IST',
-    
-    invoice: { id: 'INV-9002', issueDate: '2026-08-14', amount: '$3,200.00', status: 'Payment Processing' },
-    payment: { amountPaid: '$3,200.00', method: 'Card (Mastercard •••• 8812)', date: '2026-08-14 11:15', txnRef: 'TXN-882342' },
-    refund: { amount: '$0.00', status: 'None', reason: 'N/A' },
-    chargeback: { status: 'Protected (AVS Full Match)', riskLevel: 'LOW 🟢', eSignSigned: true },
-    supplierPayable: { netAmount: '$2,600.00', supplier: 'Singapore Airlines', dueDate: '2026-09-05' },
-    commission: { grossCommission: '$350.00', rate: '10.9%' },
-    agentCommission: { agentShare: '$72.90 (15%)', agentName: 'Karan Singh' },
-    markup: { amount: '$200.00', pct: '6.25%' },
-    serviceFee: { amount: '$80.00', type: 'Standard Booking Fee' },
-    tax: { amount: '$120.00', breakdown: 'Intl Departure Tax ($120)' }
-  },
-  {
-    id: 'BK-1003',
-    pnr: 'QRS90G',
-    customerName: 'K. Singh',
-    route: 'DXB → LHR',
-    agentName: 'Omar Farouq (Ticketing Desk)',
-    supplierName: 'Emirates Direct API',
-    
-    customerPrice: 5800.00,
-    supplierCost: 4600.00,
-    processingFee: 0.00,
-    refunds: 0.00,
-    discounts: 0.00,
-    grossProfit: 1200.00,
-    profitMarginPct: 20.7,
-    
-    paymentStatus: 'Payment Successful',
-    webhookEventId: 'evt_swift_wire_77192',
-    webhookSignature: 'hmac_sha256_valid_0x8b12',
-    webhookTimestamp: '2026-08-15 16:40:00 GST',
-    
-    invoice: { id: 'INV-9003', issueDate: '2026-08-15', amount: '$5,800.00', status: 'Payment Successful' },
-    payment: { amountPaid: '$5,800.00', method: 'Bank Wire (SWIFT Transfer)', date: '2026-08-15 16:40', txnRef: 'SWIFT-EK99812' },
-    refund: { amount: '$0.00', status: 'None', reason: 'N/A' },
-    chargeback: { status: 'Zero Risk (Verified Wire)', riskLevel: 'LOW 🟢', eSignSigned: true },
-    supplierPayable: { netAmount: '$4,600.00', supplier: 'Emirates Airline Direct', dueDate: '2026-08-30' },
-    commission: { grossCommission: '$800.00', rate: '13.8%' },
-    agentCommission: { agentShare: '$180.00 (15%)', agentName: 'Omar Farouq' },
-    markup: { amount: '$400.00', pct: '6.9%' },
-    serviceFee: { amount: '$120.00', type: 'VIP Support Service Fee' },
-    tax: { amount: '$240.00', breakdown: 'UAE Airport Facility Charge ($240)' }
-  },
-  {
-    id: 'BK-1004',
-    pnr: 'SAB89X',
-    customerName: 'P. Kumar',
-    route: 'BOM → JFK',
-    agentName: 'Maria Santos (Senior Consultant)',
-    supplierName: 'American Airlines (Travelport GDS)',
-    
-    customerPrice: 8400.00,
-    supplierCost: 7100.00,
-    processingFee: 210.00,
-    refunds: 500.00,
-    discounts: 100.00,
-    grossProfit: 490.00,
-    profitMarginPct: 5.8,
-    
-    paymentStatus: 'Partially Refunded',
-    webhookEventId: 'evt_stripe_refund_1049',
-    webhookSignature: 'hmac_sha256_valid_0x5c40',
-    webhookTimestamp: '2026-08-16 09:22:15 IST',
-    
-    invoice: { id: 'INV-9004', issueDate: '2026-08-16', amount: '$8,400.00', status: 'Partially Refunded' },
-    payment: { amountPaid: '$8,400.00', method: 'Card (Amex •••• 1004)', date: '2026-08-16 09:22', txnRef: 'TXN-882344' },
-    refund: { amount: '$500.00', status: 'Partially Refunded', reason: 'Flight segment cancellation refund' },
-    chargeback: { status: 'Medium Risk 🟡', riskLevel: 'MEDIUM 🟡', eSignSigned: false },
-    supplierPayable: { netAmount: '$7,100.00', supplier: 'American Airlines GDS', dueDate: '2026-09-02' },
-    commission: { grossCommission: '$750.00', rate: '8.9%' },
-    agentCommission: { agentShare: '$73.50 (15%)', agentName: 'Maria Santos' },
-    markup: { amount: '$450.00', pct: '5.3%' },
-    serviceFee: { amount: '$100.00', type: 'Standard Booking Fee' },
-    tax: { amount: '$300.00', breakdown: 'India Passenger Service Fee + US Customs' }
-  },
-  {
-    id: 'BK-1005',
-    pnr: '1A990P',
-    customerName: 'Emma Novak',
-    route: 'CDG → DXB',
-    agentName: 'Sarah Jenkins (Customer Care)',
-    supplierName: 'Lufthansa (Consolidator AirDesk)',
-    
-    customerPrice: 2100.00,
-    supplierCost: 1750.00,
-    processingFee: 52.50,
-    refunds: 0.00,
-    discounts: 0.00,
-    grossProfit: 297.50,
-    profitMarginPct: 14.1,
-    
-    paymentStatus: 'Chargeback',
-    webhookEventId: 'evt_dispute_created_991',
-    webhookSignature: 'hmac_sha256_valid_0x2e88',
-    webhookTimestamp: '2026-08-17 18:05:40 CET',
-    
-    invoice: { id: 'INV-9005', issueDate: '2026-08-17', amount: '$2,100.00', status: 'Chargeback' },
-    payment: { amountPaid: '$2,100.00', method: 'Card (Visa •••• 9012)', date: '2026-08-17 18:05', txnRef: 'TXN-882345' },
-    refund: { amount: '$0.00', status: 'None', reason: 'N/A' },
-    chargeback: { status: 'Disputed (Cardholder Claim)', riskLevel: 'HIGH 🔴', eSignSigned: true },
-    supplierPayable: { netAmount: '$1,750.00', supplier: 'Lufthansa Group', dueDate: '2026-09-10' },
-    commission: { grossCommission: '$220.00', rate: '10.4%' },
-    agentCommission: { agentShare: '$44.62 (15%)', agentName: 'Sarah Jenkins' },
-    markup: { amount: '$130.00', pct: '6.1%' },
-    serviceFee: { amount: '$50.00', type: 'E-Ticket Processing Fee' },
-    tax: { amount: '$90.00', breakdown: 'EU Solidarity Tax ($90)' }
-  }
-];
+export const DEMO_BOOKING_FINANCIAL_RECORDS = [];
 
 // Initial Provider Webhook Event Feed Log
 export const INITIAL_WEBHOOK_LOGS = [
@@ -296,7 +133,7 @@ export const SuperAdminPaymentDashboard = () => {
             pnr: b.pnr || 'PNR-LIVE',
             customerName: b.passenger || b.name || b.customerName || 'Lead Passenger',
             route: b.route || `${b.origin || 'JFK'} → ${b.destination || 'DXB'}`,
-            agentName: b.issuingAgent || 'Omar Farouq',
+            agentName: b.issuingAgent || 'Abu',
             supplierName: b.supplier || (b.airlineCode ? `${b.airlineCode} Airline GDS` : 'Emirates Airline GDS'),
             customerPrice: amt,
             supplierCost: fareCost,
@@ -325,7 +162,7 @@ export const SuperAdminPaymentDashboard = () => {
             chargeback: { status: 'Normal / Cleared 🟢', riskLevel: 'LOW 🟢', eSignSigned: true },
             supplierPayable: { netAmount: `$${fareCost.toFixed(2)}`, supplier: b.supplier || 'GDS Direct', dueDate: 'Net 30' },
             commission: { grossCommission: `$${profit.toFixed(2)}`, rate: `${Number(((profit / (amt || 1)) * 100).toFixed(1))}%` },
-            agentCommission: { agentShare: `$${(profit * 0.15).toFixed(2)} (15%)`, agentName: b.issuingAgent || 'Omar Farouq' },
+            agentCommission: { agentShare: `$${(profit * 0.15).toFixed(2)} (15%)`, agentName: b.issuingAgent || 'Abu' },
             markup: { amount: `$${profit.toFixed(2)}`, pct: `${Number(((profit / (amt || 1)) * 100).toFixed(1))}%` },
             serviceFee: { amount: '$50.00', type: 'Flight Concierge Fee' },
             tax: { amount: `$${taxAmt.toFixed(2)}`, breakdown: 'Airline Security & Airport Tax' }

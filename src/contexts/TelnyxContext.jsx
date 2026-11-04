@@ -1,6 +1,6 @@
 /**
  * src/contexts/TelnyxContext.jsx
- * 
+ *
  * Global Telnyx WebRTC state manager.
  * Handles:
  *   - Telnyx JS SDK initialization & SIP registration
@@ -69,7 +69,7 @@ export const TelnyxProvider = ({ children }) => {
   useEffect(() => {
     if (!currentUser) return;
 
-    const socket = socketIO(BACKEND_URL, { withCredentials: true });
+    const socket = socketIO(BACKEND_URL, { withCredentials: true, auth: { token: currentUser.token } });
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -159,23 +159,24 @@ export const TelnyxProvider = ({ children }) => {
 
   // ── Load phone numbers on mount ─────────────────────────────────────────────
   useEffect(() => {
+    if (!currentUser?.token) { setPhoneNumbers([]); setSelectedFromNumber(''); return; }
     fetchPhoneNumbers()
       .then((numbers) => {
         setPhoneNumbers(numbers || []);
         // Default to toll-free if available
-        const tollFree = numbers?.find(n => n.type === 'toll_free');
-        setSelectedFromNumber(tollFree?.number || numbers?.[0]?.number || '');
+        setSelectedFromNumber(numbers?.find(n => n.number === currentUser.phone)?.number || numbers?.[0]?.number || '');
       })
       .catch((err) => console.warn('[TelnyxContext] Could not fetch phone numbers:', err.message));
-  }, []);
+  }, [currentUser?.id, currentUser?.phone]);
 
   // ── Initialize Telnyx WebRTC SDK ────────────────────────────────────────────
   const initializeSdk = useCallback(async () => {
+    if (!currentUser?.token) return;
     if (isInitializingRef.current) return;
     if (sdkStatusRef.current === 'registered') return;
 
     isInitializingRef.current = true;
-    const agent = currentUser || { id: 'agent-1', name: 'Agent' };
+    const agent = currentUser;
 
     try {
       setSdkStatus('loading');
@@ -201,8 +202,6 @@ export const TelnyxProvider = ({ children }) => {
 
       const client = new TelnyxRTC({
         login_token: tokenData.token,
-        login: tokenData.sipUsername,
-        password: tokenData.sipPassword,
         remoteElement: 'telnyx-remote-audio',
       });
 
@@ -293,6 +292,7 @@ export const TelnyxProvider = ({ children }) => {
 
   // Auto-initialize WebRTC SDK once on mount
   useEffect(() => {
+    if (!currentUser?.token) return;
     const timer = setTimeout(() => {
       if (sdkStatusRef.current === 'idle') {
         initializeSdk();
@@ -300,6 +300,18 @@ export const TelnyxProvider = ({ children }) => {
     }, 600);
     return () => clearTimeout(timer);
   }, [initializeSdk]);
+
+  useEffect(() => () => {
+    try { activeCallRef.current?.hangup(); telnyxClientRef.current?.disconnect(); } catch {}
+    telnyxClientRef.current = null;
+    activeCallRef.current = null;
+    isInitializingRef.current = false;
+    sdkStatusRef.current = 'idle';
+    setSdkStatus('idle');
+    setIncomingCall(null);
+    setActiveCall(null);
+    setCallState(CALL_STATE.IDLE);
+  }, [currentUser?.id]);
 
   // ── Call Timer helpers ───────────────────────────────────────────────────────
   const startCallTimer = () => {
@@ -322,6 +334,11 @@ export const TelnyxProvider = ({ children }) => {
 
   // ── Make an outbound call ────────────────────────────────────────────────────
   const makeCall = useCallback(async ({ toNumber, toName = '' }) => {
+    if (sdkStatusRef.current !== 'registered') {
+      await initializeSdk();
+      throw new Error('Phone is connecting. Wait for Ready, then dial again.');
+    }
+    if (!/^\+[1-9]\d{7,14}$/.test(toNumber)) throw new Error('Use an international number, for example +1…');
     if (!telnyxClientRef.current) {
       console.log('[TelnyxContext] Client not initialized. Initializing...');
       await initializeSdk();
@@ -335,7 +352,8 @@ export const TelnyxProvider = ({ children }) => {
     try {
       // Ensure microphone access before placing WebRTC call
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
+        const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        permissionStream.getTracks().forEach(track => track.stop());
       }
 
       // Unlock remote audio output element for browser media playback
@@ -346,7 +364,8 @@ export const TelnyxProvider = ({ children }) => {
       setCallState(CALL_STATE.DIALING);
       setCallSeconds(0);
 
-      const fromNumber = selectedFromNumber || phoneNumbers[0]?.number || '+18503329681';
+      const fromNumber = currentUser.phone;
+      if (!fromNumber || !phoneNumbers.some(n => n.number === fromNumber)) throw new Error('No active phone number assigned');
 
       const call = telnyxClientRef.current.newCall({
         destinationNumber: toNumber,
@@ -371,7 +390,7 @@ export const TelnyxProvider = ({ children }) => {
       setCallState(CALL_STATE.IDLE);
       throw err;
     }
-  }, [initializeSdk, callState, selectedFromNumber, phoneNumbers]);
+  }, [initializeSdk, callState, currentUser?.phone, phoneNumbers]);
 
   // ── Accept an incoming call ──────────────────────────────────────────────────
   const answerCall = useCallback(() => {

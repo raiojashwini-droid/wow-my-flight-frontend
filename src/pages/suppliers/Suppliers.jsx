@@ -36,57 +36,11 @@ import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
 import { flightContentService } from '../../services/flightContentService';
 
-const MOCK_SUPPLIERS = [
-  {
-    id: 'SUP-001',
-    name: 'Sabre GDS',
-    type: 'GDS Gateway',
-    status: 'Active',
-    contact: 'api-support@sabre.com',
-    commission: 'N/A',
-    balance: '$12,450'
-  },
-  {
-    id: 'SUP-002',
-    name: 'Amadeus GDS',
-    type: 'GDS Gateway',
-    status: 'Active',
-    contact: 'tech@amadeus.com',
-    commission: 'N/A',
-    balance: '$8,200'
-  },
-  {
-    id: 'SUP-003',
-    name: 'Mystifly Consolidator A',
-    type: 'Consolidator',
-    status: 'Active',
-    contact: 'b2b@mystifly.com',
-    commission: '8%',
-    balance: '$15,000'
-  },
-  {
-    id: 'SUP-004',
-    name: 'Mondee Consolidator B',
-    type: 'Consolidator',
-    status: 'Active',
-    contact: 'api@mondee.com',
-    commission: '6.5%',
-    balance: '$9,800'
-  },
-  {
-    id: 'SUP-005',
-    name: 'Air India Direct NDC',
-    type: 'NDC Supplier',
-    status: 'Active',
-    contact: 'ndc@airindia.in',
-    commission: '5%',
-    balance: '$4,100'
-  }
-];
+const MOCK_SUPPLIERS = [];
 
 export default function Suppliers() {
   const { showAlert } = useAlert();
-  
+
   // Traditional Suppliers List
   const [suppliers, setSuppliers] = useState(() => {
     const saved = localStorage.getItem('crm-suppliers');

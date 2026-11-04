@@ -92,7 +92,7 @@ const DEFAULT_MANDATORY_SLA_RULES = [
 const INITIAL_ACTIVE_SLA_TRACKER = [];
 const INITIAL_SLA_ALERTS = [];
 const DEFAULT_AGENT_LEADERBOARD = [
-  { id: 'AG-101', name: 'Omar Farouq', role: 'Ticketing Specialist', handled: 28, avgResponse: '1m 15s', avgTicketing: '2m 50s', onTime: '98.5%', rank: 1, status: 'Top Performer', color: '#10B981' },
+  { id: 'AG-101', name: 'Abu', role: 'Ticketing Specialist', handled: 28, avgResponse: '1m 15s', avgTicketing: '2m 50s', onTime: '98.5%', rank: 1, status: 'Top Performer', color: '#10B981' },
   { id: 'AG-102', name: 'Sarah Jenkins', role: 'Senior Travel Consultant', handled: 34, avgResponse: '1m 40s', avgTicketing: '3m 20s', onTime: '96.2%', rank: 2, status: 'Excellent', color: '#0284C7' },
   { id: 'AG-103', name: 'David Smith', role: 'Flight Sales Agent', handled: 22, avgResponse: '2m 10s', avgTicketing: '4m 05s', onTime: '93.0%', rank: 3, status: 'Compliant', color: '#6366F1' },
   { id: 'AG-104', name: 'Alex Rivera', role: 'Support & Changes', handled: 19, avgResponse: '2m 45s', avgTicketing: '4m 30s', onTime: '91.5%', rank: 4, status: 'Needs Coaching', color: '#F59E0B' }
@@ -177,7 +177,7 @@ export default function SlaManagement() {
 
   return (
     <Box sx={{ pb: 6, minHeight: '100vh', width: '100%' }}>
-      
+
       {/* ─── 1. TOP EXECUTIVE HEADER ─── */}
       <Paper
         elevation={0}
@@ -266,12 +266,12 @@ export default function SlaManagement() {
               }}
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 0.8, mb: 0.5 }}>
-                <Typography 
-                  variant="caption" 
-                  color="text.secondary" 
-                  sx={{ 
-                    fontWeight: 800, 
-                    textTransform: 'uppercase', 
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
                     fontSize: '0.64rem',
                     letterSpacing: '0.02em',
                     lineHeight: 1.2
@@ -279,15 +279,15 @@ export default function SlaManagement() {
                 >
                   {kpi.title}
                 </Typography>
-                <Box 
-                  sx={{ 
-                    width: 26, 
-                    height: 26, 
-                    borderRadius: 1.5, 
-                    bgcolor: alpha(kpi.color, 0.12), 
-                    color: kpi.color, 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <Box
+                  sx={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 1.5,
+                    bgcolor: alpha(kpi.color, 0.12),
+                    color: kpi.color,
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                     '& .MuiSvgIcon-root': { fontSize: '0.95rem' }
@@ -310,14 +310,14 @@ export default function SlaManagement() {
       </Box>
 
       {/* ─── 3. TABS (NO-SCROLL RESPONSIVE MATRIX) ─── */}
-      <Box 
-        sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { 
-            xs: 'repeat(1, 1fr)', 
-            sm: 'repeat(2, 1fr)', 
-            md: 'repeat(4, 1fr)' 
-          }, 
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: 'repeat(1, 1fr)',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(4, 1fr)'
+          },
           gap: 1.5,
           mb: 3.5
         }}
@@ -325,12 +325,12 @@ export default function SlaManagement() {
           {[
             { id: 0, label: '1. Live SLA Countdown', icon: <TimerIcon sx={{ fontSize: '1.1rem' }} /> },
             { id: 1, label: '2. Mandatory Rules Config', icon: <GavelIcon sx={{ fontSize: '1.1rem' }} /> },
-            { 
-              id: 2, 
-              label: '3. Escalation & Breach Alerts', 
-              badge: alerts.length, 
+            {
+              id: 2,
+              label: '3. Escalation & Breach Alerts',
+              badge: alerts.length,
               badgeColor: alerts.length > 0 ? '#EF4444' : undefined,
-              icon: <NotificationsActiveIcon sx={{ fontSize: '1.1rem' }} /> 
+              icon: <NotificationsActiveIcon sx={{ fontSize: '1.1rem' }} />
             },
             { id: 3, label: '4. Agent Leaderboard', icon: <AssessmentIcon sx={{ fontSize: '1.1rem' }} /> },
           ].map((tab) => {
@@ -351,8 +351,8 @@ export default function SlaManagement() {
                   border: '1px solid',
                   borderColor: isActive ? 'warning.main' : 'divider',
                   borderRadius: 2.2,
-                  bgcolor: isActive 
-                    ? (theme) => theme.palette.mode === 'dark' ? 'warning.main' : '#D97706' 
+                  bgcolor: isActive
+                    ? (theme) => theme.palette.mode === 'dark' ? 'warning.main' : '#D97706'
                     : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
                   color: isActive ? '#FFFFFF' : 'text.primary',
                   cursor: 'pointer',
@@ -362,29 +362,29 @@ export default function SlaManagement() {
                   boxShadow: isActive ? '0 4px 14px rgba(217,119,6,0.25)' : 'none',
                   '&:hover': {
                     borderColor: 'warning.main',
-                    bgcolor: isActive 
-                      ? '#B45309' 
+                    bgcolor: isActive
+                      ? '#B45309'
                       : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#FFFBEB',
                     color: isActive ? '#FFFFFF' : 'warning.dark'
                   }
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
-                  <Box 
-                    sx={{ 
-                      color: isActive ? '#FFFFFF' : '#D97706', 
-                      display: 'flex', 
+                  <Box
+                    sx={{
+                      color: isActive ? '#FFFFFF' : '#D97706',
+                      display: 'flex',
                       alignItems: 'center',
                       flexShrink: 0
                     }}
                   >
                     {tab.icon}
                   </Box>
-                  <Typography 
-                    variant="body2" 
+                  <Typography
+                    variant="body2"
                     noWrap
-                    sx={{ 
-                      fontWeight: isActive ? 800 : 700, 
+                    sx={{
+                      fontWeight: isActive ? 800 : 700,
                       fontSize: { xs: '0.74rem', sm: '0.78rem', md: '0.82rem' },
                       color: 'inherit',
                       overflow: 'hidden',
@@ -395,22 +395,22 @@ export default function SlaManagement() {
                   </Typography>
                 </Box>
                 {tab.badge !== undefined && (
-                  <Chip 
-                    label={tab.badge} 
-                    size="small" 
-                    sx={{ 
-                      height: 20, 
-                      minWidth: 20, 
-                      px: 0.6, 
-                      fontWeight: 900, 
+                  <Chip
+                    label={tab.badge}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      minWidth: 20,
+                      px: 0.6,
+                      fontWeight: 900,
                       fontSize: '0.65rem',
-                      bgcolor: isActive 
-                        ? 'rgba(255,255,255,0.25)' 
+                      bgcolor: isActive
+                        ? 'rgba(255,255,255,0.25)'
                         : (tab.badgeColor || (theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#E2E8F0')),
                       color: isActive ? '#FFFFFF' : (tab.badgeColor ? '#FFFFFF' : 'text.secondary'),
                       borderRadius: '10px',
                       flexShrink: 0
-                    }} 
+                    }}
                   />
                 )}
               </Box>

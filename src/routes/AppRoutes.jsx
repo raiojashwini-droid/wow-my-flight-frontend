@@ -1,3 +1,4 @@
+import MobilePhone from '../pages/social/MobilePhone';
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { dbService } from '../services/dbService';
@@ -164,7 +165,7 @@ const getDynamicRedirectPath = (label, role) => {
   if (role === 'admin') prefix = 'admin';
   else if (role === 'super_admin') prefix = 'super_admin';
   else if (role === 'operations') prefix = 'operations';
-  else if (role === 'consultant' || role === 'sales_agent') prefix = 'agent';
+  else if (role === 'sales_executive' || role === 'sales_agent') prefix = 'agent';
   else if (role === 'marketing') prefix = 'marketing-manager';
   else if (role === 'finance') prefix = 'finance';
   else if (role === 'team_leader') prefix = 'team_leader';
@@ -209,16 +210,16 @@ const getDynamicRedirectPath = (label, role) => {
   if (label === 'Social Inbox') path = '/social-inbox';
   if (label === 'Integrations') path = '/integrations';
 
-  if (!prefix || 
-      path.startsWith('/team_leader/') || 
-      path.startsWith('/expert_team_leader/') || 
-      path.startsWith('/marketing-manager/') || 
-      path.startsWith('/flight_expert/') || 
-      path.startsWith('/ticketing_agent/') || 
-      path.startsWith('/super_admin/') || 
-      path.startsWith('/admin/') || 
-      path.startsWith('/operations/') || 
-      path.startsWith('/finance/') || 
+  if (!prefix ||
+      path.startsWith('/team_leader/') ||
+      path.startsWith('/expert_team_leader/') ||
+      path.startsWith('/marketing-manager/') ||
+      path.startsWith('/flight_expert/') ||
+      path.startsWith('/ticketing_agent/') ||
+      path.startsWith('/super_admin/') ||
+      path.startsWith('/admin/') ||
+      path.startsWith('/operations/') ||
+      path.startsWith('/finance/') ||
       path.startsWith('/agent/')) {
     return path;
   }
@@ -248,13 +249,17 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
+  if (currentUser.role === 'sales_executive' && ['Permission Control', 'Finance', 'Management Reports', 'Audit Trail', 'Automation', 'Agents Management'].includes(getMenuLabelForPath(location.pathname))) {
+    return <Navigate to="/agent/dashboard" replace />;
+  }
+
   if (allowedRoles && !hasRole(allowedRoles)) {
     // Redirect to role-specific dashboard, not generic /dashboard
     let rolePrefix = currentUser.role;
-    if (currentUser.role === 'consultant' || currentUser.role === 'sales_agent') rolePrefix = 'agent';
+    if (currentUser.role === 'sales_executive' || currentUser.role === 'sales_agent') rolePrefix = 'agent';
     else if (currentUser.role === 'super_admin') rolePrefix = 'super_admin';
     else if (currentUser.role === 'marketing') rolePrefix = 'marketing-manager';
-    
+
     return <Navigate to={`/${rolePrefix}/dashboard`} replace />;
   }
 
@@ -273,7 +278,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
       'QA Audits',
       'After-Sales',
       'QA',
-      'Live Web Chat'
+      'Live Web Chat',
+      'Internal Team Chat',
+      'Agents Management'
     ];
 
     if (currentMenuLabel && !EXEMPT_MENU_LABELS.includes(currentMenuLabel)) {
@@ -309,7 +316,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 const getPrefixForRole = (role) => {
   if (!role) return 'super_admin';
-  if (role === 'consultant' || role === 'sales_agent') return 'agent';
+  if (role === 'sales_executive' || role === 'sales_agent') return 'agent';
   if (role === 'marketing') return 'marketing-manager';
   return role;
 };
@@ -370,6 +377,9 @@ const RootRedirect = () => {
 export const AppRoutes = () => {
   return (
     <Routes>
+      <Route element={<ProtectedRoute allowedRoles={['super_admin', 'admin', 'sales_executive']}><DashboardLayout /></ProtectedRoute>}>
+        <Route path="/phone" element={<MobilePhone />} />
+      </Route>
       {/* Root Route - Direct Login / Authenticated Dashboard */}
       <Route path="/" element={<RootRedirect />} />
       <Route path="/landing" element={<Navigate to="/" replace />} />
@@ -403,7 +413,7 @@ export const AppRoutes = () => {
       >
         {/* Core Dashboard */}
         <Route path="/dashboard" element={<Dashboard />} />
-        
+
         {/* Un-prefixed fallback redirects for details / lists */}
         <Route path="/leads" element={<ProtectedRoute><LeadsRedirect /></ProtectedRoute>} />
         <Route path="/leads/details/:id" element={<ProtectedRoute><LeadDetailsRedirect /></ProtectedRoute>} />
@@ -435,7 +445,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'sales_agent', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'sales_agent', 'super_admin']}>
               <AgentDashboard />
             </ProtectedRoute>
           }
@@ -456,7 +466,7 @@ export const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-        
+
         {/* New Travel CRM Role Dashboards */}
         <Route path="/:role/team_leader/dashboard" element={<Navigate to="/team_leader/dashboard" replace />} />
         <Route path="/:role/expert_team_leader/dashboard" element={<Navigate to="/expert_team_leader/dashboard" replace />} />
@@ -509,7 +519,7 @@ export const AppRoutes = () => {
         <Route
           path="/automation"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <Phase3RoleRedirect superAdminPath="/super_admin/automation">
                 <AutomationEngine />
               </Phase3RoleRedirect>
@@ -519,7 +529,7 @@ export const AppRoutes = () => {
         <Route
           path="/sla-management"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <Phase3RoleRedirect superAdminPath="/super_admin/sla-management">
                 <SlaManagement />
               </Phase3RoleRedirect>
@@ -529,7 +539,7 @@ export const AppRoutes = () => {
         <Route
           path="/notifications/all"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <CentralNotificationCenter />
             </ProtectedRoute>
           }
@@ -537,7 +547,7 @@ export const AppRoutes = () => {
         <Route
           path="/audit-trail"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <Phase3RoleRedirect superAdminPath="/super_admin/audit-trail">
                 <AuditTrail />
               </Phase3RoleRedirect>
@@ -547,7 +557,7 @@ export const AppRoutes = () => {
         <Route
           path="/management-reports"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <Phase3RoleRedirect superAdminPath="/super_admin/management-reports">
                 <ManagementReportingDashboard />
               </Phase3RoleRedirect>
@@ -565,7 +575,7 @@ export const AppRoutes = () => {
         <Route
           path="/leads"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <SuperAdminLeadList />
             </ProtectedRoute>
           }
@@ -573,7 +583,7 @@ export const AppRoutes = () => {
         <Route
           path="/lead-distribution"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <LeadDistributionEngine />
             </ProtectedRoute>
           }
@@ -581,7 +591,7 @@ export const AppRoutes = () => {
         <Route
           path="/lead-lifecycle"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <LeadLifecycleSystem />
             </ProtectedRoute>
           }
@@ -589,7 +599,7 @@ export const AppRoutes = () => {
         <Route
           path="/duplicate-leads"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <DuplicateLeadProtection />
             </ProtectedRoute>
           }
@@ -597,7 +607,7 @@ export const AppRoutes = () => {
         <Route
           path="/communication-center"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <CommunicationCenter />
             </ProtectedRoute>
           }
@@ -605,7 +615,7 @@ export const AppRoutes = () => {
         <Route
           path="/live-chat"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <AgentLiveChatWorkspace />
             </ProtectedRoute>
           }
@@ -613,7 +623,7 @@ export const AppRoutes = () => {
         <Route
           path="/internal-team-chat"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance', 'flight_expert', 'ticketing_agent']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance', 'flight_expert', 'ticketing_agent']}>
               <InternalTeamChatWorkspace />
             </ProtectedRoute>
           }
@@ -621,7 +631,7 @@ export const AppRoutes = () => {
         <Route
           path="/super_admin/internal-team-chat"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance', 'flight_expert', 'ticketing_agent']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance', 'flight_expert', 'ticketing_agent']}>
               <InternalTeamChatWorkspace />
             </ProtectedRoute>
           }
@@ -629,7 +639,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/internal-team-chat"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance', 'flight_expert', 'ticketing_agent']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance', 'flight_expert', 'ticketing_agent']}>
               <InternalTeamChatWorkspace />
             </ProtectedRoute>
           }
@@ -637,7 +647,7 @@ export const AppRoutes = () => {
         <Route
           path="/calling-desk"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <CallingSoftphoneWorkspace />
             </ProtectedRoute>
           }
@@ -645,7 +655,7 @@ export const AppRoutes = () => {
         <Route
           path="/call-dispositions"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'consultant', 'sales_agent', 'operations', 'marketing', 'finance']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'team_leader', 'expert_team_leader', 'sales_executive', 'sales_agent', 'operations', 'marketing', 'finance']}>
               <MandatoryCallDispositionEngine />
             </ProtectedRoute>
           }
@@ -710,7 +720,7 @@ export const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-        
+
         <Route path="/social-inbox" element={<Navigate to="/communication-center?tab=chat" replace />} />
         <Route path="/:role/social-inbox" element={<Navigate to="/communication-center?tab=chat" replace />} />
         <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
@@ -1013,7 +1023,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/leads"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <AgentLeadList />
             </ProtectedRoute>
           }
@@ -1037,7 +1047,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/leads/details/:id"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <SuperAdminLeadDetails />
             </ProtectedRoute>
           }
@@ -1095,7 +1105,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/consultations"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <AgentConsultationList />
             </ProtectedRoute>
           }
@@ -1120,7 +1130,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/consultations/details/:id"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <AgentConsultationDetails />
             </ProtectedRoute>
           }
@@ -1145,7 +1155,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/consultations/calendar"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <AgentCalendarView />
             </ProtectedRoute>
           }
@@ -1242,7 +1252,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/customers"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <AgentClientList />
             </ProtectedRoute>
           }
@@ -1269,7 +1279,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/customers/details/:id"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <AgentClientDetails />
             </ProtectedRoute>
           }
@@ -1277,7 +1287,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/customers/details/:id"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <AgentClientDetails />
             </ProtectedRoute>
           }
@@ -1353,7 +1363,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/agents"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <Agents />
             </ProtectedRoute>
           }
@@ -1377,7 +1387,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/agents/performance"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <AllAgentsPerformance />
             </ProtectedRoute>
           }
@@ -1401,7 +1411,7 @@ export const AppRoutes = () => {
         <Route
           path="/team/profile/:id"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'operations', 'super_admin', 'consultant', 'finance', 'marketing']}>
+            <ProtectedRoute allowedRoles={['admin', 'operations', 'super_admin', 'sales_executive', 'finance', 'marketing']}>
               <StaffProfile />
             </ProtectedRoute>
           }
@@ -1459,7 +1469,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/active-cases"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <ActiveCases />
             </ProtectedRoute>
           }
@@ -1483,7 +1493,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/closed-cases"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <ClosedCases />
             </ProtectedRoute>
           }
@@ -1507,7 +1517,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/documents/verify"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <AdminDocumentVerificationDashboard />
             </ProtectedRoute>
           }
@@ -1549,7 +1559,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/marketing"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
               <SuperAdminMarketing />
             </ProtectedRoute>
           }
@@ -1586,7 +1596,7 @@ export const AppRoutes = () => {
         <Route
           path="/payments/invoices"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'finance', 'super_admin', 'operations', 'consultant', 'marketing']}>
+            <ProtectedRoute allowedRoles={['admin', 'finance', 'super_admin', 'operations', 'sales_executive', 'marketing']}>
               <InvoiceList />
             </ProtectedRoute>
           }
@@ -1594,7 +1604,7 @@ export const AppRoutes = () => {
         <Route
           path="/payments/invoice-details/:id"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'finance', 'super_admin', 'operations', 'consultant', 'marketing']}>
+            <ProtectedRoute allowedRoles={['admin', 'finance', 'super_admin', 'operations', 'sales_executive', 'marketing']}>
               <InvoiceDetails />
             </ProtectedRoute>
           }
@@ -1611,7 +1621,7 @@ export const AppRoutes = () => {
         <Route
           path="/integrations"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'operations', 'consultant', 'finance', 'marketing']}>
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'operations', 'sales_executive', 'finance', 'marketing']}>
               <Integrations />
             </ProtectedRoute>
           }
@@ -1621,7 +1631,7 @@ export const AppRoutes = () => {
         <Route
           path="/settings"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'finance', 'operations', 'super_admin', 'marketing', 'consultant']}>
+            <ProtectedRoute allowedRoles={['admin', 'finance', 'operations', 'super_admin', 'marketing', 'sales_executive']}>
               <Settings />
             </ProtectedRoute>
           }

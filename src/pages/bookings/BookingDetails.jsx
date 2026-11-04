@@ -66,7 +66,7 @@ const CENTRAL_BOOKING_RECORD = {
   travelDate: '2026-09-15',
   createdDate: '2026-08-18 10:15',
   agent: 'Sarah Jenkins',
-  teamLeader: 'Michael Chang',
+  teamLeader: 'Adam',
   priority: 'Critical VIP',
 
   // 14-Stage Real-Time Lifecycle
@@ -92,7 +92,7 @@ const CENTRAL_BOOKING_RECORD = {
     activity: { what: 'Ticket Issued & Dispatched via WhatsApp', who: 'Carlos Ticketing & System', when: '2026-08-20 11:32', dept: 'Ticketing & After-Sales' },
     operational: { status: 'CONFIRMED & TICKETED', nextAction: '24h Pre-departure Courtesy Call', pendingFollowup: 'Scheduled for 2026-09-14', slaStatus: '🟢 On Time (0 Breaches)' },
     financial: { customerPrice: 28500, supplierCost: 25800, markup: 2700, grossProfit: 2700, revenue: 28500, refund: 0, balance: 0 },
-    accountability: { leadOwner: 'Sarah Jenkins', bookingOwner: 'Sarah Jenkins', priceApprover: 'Michael Chang (TL)', ticketIssuer: 'Carlos Ticketing', paymentProcessor: 'Elena Finance', qaVerifier: 'QA Verified Passed (14/14)' }
+    accountability: { leadOwner: 'Sarah Jenkins', bookingOwner: 'Sarah Jenkins', priceApprover: 'Adam (TL)', ticketIssuer: 'Carlos Ticketing', paymentProcessor: 'Elena Finance', qaVerifier: 'QA Verified Passed (14/14)' }
   },
 
   // Customer Profile
@@ -219,7 +219,7 @@ const CENTRAL_BOOKING_RECORD = {
   // Audit Trail
   auditLog: [
     { user: 'Sarah Jenkins', role: 'Sales Agent', action: 'Created Booking from Lead LD-99120', time: '2026-08-18 10:15' },
-    { user: 'Michael Chang', role: 'Team Leader', action: 'Approved Commercial Quote Q-8812', time: '2026-08-18 11:30' },
+    { user: 'Adam', role: 'Team Leader', action: 'Approved Commercial Quote Q-8812', time: '2026-08-18 11:30' },
     { user: 'Elena Finance', role: 'Finance', action: 'Confirmed Receipt of $28,500 via Amex', time: '2026-08-19 14:10' },
     { user: 'Carlos Ticketing', role: 'Ticketing', action: 'Issued E-Tickets 13381235436196/97', time: '2026-08-20 11:30' }
   ]
@@ -250,9 +250,9 @@ export default function BookingDetails() {
       try {
         const bookingsList = await dbService.getBookings();
         if (isMounted && Array.isArray(bookingsList)) {
-          const found = bookingsList.find(b => 
-            String(b.id) === String(id) || 
-            String(b.bookingId) === String(id) || 
+          const found = bookingsList.find(b =>
+            String(b.id) === String(id) ||
+            String(b.bookingId) === String(id) ||
             (b.pnr && String(b.pnr).toLowerCase() === String(id).toLowerCase())
           );
           if (found) {
@@ -309,7 +309,7 @@ export default function BookingDetails() {
 
   return (
     <Box sx={{ pb: 6, minHeight: '100vh' }}>
-      
+
       {/* Back Button */}
       <Button
         startIcon={<ArrowBackIcon />}

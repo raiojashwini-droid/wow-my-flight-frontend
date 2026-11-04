@@ -3,81 +3,40 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { useQuery } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, ChevronDown } from 'lucide-react';
-import { dbService } from '../../services/dbService';
+import { motion } from 'framer-motion';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { getBackendUrl } from '../../services/dbService';
 import { useAuth } from '../../hooks/useAuth';
 import { useAlert } from '../../contexts/AlertContext';
 import { useThemeMode } from '../../contexts/ThemeContext';
 
 // Icons for roles
-import { ShieldAlert, ShieldCheck, Cpu, HeadphonesIcon, Users, Diamond, Send, Ticket, Wrench, Wallet, Megaphone } from 'lucide-react';
 
 const schema = yup.object().shape({
   email: yup.string().email('Enter a valid email').required('Email is required'),
   password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
 });
 
-const roleCategories = [
-  {
-    id: 'admin',
-    title: 'Management & Admin',
-    description: 'System control & approvals',
-    roles: [
-      { role: 'super_admin', label: 'Super Admin', desc: 'Full system control', icon: <ShieldAlert size={18} /> },
-      { role: 'admin', label: 'Admin (GM)', desc: 'Manage team and approvals', icon: <ShieldCheck size={18} /> },
-      { role: 'api_manager', label: 'API / System Mgr', desc: 'Manage integrations', icon: <Cpu size={18} /> },
-    ]
-  },
-  {
-    id: 'sales',
-    title: 'Sales Department',
-    description: 'B2B/B2C flight bookings',
-    roles: [
-      { role: 'consultant', label: 'Sales Exec', desc: 'Client interactions', icon: <HeadphonesIcon size={18} /> },
-      { role: 'team_leader', label: 'Team Leader', desc: 'Manage sales agents', icon: <Users size={18} /> },
-      { role: 'expert_team_leader', label: 'Expert TL (Escalation)', desc: 'Handle complex queries', icon: <Diamond size={18} /> },
-      { role: 'flight_expert', label: 'Flight Expert (GDS)', desc: 'GDS routing & pricing', icon: <Send size={18} /> },
-    ]
-  },
-  {
-    id: 'operations',
-    title: 'Ops, Finance & Marketing',
-    description: 'Ticketing, accounts & ads',
-    roles: [
-      { role: 'ticketing_agent', label: 'Ticketing Expert', desc: 'Issue & manage e-tickets', icon: <Ticket size={18} /> },
-      { role: 'after_sales', label: 'After-Sales / Ops', desc: 'Post-booking modifications', icon: <Wrench size={18} /> },
-      { role: 'finance', label: 'Finance & Accounts', desc: 'Invoices & reconciliations', icon: <Wallet size={18} /> },
-      { role: 'marketing', label: 'Marketing Manager', desc: 'Campaigns & promotions', icon: <Megaphone size={18} /> },
-    ]
-  }
-];
 
 export const Login = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated, currentUser } = useAuth();
   const { showAlert } = useAlert();
   const { mode } = useThemeMode();
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [shake, setShake] = useState(false);
-  const [activeTab, setActiveTab] = useState('admin');
   const hasJustLoggedIn = React.useRef(false);
 
   useEffect(() => {
     if (isAuthenticated && currentUser && !hasJustLoggedIn.current) {
       let rolePrefix = currentUser.role || 'super_admin';
-      if (currentUser.role === 'consultant' || currentUser.role === 'sales_agent') rolePrefix = 'agent';
+      if (currentUser.role === 'sales_executive' || currentUser.role === 'sales_agent') rolePrefix = 'agent';
       else if (currentUser.role === 'marketing') rolePrefix = 'marketing-manager';
       navigate(`/${rolePrefix}/dashboard`, { replace: true });
     }
   }, [isAuthenticated, currentUser, navigate]);
 
-  const { data: consultants = [] } = useQuery({
-    queryKey: ['consultants'],
-    queryFn: dbService.getConsultants,
-  });
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(schema),
@@ -93,127 +52,19 @@ export const Login = () => {
   };
 
   const onSubmit = async (data) => {
-    const enteredEmail = data.email.toLowerCase().trim();
-    const enteredPassword = data.password;
-
-    // 1. Try Live Authentication via Backend API & PostgreSQL Database
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-      const res = await fetch(`${backendUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: enteredEmail, password: enteredPassword })
+      const response = await fetch(getBackendUrl() + '/api/users/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email.trim(), password: data.password })
       });
-      const result = await res.json();
-
-      if (res.ok && result.success && result.user) {
-        const u = result.user;
-        let rolePrefix = u.role || 'super_admin';
-        if (u.role === 'consultant' || u.role === 'sales_agent') rolePrefix = 'agent';
-        else if (u.role === 'marketing') rolePrefix = 'marketing-manager';
-
-        executeLogin({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          role: u.role,
-          phone: u.phone,
-          avatar: u.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-          token: result.token
-        }, rolePrefix, u.name);
-        return;
-      }
-    } catch (e) {
-      // Backend unreachable or offline, continue with local fallback
-    }
-
-    // 2. Local Fallback for offline / instant demo
-    if (enteredEmail === 'admin@aaa.com' || enteredEmail === 'admin@wowmyflight.com' || enteredEmail === 'wael.madi@wowmyflight.com') {
-      executeLogin({
-        id: 'usr-super-admin',
-        name: 'Wael Madi (CEO)',
-        email: 'wael.madi@wowmyflight.com',
-        role: 'super_admin',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-      }, 'super_admin', 'Wael Madi (CEO)');
-      return;
-    }
-
-    const matchedConsultant = consultants.find(c => c.email && c.email.toLowerCase().trim() === enteredEmail);
-
-    if (matchedConsultant) {
-      const expectedPassword = matchedConsultant.password || 'password123';
-      if (enteredPassword === expectedPassword) {
-        let rolePrefix = matchedConsultant.role || 'agent';
-        if (rolePrefix === 'consultant' || rolePrefix === 'sales_agent') rolePrefix = 'agent';
-        else if (rolePrefix === 'marketing') rolePrefix = 'marketing-manager';
-        
-        executeLogin({
-          id: matchedConsultant.id,
-          name: matchedConsultant.name,
-          email: matchedConsultant.email,
-          role: matchedConsultant.role || 'consultant',
-          avatar: matchedConsultant.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
-          customPermissions: matchedConsultant.customPermissions,
-        }, rolePrefix, `Team Member: ${matchedConsultant.name}`);
-        return;
-      }
-    }
-
-    // Trigger Shake animation
-    setShake(true);
-    setTimeout(() => setShake(false), 500);
-    showAlert('Invalid login credentials. Please check email/password.', 'error');
-  };
-
-  const handleQuickLogin = (role) => {
-    let mockUser = {
-      id: 'usr-admin', name: 'Alex Turner (GM)', email: 'admin@wowmyflight.com', role: 'admin',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-    };
-    let routePrefix = 'admin';
-
-    if (role === 'consultant') {
-      mockUser = { id: 'usr-consultant', name: 'Sofia Rodriguez (Sales)', email: 'sales@wowmyflight.com', role: 'consultant', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150' };
-      routePrefix = 'agent';
-    } else if (role === 'team_leader') {
-      mockUser = { id: 'usr-team-leader', name: 'David Vance (Sales TL)', email: 'teamleader@wowmyflight.com', role: 'team_leader', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' };
-      routePrefix = 'team_leader';
-    } else if (role === 'expert_team_leader' || role === 'expert_tl') {
-      mockUser = { id: 'usr-expert-tl', name: 'Michael Chang (Escalation TL)', email: 'expertlead@wowmyflight.com', role: 'expert_team_leader', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150' };
-      routePrefix = 'expert_team_leader';
-    } else if (role === 'flight_expert') {
-      mockUser = { id: 'usr-flight-expert', name: 'Priya Sharma (GDS Expert)', email: 'expert@wowmyflight.com', role: 'flight_expert', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150' };
-      routePrefix = 'flight_expert';
-    } else if (role === 'ticketing_agent') {
-      mockUser = { id: 'usr-ticketing-agent', name: 'Omar Farouq (Ticketing)', email: 'ticketing@wowmyflight.com', role: 'ticketing_agent', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150' };
-      routePrefix = 'ticketing_agent';
-    } else if (role === 'finance' || role === 'accountant') {
-      mockUser = { id: 'usr-finance', name: 'Elena Rostova (Finance)', email: 'finance@wowmyflight.com', role: 'finance', avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=150' };
-      routePrefix = 'finance';
-    } else if (role === 'operations' || role === 'after_sales') {
-      mockUser = { id: 'usr-operations', name: 'Carlos Gomez (Ops & After-Sales)', email: 'ops@wowmyflight.com', role: 'operations', avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150' };
-      routePrefix = 'operations';
-    } else if (role === 'super_admin') {
-      mockUser = { id: 'usr-super-admin', name: 'Wael Madi (CEO)', email: 'wael.madi@wowmyflight.com', role: 'super_admin', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150' };
-      routePrefix = 'super_admin';
-    } else if (role === 'api_manager') {
-      mockUser = { id: 'usr-admin', name: 'Alex Turner (System Mgr)', email: 'admin@wowmyflight.com', role: 'admin', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150' };
-      routePrefix = 'integrations';
-    } else if (role === 'qa') {
-      mockUser = { id: 'usr-team-leader', name: 'David Vance (QA & Audit)', email: 'teamleader@wowmyflight.com', role: 'team_leader', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' };
-      routePrefix = 'team_leader';
-    } else if (role === 'marketing') {
-      mockUser = { id: 'usr-marketing', name: 'Marcus Sterling (Marketing)', email: 'marketing@wowmyflight.com', role: 'marketing', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' };
-      routePrefix = 'marketing-manager';
-    }
-
-    if (routePrefix === 'integrations') {
-      login(mockUser);
-      showAlert(`Logged in successfully as Demo ${role.toUpperCase().replace('_', ' ')}`, 'success');
-      navigate('/integrations', { replace: true });
-    } else {
-      executeLogin(mockUser, routePrefix, `Demo ${role.toUpperCase().replace('_', ' ')}`);
+      const result = await response.json();
+      if (!response.ok || !result.success || !result.token) throw new Error(result.error || 'Login failed');
+      const prefix = result.user.role === 'sales_executive' ? 'agent' : result.user.role;
+      executeLogin({ ...result.user, token: result.token }, prefix, result.user.name);
+    } catch (error) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      showAlert(error.message || 'Unable to reach the server', 'error');
     }
   };
 
@@ -255,10 +106,10 @@ export const Login = () => {
                 type="text"
                 placeholder="Email Address"
                 className={`w-full pl-11 pr-4 py-3.5 rounded-xl border text-sm transition-all outline-none bg-transparent ${
-                  errors.email 
-                    ? 'border-red-500 focus:ring-4 focus:ring-red-500/20' 
-                    : isDark 
-                      ? 'border-slate-700 text-white placeholder:text-slate-500 focus:border-[#D4A72C] focus:ring-4 focus:ring-[#D4A72C]/10' 
+                  errors.email
+                    ? 'border-red-500 focus:ring-4 focus:ring-red-500/20'
+                    : isDark
+                      ? 'border-slate-700 text-white placeholder:text-slate-500 focus:border-[#D4A72C] focus:ring-4 focus:ring-[#D4A72C]/10'
                       : 'border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10 hover:border-slate-300'
                 }`}
               />
@@ -275,10 +126,10 @@ export const Login = () => {
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 className={`w-full pl-11 pr-12 py-3.5 rounded-xl border text-sm transition-all outline-none bg-transparent ${
-                  errors.password 
-                    ? 'border-red-500 focus:ring-4 focus:ring-red-500/20' 
-                    : isDark 
-                      ? 'border-slate-700 text-white placeholder:text-slate-500 focus:border-[#D4A72C] focus:ring-4 focus:ring-[#D4A72C]/10' 
+                  errors.password
+                    ? 'border-red-500 focus:ring-4 focus:ring-red-500/20'
+                    : isDark
+                      ? 'border-slate-700 text-white placeholder:text-slate-500 focus:border-[#D4A72C] focus:ring-4 focus:ring-[#D4A72C]/10'
                       : 'border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10 hover:border-slate-300'
                 }`}
               />
@@ -318,73 +169,7 @@ export const Login = () => {
           </form>
 
           {/* Quick Login Divider */}
-          <div className="flex items-center my-8">
-            <div className={`flex-grow h-px ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}></div>
-            <span className={`px-4 text-[10px] uppercase font-bold tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-              Demo Quick Login
-            </span>
-            <div className={`flex-grow h-px ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}></div>
-          </div>
-
-          {/* Quick Login Accordion */}
-          <div className="space-y-3">
-            {roleCategories.map((cat) => (
-              <div key={cat.id} className={`rounded-xl overflow-hidden transition-colors ${isDark ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
-                <button
-                  onClick={() => setActiveTab(activeTab === cat.id ? '' : cat.id)}
-                  className={`w-full flex items-center justify-between p-4 text-left transition-colors ${isDark ? 'hover:bg-slate-700/50' : 'hover:bg-slate-100'}`}
-                >
-                  <div>
-                    <h4 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{cat.title}</h4>
-                    <p className={`text-[10px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{cat.description}</p>
-                  </div>
-                  <ChevronDown size={16} className={`transition-transform duration-300 ${isDark ? 'text-slate-400' : 'text-slate-500'} ${activeTab === cat.id ? 'rotate-180' : ''}`} />
-                </button>
-                
-                <AnimatePresence>
-                  {activeTab === cat.id && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    >
-                      <div className="p-4 pt-0 grid grid-cols-2 gap-2">
-                        {cat.roles.map((r, idx) => (
-                          <motion.button
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            key={r.role}
-                            onClick={() => handleQuickLogin(r.role)}
-                            className={`flex items-start gap-2.5 p-2.5 rounded-lg text-left transition-all border ${
-                              isDark 
-                                ? 'bg-slate-800 border-slate-700 hover:border-[#D4A72C] hover:bg-slate-700 hover:shadow-lg' 
-                                : 'bg-white border-slate-200 hover:border-[#4F46E5] hover:shadow-md'
-                            }`}
-                          >
-                            <div className={`mt-0.5 p-1.5 rounded-md ${isDark ? 'bg-slate-700 text-[#D4A72C]' : 'bg-indigo-50 text-[#4F46E5]'}`}>
-                              {r.icon}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className={`text-[11px] font-bold truncate ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                                {r.label}
-                              </div>
-                              <div className={`text-[9px] truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                {r.desc}
-                              </div>
-                            </div>
-                          </motion.button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
-          </div>
-          
-        </motion.div>
+      </motion.div>
         <style dangerouslySetInnerHTML={{__html: `
           @keyframes shimmer {
             100% { transform: translateX(100%); }

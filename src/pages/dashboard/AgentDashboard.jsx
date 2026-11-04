@@ -540,7 +540,7 @@ export default function AgentDashboard() {
       {
         id: "quotes",
         label: "Quotes Sent",
-        value: String(quotesCount || 3),
+        value: String(quotesCount),
         icon: "📩",
         color: "#6366F1",
         bg: "var(--wl-EEF2FF, #EEF2FF)",
@@ -549,7 +549,7 @@ export default function AgentDashboard() {
       {
         id: "bookings",
         label: "Confirmed Bookings",
-        value: String(bookingsCount || 2),
+        value: String(bookingsCount),
         icon: "✈️",
         color: "#059669",
         bg: "var(--wl-D1FAE5, #D1FAE5)",
@@ -1675,7 +1675,7 @@ export default function AgentDashboard() {
                         📞 {c.toNumber || "+1 212 555 0199"}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Direction: {c.direction || "outbound"} | Duration: {Math.floor((c.durationSeconds || 60) / 60)}m {(c.durationSeconds || 60) % 60}s | Status: {c.status || "completed"}
+                        Direction: {c.direction || "outbound"} | Duration: {Math.floor((c.durationSeconds || 0) / 60)}m {(c.durationSeconds || 0) % 60}s | Status: {c.status || "completed"}
                       </Typography>
                     </Box>
                     <Button

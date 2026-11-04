@@ -76,12 +76,7 @@ const INITIAL_AUTOMATION_WORKFLOWS = [
   { id: 'WF-105', name: 'Abandoned Cart / Unfinished Flight Search Recovery', trigger: 'Search Form Completed without Quote', condition: 'Email Captured == TRUE', action: 'Send Retargeting Email with Live Airline Price Comparison', delay: '2 Hours', status: false, executedCount: 210 }
 ];
 
-const INITIAL_AUTOMATION_LOGS = [
-  { id: 'LOG-801', workflowName: 'Instant Lead Assignment & WhatsApp Welcome', triggerTime: '2026-10-14 13:45:12', customer: 'Rajesh Sharma', action: 'WhatsApp Welcome Template & Agent Reassigned to Sofia R.', status: 'Success' },
-  { id: 'LOG-802', workflowName: 'Quote Expiry & 24h Price Re-Check Alert', triggerTime: '2026-10-14 13:20:04', customer: 'Marcus Vance', action: 'SMS Reminder Sent: Quote QT-9001 expires in 4 hours', status: 'Success' },
-  { id: 'LOG-803', workflowName: 'Pre-Departure Flight Itinerary & Gate Alert', triggerTime: '2026-10-14 12:10:33', customer: 'John Doe', action: 'E-Ticket PDF & Boarding Pass link sent via Email', status: 'Success' },
-  { id: 'LOG-804', workflowName: 'Abandoned Cart Recovery', triggerTime: '2026-10-14 11:05:00', customer: 'Elena Petrova', action: 'Retargeting flight fare alert dispatched', status: 'Success' }
-];
+const INITIAL_AUTOMATION_LOGS = [];
 
 const LANDING_PAGES_DATA = [
   { url: '/flights/europe-summer-sale', visitors: 42500, leads: 840, conv: '1.98%', bookings: 195, revenue: '$268,000', grossProfit: '$48,500', roi: '391%' },
@@ -170,7 +165,7 @@ export default function MarketingDashboard() {
       if (showNotice) {
         const isConnected = healthRes?.database?.connected;
         showAlert(
-          isConnected 
+          isConnected
             ? `✓ Synced with PostgreSQL database! Loaded ${leadsRes.length} leads, ${bookingsRes.length} bookings, ${quotesRes.length} quotes.`
             : `Loaded in offline fallback mode (${leadsRes.length} leads, ${bookingsRes.length} bookings).`,
           isConnected ? 'success' : 'info'
@@ -323,7 +318,7 @@ export default function MarketingDashboard() {
       else if (src.includes('meta') || src.includes('facebook') || src.includes('instagram')) target = 'Facebook & Instagram Paid';
       else if (src.includes('whatsapp')) target = 'WhatsApp Marketing API';
       else if (src.includes('organic') || src.includes('seo') || src.includes('website')) target = 'Organic Google Search (SEO)';
-      
+
       channelMap[target].leads += 1;
     });
 
@@ -333,10 +328,10 @@ export default function MarketingDashboard() {
       if (supp.includes('google')) target = 'Google Ads Search';
       else if (supp.includes('meta') || supp.includes('facebook')) target = 'Facebook & Instagram Paid';
       else if (supp.includes('whatsapp')) target = 'WhatsApp Marketing API';
-      
+
       const amt = parseFloat(String(b.amount || '$0').replace(/[^0-9.]/g, '')) || 0;
       const comm = parseFloat(String(b.commission || '$0').replace(/[^0-9.]/g, '')) || (amt * 0.1);
-      
+
       channelMap[target].bookings += 1;
       channelMap[target].revenue += amt;
       channelMap[target].profit += comm;
@@ -464,7 +459,7 @@ export default function MarketingDashboard() {
 
   return (
     <Box sx={{ pb: 6, minHeight: '100vh' }}>
-      
+
       {/* Top Executive Marketing Header with Real-time DB Indicators */}
       <Paper elevation={0} sx={{ p: { xs: 1.5, sm: 2.5 }, px: { xs: 2, sm: 3 }, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: 'background.paper' }}>
         <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 1.5, flexWrap: 'wrap', minWidth: 0, width: '100%' }}>
@@ -477,7 +472,7 @@ export default function MarketingDashboard() {
                 Marketing ROI & Automation Command Center
               </Typography>
               <Chip label="ROLE: MARKETING MANAGER" size="small" sx={{ fontWeight: 900, fontSize: '0.65rem', bgcolor: '#3F51B5', color: '#FFF', height: 22 }} />
-              
+
               {/* Live DB Connection Badge */}
               <Chip
                 icon={<StorageIcon sx={{ fontSize: '0.85rem !important' }} />}
@@ -502,7 +497,7 @@ export default function MarketingDashboard() {
             </Typography>
           </Box>
         </Box>
-        
+
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
           <Button
             variant="outlined"

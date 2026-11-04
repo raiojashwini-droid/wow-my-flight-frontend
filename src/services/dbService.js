@@ -23,35 +23,62 @@ export const getBackendUrl = () => {
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
     return 'http://localhost:3001';
   }
-  return 'https://wow-my-flight-backend-production.up.railway.app';
+  return 'https://wow-my-flight-backend-production-2ef6.up.railway.app';
+};
+
+export const getAuthToken = () => {
+  try {
+    const saved = localStorage.getItem('crm-auth-user');
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    return parsed?.token || null;
+  } catch {
+    return null;
+  }
 };
 
 async function apiFetch(path, options = {}) {
   const primaryUrl = getBackendUrl();
+  const token = getAuthToken();
+
+  const getHeaders = (extraHeaders = {}) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...extraHeaders
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  };
+
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
     const res = await fetch(`${primaryUrl}${path}`, {
-      headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
-      ...options
+      ...options,
+      headers: getHeaders(options.headers)
     });
     clearTimeout(timeoutId);
     if (res.ok) {
       return await res.json();
     }
+    if (res.status === 401) {
+      console.warn(`[apiFetch] 401 Unauthorized on ${path}`);
+    }
   } catch (err) { }
 
   // Fallback if primary URL failed
-  const fallbackUrl = 'https://wow-my-flight-backend-production.up.railway.app';
+  const fallbackUrl = 'https://wow-my-flight-backend-production-2ef6.up.railway.app';
   if (primaryUrl !== fallbackUrl) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
       const res = await fetch(`${fallbackUrl}${path}`, {
-        headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
-        ...options
+        ...options,
+        headers: getHeaders(options.headers)
       });
       clearTimeout(timeoutId);
       if (res.ok) {
@@ -103,9 +130,9 @@ const loadState = (key, defaults) => {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
         // Discard if containing legacy Spanish visa data
-        const isLegacy = parsed.some(item => 
-          item?.profileSummary?.includes('Golden Visa') || 
-          item?.serviceId === 'property' || 
+        const isLegacy = parsed.some(item =>
+          item?.profileSummary?.includes('Golden Visa') ||
+          item?.serviceId === 'property' ||
           item?.name?.includes('AAA Business') ||
           item?.messages?.some(m => m.text?.includes('AAA Business') || m.text?.includes('Digital Nomad Visa'))
         );
@@ -126,85 +153,7 @@ const saveState = (key, state) => {
   localStorage.setItem(key, JSON.stringify(state));
 };
 
-const INITIAL_CONVERSATIONS = [
-  {
-    id: 'conv1',
-    leadId: 'LD-8440',
-    name: 'Rajesh Sharma',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    platform: 'whatsapp',
-    unreadCount: 1,
-    status: 'Ticketed',
-    email: 'rajesh.sharma@example.com',
-    phone: '+91 98112 34567',
-    country: 'India',
-    preferredLanguage: 'English',
-    serviceId: 'flight_booking',
-    messages: [
-      { sender: 'customer', text: 'Hello, I have a confirmed booking BK-9169 for DEL → LHR on Air India (PNR: TP-ZOEFV1). Can you please confirm my baggage allowance?', timestamp: '10:15 AM' },
-      { sender: 'system', text: 'Hello Rajesh! Welcome to Wow My Flight Air Concierge. An executive travel specialist is reviewing your booking reference.', timestamp: '10:16 AM' },
-      { sender: 'agent', text: 'Hi Rajesh! Your ticketed booking allows 2 check-in pieces (23kg each) plus 7kg cabin baggage. Web check-in opens 24 hours prior to departure.', timestamp: '10:18 AM' },
-      { sender: 'customer', text: 'Excellent! Could you please assign an aisle seat in row 18 for me?', timestamp: '10:20 AM' },
-      { sender: 'agent', text: 'Done! Aisle seat 18C has been confirmed in Sabre GDS. E-ticket updated.', timestamp: '10:22 AM' }
-    ]
-  },
-  {
-    id: 'conv2',
-    leadId: 'LD-9001',
-    name: 'Marcus Vance',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-    platform: 'whatsapp',
-    unreadCount: 0,
-    status: 'Quote Sent',
-    email: 'marcus.vance@example.com',
-    phone: '+1 415 555 2671',
-    country: 'United States',
-    preferredLanguage: 'English',
-    serviceId: 'business_class',
-    messages: [
-      { sender: 'customer', text: 'Hi team, I received Quote QT-9001 for JFK ⇄ LHR Club World ($7,700). Does this include fast-track security and lounge access at Terminal 5?', timestamp: 'Yesterday' },
-      { sender: 'agent', text: 'Hello Marcus! Yes, British Airways Club World includes dedicated fast-track security, Galleries Club lounge access, and 180° lie-flat beds.', timestamp: 'Yesterday' },
-      { sender: 'customer', text: 'Great, I will complete the payment via Stripe link today.', timestamp: 'Yesterday' }
-    ]
-  },
-  {
-    id: 'conv3',
-    leadId: 'LD-9002',
-    name: 'Amina Al-Mansoor',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    platform: 'instagram',
-    unreadCount: 0,
-    status: 'Payment Received',
-    email: 'amina.m@example.ae',
-    phone: '+971 50 123 4567',
-    country: 'United Arab Emirates',
-    preferredLanguage: 'Arabic / English',
-    serviceId: 'first_class',
-    messages: [
-      { sender: 'customer', text: 'Salam! Can you verify if Emirates First Suite DXB ⇄ CDG has the shower spa available on EK-073?', timestamp: '2 days ago' },
-      { sender: 'agent', text: 'Salam Amina! Yes, the A380 flight has the private enclosed First Suite with Onboard Shower Spa. Invoice INV-4402 has been marked as Paid.', timestamp: '2 days ago' },
-      { sender: 'customer', text: 'Wonderful, thank you for the prompt assistance!', timestamp: '2 days ago' }
-    ]
-  },
-  {
-    id: 'conv4',
-    leadId: 'LD-9003',
-    name: "Liam O'Connor",
-    avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150',
-    platform: 'telegram',
-    unreadCount: 0,
-    status: 'Inquiry',
-    email: 'liam.oc@example.ie',
-    phone: '+353 87 987 6543',
-    country: 'Ireland',
-    preferredLanguage: 'English',
-    serviceId: 'economy_flex',
-    messages: [
-      { sender: 'customer', text: 'Looking for 2 return tickets from Dublin (DUB) to Mumbai (BOM) in mid November. Flexible on dates.', timestamp: '3 days ago' },
-      { sender: 'agent', text: 'Hi Liam! We have Qatar Airways via Doha and Etihad via Abu Dhabi with 2h layovers from $1,445 per person.', timestamp: '3 days ago' }
-    ]
-  }
-];
+const INITIAL_CONVERSATIONS = [];
 
 // ─── CLIENTS METADATA STORE & CACHE ──────────────────────────────
 const CLIENTS_META_STORAGE_KEY = 'crm-clients-meta-store';
@@ -1565,99 +1514,11 @@ export const dbService = {
     }
     return loadState('crm-agents-list', AGENTS);
   },
-  createAgent: async (agent) => {
-    try {
-      const res = await apiFetch('/api/users', {
-        method: 'POST',
-        body: JSON.stringify(agent)
-      });
-      if (res && res.success && res.data) {
-        const agents = loadState('crm-agents-list', []);
-        agents.unshift(res.data);
-        saveState('crm-agents-list', agents);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] createAgent API warning:', e.message);
-    }
-
-    await delay(50);
-    const agents = loadState('crm-agents-list', []);
-    const newAgent = {
-      ...agent,
-      id: agent.id || ('usr-' + Math.floor(1000 + Math.random() * 9000)),
-      joiningDate: agent.joiningDate || new Date().toISOString().split('T')[0]
-    };
-    agents.unshift(newAgent);
-    saveState('crm-agents-list', agents);
-    return newAgent;
-  },
-  updateAgentRole: async (id, role) => {
-    try {
-      const res = await apiFetch(`/api/users/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ role })
-      });
-      if (res && res.success && res.data) {
-        const agents = loadState('crm-agents-list', []);
-        const updated = agents.map(a => a.id === id ? { ...a, role } : a);
-        saveState('crm-agents-list', updated);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] updateAgentRole API warning:', e.message);
-    }
-
-    await delay(50);
-    const agents = loadState('crm-agents-list', []);
-    const updated = agents.map(a => a.id === id ? { ...a, role } : a);
-    saveState('crm-agents-list', updated);
-    return updated.find(c => c.id === id);
-  },
-  updateAgent: async (agent) => {
-    try {
-      const res = await apiFetch(`/api/users/${agent.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(agent)
-      });
-      if (res && res.success && res.data) {
-        const agents = loadState('crm-agents-list', []);
-        const updated = agents.map(a => a.id === agent.id ? { ...a, ...res.data } : a);
-        saveState('crm-agents-list', updated);
-        return res.data;
-      }
-    } catch (e) {
-      console.warn('[dbService] updateAgent API warning:', e.message);
-    }
-
-    await delay(50);
-    const agents = loadState('crm-agents-list', []);
-    const updated = agents.map(a => a.id === agent.id ? { ...a, ...agent } : a);
-    saveState('crm-agents-list', updated);
-    return updated.find(c => c.id === agent.id);
-  },
-  deleteAgent: async (id) => {
-    try {
-      await apiFetch(`/api/users/${id}`, {
-        method: 'DELETE'
-      });
-    } catch (e) {
-      console.warn('[dbService] deleteAgent API warning:', e.message);
-    }
-
-    await delay(50);
-    const agents = loadState('crm-agents-list', []);
-    const filtered = agents.filter(a => a.id !== id);
-    saveState('crm-agents-list', filtered);
-    return id;
-  },
-  resetAgentPassword: async (id, newPassword) => {
-    await delay();
-    const agents = loadState('crm-agents-list', AGENTS);
-    const updated = agents.map(a => a.id === id ? { ...a, password: newPassword } : a);
-    saveState('crm-agents-list', updated);
-    return { id, newPassword };
-  },
+  createAgent: async (agent) => { const res = await apiFetch('/api/users', { method: 'POST', body: JSON.stringify(agent) }); if (!res?.success) throw new Error('Account was not created. Check required fields and permissions.'); return res.data; },
+  updateAgentRole: async (id, role) => { const res = await apiFetch('/api/users/' + id, { method: 'PUT', body: JSON.stringify({ role }) }); if (!res?.success) throw new Error('Role was not saved'); return res.data; },
+  updateAgent: async (agent) => { const res = await apiFetch('/api/users/' + agent.id, { method: 'PUT', body: JSON.stringify(agent) }); if (!res?.success) throw new Error('Account was not saved'); return res.data; },
+  deleteAgent: async (id) => { const res = await apiFetch('/api/users/' + id, { method: 'DELETE' }); if (!res?.success) throw new Error('Account was not deactivated'); return id; },
+  resetAgentPassword: async (id, password) => { const res = await apiFetch('/api/users/' + id, { method: 'PUT', body: JSON.stringify({ password }) }); if (!res?.success) throw new Error('Password was not changed. Use at least 12 characters.'); return res.data; },
   assignConsultation: async (consultationId, agentId) => {
     await delay();
     const consultations = loadState('crm-consultations', MOCK_CONSULTATIONS);
@@ -1738,7 +1599,7 @@ export const dbService = {
     saveState('crm-refund-requests', refunds);
     return newRefund;
   },
-  updateRefundStatus: async (refundId, status, user = 'Wael Madi (CEO)') => {
+  updateRefundStatus: async (refundId, status, user = 'Parminder (Super Admin)') => {
     try {
       const res = await apiFetch(`/api/finance/refunds/${refundId}/status`, {
         method: 'PUT',
@@ -1797,13 +1658,7 @@ export const dbService = {
       }
     } catch (e) {}
     await delay();
-    return loadState('crm-commission-rates', [
-      { agentId: 'c1', type: '10%', value: 10 },
-      { agentId: 'c2', type: '5%', value: 5 },
-      { agentId: 'c3', type: 'custom', value: 12 },
-      { agentId: 'c4', type: 'fixed', value: 200 },
-      { agentId: 'c5', type: '10%', value: 10 }
-    ]);
+    return loadState('crm-commission-rates', []);
   },
   updateCommissionRate: async (agentId, type, value) => {
     try {
@@ -1813,13 +1668,7 @@ export const dbService = {
       });
     } catch (e) {}
     await delay();
-    const rates = loadState('crm-commission-rates', [
-      { agentId: 'c1', type: '10%', value: 10 },
-      { agentId: 'c2', type: '5%', value: 5 },
-      { agentId: 'c3', type: 'custom', value: 12 },
-      { agentId: 'c4', type: 'fixed', value: 200 },
-      { agentId: 'c5', type: '10%', value: 10 }
-    ]);
+    const rates = loadState('crm-commission-rates', []);
     const exists = rates.some(r => r.agentId === agentId);
     let updated;
     if (exists) {
@@ -1840,13 +1689,7 @@ export const dbService = {
     const payments = await dbService.getPayments();
     const clients = await dbService.getClients();
     const agents = await dbService.getAgents();
-    const rates = loadState('crm-commission-rates', [
-      { agentId: 'c1', type: '10%', value: 10 },
-      { agentId: 'c2', type: '5%', value: 5 },
-      { agentId: 'c3', type: 'custom', value: 12 },
-      { agentId: 'c4', type: 'fixed', value: 200 },
-      { agentId: 'c5', type: '10%', value: 10 }
-    ]);
+    const rates = loadState('crm-commission-rates', []);
 
     // Find all paid payments (excluding refunds)
     const paidPayments = payments.filter(p => (p.status === 'Paid' || p.status === 'Payment Successful') && (p.amount > 0 || p.totalPaid > 0));
@@ -1856,7 +1699,7 @@ export const dbService = {
       const client = clients.find(c => c.id === pay.clientId);
       const agentId = client?.assignedConsultantId || client?.assignedAgentId || 'unassigned';
       const agent = agents.find(a => a.id === agentId);
-      const agentName = agent ? agent.name : (pay.agentName || 'Wael Madi');
+      const agentName = agent ? agent.name : (pay.agentName || 'Parminder');
 
       // Find rate structure
       const rate = rates.find(r => r.agentId === agentId) || { type: '10%', value: 10 };
@@ -1897,25 +1740,9 @@ export const dbService = {
   // AWS STORAGE BACKUPS
   getBackupLogs: async () => {
     await delay();
-    return loadState('crm-aws-backups', [
-      { id: 'BAK-001', name: 'INV-2026-001_receipt.pdf', size: '142 KB', category: 'Receipt Storage', status: 'Backed Up', timestamp: '2026-06-25T14:35:00Z' },
-      { id: 'BAK-002', name: 'INV-2026-002_receipt.pdf', size: '138 KB', category: 'Receipt Storage', status: 'Backed Up', timestamp: '2026-06-25T14:35:00Z' },
-      { id: 'BAK-003', name: 'financial_ledger_q2_2026.xlsx', size: '2.4 MB', category: 'Financial Document Storage', status: 'Backed Up', timestamp: '2026-06-26T08:00:00Z' }
-    ]);
+    return loadState('crm-aws-backups', []);
   },
-  triggerAWSBackup: async (fileDetails) => {
-    await delay();
-    const backups = loadState('crm-aws-backups', []);
-    const newBackup = {
-      id: 'BAK-' + (backups.length + 101),
-      status: 'Backed Up',
-      timestamp: new Date().toISOString(),
-      ...fileDetails
-    };
-    backups.unshift(newBackup);
-    saveState('crm-aws-backups', backups);
-    return newBackup;
-  },
+  triggerAWSBackup: async () => { throw new Error('Cloud file backup is not configured. No backup was created.'); },
 
   // CLIENT PORTAL & MEETING SCHEDULER
   getAutoAssignSetting: async () => {
@@ -2120,7 +1947,7 @@ export const dbService = {
         menus: ['Dashboard', 'Priority Roadmap', 'Payments', 'Finance', 'SLA Management', 'Automation', 'Management Reports', 'Permission Control', 'Audit Trail'],
         cards: ['Total Revenue', 'Pending Payments']
       },
-      consultant: {
+      sales_executive: {
         menus: ['Dashboard', 'Priority Roadmap', 'Leads', 'Customer 360', 'Calling System', 'Follow-ups', 'Quotes', 'Lead Distribution', 'Lead Lifecycle', 'Duplicate Protection', 'Communication Hub', 'Calling & Softphone', 'Call Dispositions', 'Sales Dashboard', 'Bookings', 'SLA Management', 'Automation', 'Management Reports', 'Permission Control', 'Audit Trail', 'Social Inbox'],
         cards: ['Upcoming Meetings', 'Active Cases']
       },
@@ -2203,13 +2030,7 @@ export const dbService = {
   // MARKETING CAMPAIGNS
   getCampaigns: async () => {
     await delay(30);
-    const DEFAULT_CAMPAIGNS = [
-      { id: 'CMP-001', name: 'Summer Europe Business Class Flight Sale', platform: 'Google Ads', status: 'Active', budget: 15000, spend: 12400, leads: 840, qualLeads: 580, bookings: 195, revenue: 268000, grossProfit: 48500, roi: 391.1, cpl: 14.76, cpb: 63.59, profitPerBkg: 248.71, utmSource: 'google', utmMedium: 'cpc', utmCampaign: 'summer_europe_sale_2026', landingPage: '/flights/europe-summer-sale' },
-      { id: 'CMP-002', name: 'Dubai Luxury First Class Concierge Promo', platform: 'Meta (FB/IG)', status: 'Active', budget: 12000, spend: 9800, leads: 620, qualLeads: 410, bookings: 140, revenue: 215000, grossProfit: 38200, roi: 389.7, cpl: 15.80, cpb: 70.00, profitPerBkg: 272.85, utmSource: 'facebook', utmMedium: 'paid_social', utmCampaign: 'dubai_luxury_first_class', landingPage: '/luxury-first-class' },
-      { id: 'CMP-003', name: 'Manila & Asia Balikbayan Family Specials', platform: 'WhatsApp Ads', status: 'Active', budget: 8000, spend: 6400, leads: 590, qualLeads: 420, bookings: 160, revenue: 148000, grossProfit: 24600, roi: 384.3, cpl: 10.84, cpb: 40.00, profitPerBkg: 153.75, utmSource: 'whatsapp_api', utmMedium: 'direct_msg', utmCampaign: 'balikbayan_special_2026', landingPage: '/flights/asia-balikbayan' },
-      { id: 'CMP-004', name: 'London Heathrow Flash Discount Code', platform: 'Instagram', status: 'Active', budget: 6000, spend: 5200, leads: 480, qualLeads: 290, bookings: 85, revenue: 94000, grossProfit: 15800, roi: 303.8, cpl: 10.83, cpb: 61.17, profitPerBkg: 185.88, utmSource: 'instagram', utmMedium: 'paid_social', utmCampaign: 'lhr_flash_discount', landingPage: '/flights/london-heathrow' },
-      { id: 'CMP-005', name: 'TikTok Travel Influencer Deal Blast', platform: 'TikTok Ads', status: 'Paused', budget: 5000, spend: 4100, leads: 390, qualLeads: 180, bookings: 40, revenue: 42000, grossProfit: 6800, roi: 165.8, cpl: 10.51, cpb: 102.50, profitPerBkg: 170.00, utmSource: 'tiktok', utmMedium: 'influencer_video', utmCampaign: 'tiktok_travel_hacks', landingPage: '/flights/tiktok-deals' }
-    ];
+    const DEFAULT_CAMPAIGNS = [];
     return loadState('crm-marketing-campaigns', DEFAULT_CAMPAIGNS);
   },
   createCampaign: async (campaign) => {

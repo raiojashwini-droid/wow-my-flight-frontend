@@ -459,7 +459,7 @@ export const Settings = () => {
       .replace(/{packageName}/g, 'Executive Business VIP Concierge')
       .replace(/{amount}/g, '$3,450.00')
       .replace(/{dueDate}/g, 'October 20, 2026')
-      .replace(/{consultantName}/g, 'Sofia Rodriguez')
+      .replace(/{consultantName}/g, 'Issac')
       .replace(/{bookingLink}/g, 'https://wowmyflight.com/itinerary/WMF-78921')
       .replace(/{paymentLink}/g, 'https://wowmyflight.com/checkout/INV-2026-004')
       .replace(/\n/g, '<br />');

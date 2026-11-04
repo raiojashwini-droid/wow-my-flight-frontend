@@ -84,7 +84,7 @@ export const AdminDashboard = () => {
     refetchInterval: 20000,
   });
 
-  const isDbLive = dbHealth?.database?.connected !== false;
+  const isDbLive = dbHealth?.database?.connected === true;
   const isRefreshing = leadsLoading || bookingsLoading || quotesLoading || paymentsLoading;
 
   const handleManualRefresh = () => {
@@ -114,7 +114,7 @@ export const AdminDashboard = () => {
       return sum + fare;
     }, 0);
 
-    const totalRevenue = paidPaymentsTotal > 0 ? paidPaymentsTotal : bookingFareTotal;
+    const totalRevenue = paidPaymentsTotal;
 
     // 4. Pending Payments
     const pendingPaymentsList = dbPayments.filter(p => (p.status || '').toLowerCase() === 'pending');
@@ -126,7 +126,7 @@ export const AdminDashboard = () => {
     const openQuotesCount = openQuotes.length;
 
     // 6. Active Team
-    const activeAgentsCount = dbAgents.length > 0 ? dbAgents.length : 3;
+    const activeAgentsCount = dbAgents.filter(a => a.status === 'active').length;
 
     return {
       totalLeads,
@@ -142,32 +142,32 @@ export const AdminDashboard = () => {
   // ─── DYNAMIC FLIGHT BOOKING PIPELINE TABLE ───
   const pipelineData = useMemo(() => {
     const quotedCount = dbQuotes.length;
-    const quotedVal = dbQuotes.reduce((acc, q) => acc + (Number(q.totalPrice) || Number(q.fare) || 3200), 0);
+    const quotedVal = dbQuotes.reduce((acc, q) => acc + (Number(q.totalPrice) || Number(q.fare) || 0), 0);
 
     const confirmedCount = dbBookings.filter(b => ['confirmed', 'payment confirmed', 'ready to issue'].includes((b.status || '').toLowerCase())).length;
     const confirmedVal = dbBookings
       .filter(b => ['confirmed', 'payment confirmed', 'ready to issue'].includes((b.status || '').toLowerCase()))
-      .reduce((acc, b) => acc + (Number(b.totalAmount) || Number(b.fare) || 2800), 0);
+      .reduce((acc, b) => acc + (Number(b.totalAmount) || Number(b.fare) || 0), 0);
 
     const pnrCount = dbBookings.filter(b => b.pnr).length;
     const pnrVal = dbBookings
       .filter(b => b.pnr)
-      .reduce((acc, b) => acc + (Number(b.totalAmount) || Number(b.fare) || 2500), 0);
+      .reduce((acc, b) => acc + (Number(b.totalAmount) || Number(b.fare) || 0), 0);
 
-    const paidCount = dbPayments.filter(p => (p.status || '').toLowerCase() === 'paid').length || 2;
+    const paidCount = dbPayments.filter(p => (p.status || '').toLowerCase() === 'paid').length;
     const paidVal = dbPayments
       .filter(p => (p.status || '').toLowerCase() === 'paid')
-      .reduce((acc, p) => acc + (Number(p.amount) || Number(p.total) || 2200), 0);
+      .reduce((acc, p) => acc + (Number(p.amount) || Number(p.total) || 0), 0);
 
-    const ticketedCount = dbBookings.filter(b => ['ticketed', 'issued'].includes((b.status || '').toLowerCase())).length || 2;
+    const ticketedCount = dbBookings.filter(b => ['ticketed', 'issued'].includes((b.status || '').toLowerCase())).length;
     const ticketedVal = dbBookings
       .filter(b => ['ticketed', 'issued'].includes((b.status || '').toLowerCase()))
-      .reduce((acc, b) => acc + (Number(b.totalAmount) || Number(b.fare) || 2100), 0);
+      .reduce((acc, b) => acc + (Number(b.totalAmount) || Number(b.fare) || 0), 0);
 
     return [
-      { status: 'Quoted', count: quotedCount || 3, value: `$${quotedVal.toLocaleString()}`, color: '#64748B' },
-      { status: 'Confirmed', count: confirmedCount || 2, value: `$${confirmedVal.toLocaleString()}`, color: '#F59E0B' },
-      { status: 'PNR Created', count: pnrCount || dbBookings.length || 5, value: `$${pnrVal.toLocaleString()}`, color: '#7C3AED' },
+      { status: 'Quoted', count: quotedCount, value: `$${quotedVal.toLocaleString()}`, color: '#64748B' },
+      { status: 'Confirmed', count: confirmedCount, value: `$${confirmedVal.toLocaleString()}`, color: '#F59E0B' },
+      { status: 'PNR Created', count: pnrCount || dbBookings.length, value: `$${pnrVal.toLocaleString()}`, color: '#7C3AED' },
       { status: 'Payment Recv', count: paidCount, value: `$${paidVal.toLocaleString()}`, color: '#10B981' },
       { status: 'Ticketed', count: ticketedCount, value: `$${ticketedVal.toLocaleString()}`, color: '#059669' },
     ];
@@ -175,27 +175,18 @@ export const AdminDashboard = () => {
 
   // ─── DYNAMIC WEEKLY BOOKING VOLUME CHART ───
   const weeklyBookingsData = useMemo(() => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const currentWeekCounts = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
-
-    dbBookings.forEach(b => {
-      const d = b.createdAt ? new Date(b.createdAt) : new Date();
-      const dayName = days[(d.getDay() + 6) % 7];
-      if (currentWeekCounts[dayName] !== undefined) {
-        currentWeekCounts[dayName] += 1;
-      }
+    const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const start=new Date(); start.setHours(0,0,0,0); start.setDate(start.getDate()-(start.getDay()+6)%7);
+    const previous=new Date(start); previous.setDate(previous.getDate()-7);
+    const next=new Date(start); next.setDate(next.getDate()+7);
+    const result=days.map(day=>({day,'This Week':0,'Last Week':0}));
+    dbBookings.forEach(booking=>{
+      if(!booking.createdAt)return;
+      const date=new Date(booking.createdAt), index=(date.getDay()+6)%7;
+      if(date>=start&&date<next)result[index]['This Week']++;
+      else if(date>=previous&&date<start)result[index]['Last Week']++;
     });
-
-    // Ensure baseline rendering so chart shows realistic activity even with initial seed data
-    return [
-      { day: 'Mon', 'This Week': currentWeekCounts.Mon + 3, 'Last Week': 2 },
-      { day: 'Tue', 'This Week': currentWeekCounts.Tue + 4, 'Last Week': 3 },
-      { day: 'Wed', 'This Week': currentWeekCounts.Wed + 2, 'Last Week': 4 },
-      { day: 'Thu', 'This Week': currentWeekCounts.Thu + 5, 'Last Week': 3 },
-      { day: 'Fri', 'This Week': currentWeekCounts.Fri + 6, 'Last Week': 5 },
-      { day: 'Sat', 'This Week': currentWeekCounts.Sat + 2, 'Last Week': 2 },
-      { day: 'Sun', 'This Week': currentWeekCounts.Sun + 1, 'Last Week': 1 },
-    ];
+    return result;
   }, [dbBookings]);
 
   // ─── DYNAMIC CABIN CLASS DISTRIBUTION ───
@@ -207,9 +198,9 @@ export const AdminDashboard = () => {
     const allRecords = [...dbBookings, ...dbQuotes];
     if (allRecords.length === 0) {
       return [
-        { name: 'Economy', value: 55, color: '#3B82F6' },
-        { name: 'Business', value: 35, color: '#8B5CF6' },
-        { name: 'First Class', value: 10, color: '#F59E0B' },
+        { name: 'Economy', value: 0, color: '#3B82F6' },
+        { name: 'Business', value: 0, color: '#8B5CF6' },
+        { name: 'First Class', value: 0, color: '#F59E0B' },
       ];
     }
 

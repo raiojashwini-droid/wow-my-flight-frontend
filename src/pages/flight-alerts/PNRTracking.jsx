@@ -27,147 +27,7 @@ import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
 import { dbService } from '../../services/dbService';
 
-export const INITIAL_PNRS = [
-  {
-    pnr: 'XYZ34E',
-    customer: 'J. Smith',
-    route: 'JFK → LHR',
-    date: '15 Oct',
-    status: 'Schedule Change',
-    tone: 'error',
-    category: 'alerts',
-    type: 'changed',
-    ago: '2h ago',
-    airline: 'American Airlines (AA 100)',
-    depTime: '18:30',
-    arrTime: '07:30+1',
-    cabin: 'Business',
-    ticketStatus: 'Ticketed',
-    trackingStatus: 'Alert Active',
-    original: 'AA 100 | 15OCT | 18:30 → 07:30+1',
-    updated: 'AA 100 | 16OCT | 09:00 → 22:00',
-    needsAction: true,
-    history: [
-      { time: '2h ago', text: 'Airline schedule update received from Sabre GDS GDS feed' },
-      { time: '1d ago', text: 'PNR created and ticket issued' }
-    ]
-  },
-  {
-    pnr: 'LMN78F',
-    customer: 'A. Lee',
-    route: 'DEL → SIN',
-    date: '20 Nov',
-    status: 'Dispatched',
-    tone: 'success',
-    category: 'dispatched',
-    type: 'dispatched',
-    ago: '10h ago',
-    airline: 'Singapore Airlines (SQ 407)',
-    depTime: '10:00',
-    arrTime: '18:00',
-    cabin: 'Economy',
-    ticketStatus: 'Dispatched',
-    trackingStatus: 'Monitoring On-Time',
-    original: 'SQ 407 | 20NOV | 10:00 → 18:00',
-    updated: null,
-    needsAction: false,
-    history: [
-      { time: '10h ago', text: 'E-ticket issued & PDF itinerary sent to client' }
-    ]
-  },
-  {
-    pnr: 'QRS90G',
-    customer: 'S. Williams',
-    route: 'DXB → CDG',
-    date: '05 Dec',
-    status: 'Delayed 2h',
-    tone: 'warning',
-    category: 'delayed',
-    type: 'delayed',
-    ago: '1h ago',
-    airline: 'Emirates (EK 073)',
-    depTime: '10:00',
-    arrTime: '15:30',
-    cabin: 'Business',
-    ticketStatus: 'Ticketed',
-    trackingStatus: 'Delay Alert',
-    original: 'EK 073 | 05DEC | 08:00 → 13:30',
-    updated: 'EK 073 | 05DEC | 10:00 → 15:30',
-    needsAction: true,
-    history: [
-      { time: '1h ago', text: 'Flight delayed 2 hours due to air traffic operational hold' }
-    ]
-  },
-  {
-    pnr: 'QRS38F',
-    customer: 'J. Smith',
-    route: 'LHR → JFK',
-    date: '22 Oct',
-    status: 'Ticketed',
-    tone: 'success',
-    category: 'confirmed',
-    type: 'confirmed',
-    ago: '14h ago',
-    airline: 'British Airways (BA 175)',
-    depTime: '11:00',
-    arrTime: '14:15',
-    cabin: 'Economy',
-    ticketStatus: 'Ticketed',
-    trackingStatus: 'Active Tracking',
-    original: 'BA 175 | 22OCT | 11:00 → 14:15',
-    updated: null,
-    needsAction: false,
-    history: [
-      { time: '14h ago', text: 'E-Ticket generated in GDS' }
-    ]
-  },
-  {
-    pnr: 'ABC12D',
-    customer: 'M. Chen',
-    route: 'JFK → LHR',
-    date: '15 Oct',
-    status: 'Tracking Active',
-    tone: 'info',
-    category: 'confirmed',
-    type: 'confirmed',
-    ago: 'Live',
-    airline: 'American Airlines (AA 100)',
-    depTime: '18:30',
-    arrTime: '07:30+1',
-    cabin: 'Business',
-    ticketStatus: 'Pending Issuance',
-    trackingStatus: 'Active Tracking',
-    original: 'AA 100 | 15OCT | 18:30 → 07:30+1',
-    updated: null,
-    needsAction: false,
-    history: [
-      { time: 'Live', text: 'GDS link active, tracking seat assignments and gate updates' }
-    ]
-  },
-  {
-    pnr: 'DEF56H',
-    customer: 'R. Verma',
-    route: 'BOM → DXB',
-    date: '28 Oct',
-    status: 'Changed',
-    tone: 'warning',
-    category: 'changed',
-    type: 'changed',
-    ago: '4h ago',
-    airline: 'Emirates (EK 507)',
-    depTime: '06:00',
-    arrTime: '08:05',
-    cabin: 'Business',
-    ticketStatus: 'Ticketed',
-    trackingStatus: 'Schedule Changed',
-    original: 'EK 507 | 28OCT | 06:00 → 08:05',
-    updated: 'EK 507 | 29OCT | 06:00 → 08:05',
-    needsAction: true,
-    history: [
-      { time: '4h ago', text: 'Departure date adjusted by airline by 1 day' }
-    ]
-  }
-];
+export const INITIAL_PNRS = [];
 
 const FILTER_TABS = [
   { key: 'all', label: '📋 All' },
@@ -358,7 +218,7 @@ export default function PNRTracking() {
 
       {/* ─── 3. PNR TRACKER TABLE & MOBILE CARDS ─── */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2.5, overflow: 'hidden' }}>
-        
+
         {/* DESKTOP GRID VIEW (lg & up) */}
         <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
           {/* Table Header */}
@@ -607,7 +467,7 @@ export default function PNRTracking() {
                 <CloseIcon />
               </IconButton>
             </DialogTitle>
-            
+
             <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 3 }}>
 
             <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>

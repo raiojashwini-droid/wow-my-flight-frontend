@@ -371,7 +371,7 @@ export default function TeamLeaderDashboard() {
     // Active floor reps for round-robin
     const activeReps = (floorAgents && floorAgents.length > 0)
       ? floorAgents.map(a => a.name)
-      : ['Sofia Rodriguez (Sales)', 'Alex Turner (GM)', 'Sarah Jenkins'];
+      : ['Issac (Sales Executive)', 'Xavier (Admin)', 'Sarah Jenkins'];
 
     let repIdx = 0;
     const newOverrides = { ...assignedLeadOverrides };
@@ -515,17 +515,17 @@ export default function TeamLeaderDashboard() {
 
   return (
     <Box sx={{ pb: 6, minHeight: '100vh', pt: { xs: 0.5, sm: 1 } }}>
-      
+
       {/* Top Header Card with Command Center Identity */}
       {/* ─── 1. TOP EXECUTIVE HEADER ─── */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: { xs: 2.2, sm: 2.8, md: 3 }, 
-          mb: 3.5, 
-          border: '1px solid', 
-          borderColor: 'divider', 
-          borderRadius: 3.5, 
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 2.2, sm: 2.8, md: 3 },
+          mb: 3.5,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 3.5,
           bgcolor: 'background.paper',
           boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
           display: 'flex',
@@ -535,11 +535,11 @@ export default function TeamLeaderDashboard() {
       >
         {/* Top: Avatar & Identity */}
         <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, minWidth: 0, width: '100%' }}>
-          <Avatar 
-            sx={{ 
-              width: 48, 
-              height: 48, 
-              fontWeight: 900, 
+          <Avatar
+            sx={{
+              width: 48,
+              height: 48,
+              fontWeight: 900,
               fontSize: '1.1rem',
               background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
               color: '#FFFFFF',
@@ -551,52 +551,52 @@ export default function TeamLeaderDashboard() {
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}>
-              <Typography 
-                variant="h5" 
-                sx={{ 
-                  fontWeight: 900, 
-                  color: 'text.primary', 
-                  fontFamily: 'Outfit, sans-serif', 
-                  fontSize: { xs: '1.1rem', sm: '1.4rem' }, 
-                  letterSpacing: '-0.01em' 
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 900,
+                  color: 'text.primary',
+                  fontFamily: 'Outfit, sans-serif',
+                  fontSize: { xs: '1.1rem', sm: '1.4rem' },
+                  letterSpacing: '-0.01em'
                 }}
               >
                 Team Leader Command Centre
               </Typography>
-              <Chip 
-                label="ROLE: TEAM LEADER" 
-                size="small" 
-                sx={{ 
-                  fontWeight: 900, 
-                  fontSize: '0.65rem', 
+              <Chip
+                label="ROLE: TEAM LEADER"
+                size="small"
+                sx={{
+                  fontWeight: 900,
+                  fontSize: '0.65rem',
                   height: 22,
                   bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.2)' : '#EFF6FF',
                   color: 'primary.main',
                   border: '1px solid',
                   borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.4)' : '#BFDBFE'
-                }} 
+                }}
               />
               <Chip
                 icon={
-                  <Box 
-                    sx={{ 
-                      width: 8, 
-                      height: 8, 
-                      borderRadius: '50%', 
-                      bgcolor: isDbLive ? '#10B981' : '#EF4444', 
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: isDbLive ? '#10B981' : '#EF4444',
                       ml: 1,
-                      boxShadow: isDbLive ? '0 0 0 3px rgba(16, 185, 129, 0.25)' : 'none' 
-                    }} 
+                      boxShadow: isDbLive ? '0 0 0 3px rgba(16, 185, 129, 0.25)' : 'none'
+                    }}
                   />
                 }
                 label={isDbLive ? 'LIVE DB CONNECTED' : 'OFFLINE'}
                 size="small"
-                sx={{ 
-                  fontWeight: 800, 
-                  fontSize: '0.65rem', 
+                sx={{
+                  fontWeight: 800,
+                  fontSize: '0.65rem',
                   height: 22,
-                  bgcolor: isDbLive 
-                    ? (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' 
+                  bgcolor: isDbLive
+                    ? (theme) => theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5'
                     : (theme) => theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2',
                   color: isDbLive ? '#059669' : '#DC2626',
                   border: '1px solid',
@@ -612,13 +612,13 @@ export default function TeamLeaderDashboard() {
         </Box>
 
         {/* Bottom: Action Buttons & DualClock */}
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            gap: 1.5, 
-            alignItems: 'center', 
-            flexWrap: 'wrap', 
-            width: '100%' 
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1.5,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            width: '100%'
           }}
         >
           <Button
@@ -628,11 +628,11 @@ export default function TeamLeaderDashboard() {
             onClick={handleManualRefresh}
             disabled={isRefreshing}
             startIcon={isRefreshing ? <CircularProgress size={13} color="inherit" /> : <SyncIcon sx={{ fontSize: '1.1rem' }} />}
-            sx={{ 
-              borderRadius: 2.2, 
-              fontSize: '0.82rem', 
-              fontWeight: 800, 
-              px: 2.2, 
+            sx={{
+              borderRadius: 2.2,
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              px: 2.2,
               height: 38,
               textTransform: 'none',
               boxShadow: '0 4px 14px rgba(37,99,235,0.25)'
@@ -701,16 +701,16 @@ export default function TeamLeaderDashboard() {
       <AgentActivityFeed agents={floorAgents} />
 
       {/* DASHBOARD MODULE NAVIGATION (2 NEAT ROWS OF 4 - NO CUTOFF) */}
-      <Box 
-        sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { 
-            xs: 'repeat(2, 1fr)', 
-            sm: 'repeat(4, 1fr)', 
-            md: 'repeat(4, 1fr)', 
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: 'repeat(2, 1fr)',
+            sm: 'repeat(4, 1fr)',
+            md: 'repeat(4, 1fr)',
             lg: 'repeat(4, 1fr)',
-            xl: 'repeat(4, 1fr)' 
-          }, 
+            xl: 'repeat(4, 1fr)'
+          },
           gap: 1.5,
           mb: 3.5
         }}
@@ -719,27 +719,27 @@ export default function TeamLeaderDashboard() {
             { id: 0, label: '1. Overview & Floor', icon: <HeadsetIcon sx={{ fontSize: '1.05rem' }} /> },
             { id: 1, label: '2. Agent Performance', icon: <PeopleIcon sx={{ fontSize: '1.05rem' }} /> },
             { id: 2, label: '3. Lead Assignment', icon: <AssignmentIcon sx={{ fontSize: '1.05rem' }} /> },
-            { 
-              id: 3, 
-              label: '4. Discount Approvals', 
-              badge: pendingApprovals.length, 
+            {
+              id: 3,
+              label: '4. Discount Approvals',
+              badge: pendingApprovals.length,
               badgeColor: pendingApprovals.length > 0 ? '#F59E0B' : undefined,
-              icon: <MonetizationOnIcon sx={{ fontSize: '1.05rem' }} /> 
+              icon: <MonetizationOnIcon sx={{ fontSize: '1.05rem' }} />
             },
-            { 
-              id: 4, 
-              label: '5. Escalation Center', 
+            {
+              id: 4,
+              label: '5. Escalation Center',
               badge: escalations.filter(e => e.status !== 'Resolved').length,
               badgeColor: escalations.filter(e => e.status !== 'Resolved').length > 0 ? '#EF4444' : undefined,
-              icon: <WarningAmberIcon sx={{ fontSize: '1.05rem' }} /> 
+              icon: <WarningAmberIcon sx={{ fontSize: '1.05rem' }} />
             },
             { id: 5, label: '6. Coaching & QA', icon: <SchoolIcon sx={{ fontSize: '1.05rem' }} /> },
-            { 
-              id: 6, 
-              label: '7. Pending Payments', 
-              badge: pendingPayments.length, 
+            {
+              id: 6,
+              label: '7. Pending Payments',
+              badge: pendingPayments.length,
               badgeColor: pendingPayments.length > 0 ? '#3B82F6' : undefined,
-              icon: <PaymentIcon sx={{ fontSize: '1.05rem' }} /> 
+              icon: <PaymentIcon sx={{ fontSize: '1.05rem' }} />
             },
             { id: 7, label: '8. Team Analytics', icon: <BarChartIcon sx={{ fontSize: '1.05rem' }} /> },
           ].map((tab) => {
@@ -760,8 +760,8 @@ export default function TeamLeaderDashboard() {
                   border: '1px solid',
                   borderColor: isActive ? 'primary.main' : 'divider',
                   borderRadius: 2.2,
-                  bgcolor: isActive 
-                    ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main' 
+                  bgcolor: isActive
+                    ? (theme) => theme.palette.mode === 'dark' ? 'primary.main' : 'primary.main'
                     : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
                   color: isActive ? '#FFFFFF' : 'text.primary',
                   cursor: 'pointer',
@@ -771,29 +771,29 @@ export default function TeamLeaderDashboard() {
                   boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.22)' : 'none',
                   '&:hover': {
                     borderColor: 'primary.main',
-                    bgcolor: isActive 
-                      ? 'primary.dark' 
+                    bgcolor: isActive
+                      ? 'primary.dark'
                       : (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#EFF6FF',
                     color: isActive ? '#FFFFFF' : 'primary.main'
                   }
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.9, minWidth: 0, overflow: 'hidden' }}>
-                  <Box 
-                    sx={{ 
-                      color: isActive ? '#FFFFFF' : 'primary.main', 
-                      display: 'flex', 
+                  <Box
+                    sx={{
+                      color: isActive ? '#FFFFFF' : 'primary.main',
+                      display: 'flex',
                       alignItems: 'center',
                       flexShrink: 0
                     }}
                   >
                     {tab.icon}
                   </Box>
-                  <Typography 
-                    variant="body2" 
+                  <Typography
+                    variant="body2"
                     noWrap
-                    sx={{ 
-                      fontWeight: isActive ? 800 : 700, 
+                    sx={{
+                      fontWeight: isActive ? 800 : 700,
                       fontSize: { xs: '0.72rem', sm: '0.76rem', md: '0.8rem' },
                       color: 'inherit',
                       overflow: 'hidden',
@@ -804,22 +804,22 @@ export default function TeamLeaderDashboard() {
                   </Typography>
                 </Box>
                 {tab.badge !== undefined && (
-                  <Chip 
-                    label={tab.badge} 
-                    size="small" 
-                    sx={{ 
-                      height: 20, 
-                      minWidth: 20, 
-                      px: 0.5, 
-                      fontWeight: 900, 
+                  <Chip
+                    label={tab.badge}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      minWidth: 20,
+                      px: 0.5,
+                      fontWeight: 900,
                       fontSize: '0.65rem',
-                      bgcolor: isActive 
-                        ? 'rgba(255,255,255,0.25)' 
+                      bgcolor: isActive
+                        ? 'rgba(255,255,255,0.25)'
                         : (tab.badgeColor || (theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#E2E8F0')),
                       color: isActive ? '#FFFFFF' : (tab.badgeColor ? '#FFFFFF' : 'text.secondary'),
                       borderRadius: '10px',
                       flexShrink: 0
-                    }} 
+                    }}
                   />
                 )}
               </Box>
@@ -1527,7 +1527,7 @@ export default function TeamLeaderDashboard() {
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2, fontWeight: 600 }}>
               Average compliance rates across all 14 mandatory booking QA checkpoints
             </Typography>
-            
+
             <Box sx={{ height: 280, width: '100%', minWidth: 0 }}>
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <RadarChart data={QA_RADAR_DATA}>

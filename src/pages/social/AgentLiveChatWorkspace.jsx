@@ -13,7 +13,7 @@ const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const AgentLiveChatWorkspace = () => {
   const { currentUser } = useAuth();
   const location = useLocation();
-  
+
   const [socket, setSocket] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
@@ -43,14 +43,14 @@ const AgentLiveChatWorkspace = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    const newSocket = io(SOCKET_URL);
+    const newSocket = io(SOCKET_URL, { auth: { token: currentUser?.token } });
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
       // Register as agent
-      newSocket.emit('agent:register', { 
-        agentId: currentUser.id || 'agent-1', 
-        agentName: currentUser.name || 'Sales Exec' 
+      newSocket.emit('agent:register', {
+        agentId: currentUser.id || 'agent-1',
+        agentName: currentUser.name || 'Sales Exec'
       });
 
       // Fetch currently active sessions from server
@@ -96,10 +96,10 @@ const AgentLiveChatWorkspace = () => {
         if (msg.id && prev.some((m) => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
-      
+
       // Stop typing indicator for this session
       setTypingUsers((prev) => ({ ...prev, [msg.sessionId]: false }));
-      
+
       // Play a soft sound and show browser notification if tab not focused
       if (msg.senderType === 'customer') {
         if (document.hidden) {
@@ -107,7 +107,7 @@ const AgentLiveChatWorkspace = () => {
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
             audio.volume = 0.5;
             audio.play().catch(() => {});
-            
+
             if (Notification.permission === "granted") {
               new Notification("New Message", { body: `${msg.senderName}: ${msg.text}` });
             }
@@ -193,16 +193,16 @@ const AgentLiveChatWorkspace = () => {
     setActiveSessionId(sessionId);
     setActiveMessages([]); // Clear until history loads
     setIsMobileListOpen(false); // Switch to chat view on mobile screens
-    
+
     // Clear unreadCount locally for this active session
     setSessions((prev) =>
       prev.map((s) => (s.id === sessionId ? { ...s, unreadCount: 0 } : s))
     );
-    
+
     if (socket) {
-      socket.emit('chat:agent_join_room', { 
-        sessionId, 
-        agentId: currentUser?.id || 'agent-1' 
+      socket.emit('chat:agent_join_room', {
+        sessionId,
+        agentId: currentUser?.id || 'agent-1'
       }, (response) => {
         if (response && response.success) {
           setActiveMessages(response.messages || []);
@@ -230,20 +230,20 @@ const AgentLiveChatWorkspace = () => {
 
     socket.emit('chat:send_message', msgData);
     setReplyText('');
-    
+
     // Stop typing
     socket.emit('chat:typing', { sessionId: activeSessionId, isTyping: false, senderType: 'agent', senderName: currentUser?.name || 'Agent' });
   };
 
   const handleTyping = (e) => {
     setReplyText(e.target.value);
-    
+
     if (!socket || !activeSessionId) return;
-    
+
     socket.emit('chat:typing', { sessionId: activeSessionId, isTyping: true, senderType: 'agent', senderName: currentUser?.name || 'Agent' });
-    
+
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    
+
     typingTimeoutRef.current = setTimeout(() => {
       socket.emit('chat:typing', { sessionId: activeSessionId, isTyping: false, senderType: 'agent', senderName: currentUser?.name || 'Agent' });
     }, 2000);
@@ -255,12 +255,12 @@ const AgentLiveChatWorkspace = () => {
     <div className="w-full h-[calc(100dvh-88px)] mt-4 sm:mt-5 flex overflow-hidden font-['Inter'] bg-white dark:bg-slate-900 rounded-2xl shadow-sm relative">
       {/* 1. Left Sidebar: Conversation List */}
       <div className={`h-full shrink-0 transition-all duration-300
-        ${isMobileListOpen 
-          ? 'w-full md:w-80 lg:w-85 flex' 
+        ${isMobileListOpen
+          ? 'w-full md:w-80 lg:w-85 flex'
           : 'hidden md:flex md:w-80 lg:w-85'
         }
       `}>
-        <ConversationList 
+        <ConversationList
           sessions={sessions}
           activeSessionId={activeSessionId}
           onSelectSession={handleSelectSession}
@@ -271,7 +271,7 @@ const AgentLiveChatWorkspace = () => {
       <div className={`flex-1 h-full min-w-0 transition-all duration-300 relative
         ${!isMobileListOpen ? 'flex flex-col' : 'hidden md:flex md:flex-col'}
       `}>
-        <ChatWindow 
+        <ChatWindow
           session={activeSession}
           messages={activeMessages}
           typingUsers={typingUsers}
@@ -311,15 +311,15 @@ const AgentLiveChatWorkspace = () => {
           <>
             {/* Desktop persistent sidebar (xl: 1280px+) */}
             <div className="hidden xl:block h-full shrink-0">
-              <CustomerInfoPanel 
-                session={activeSession} 
-                onClose={() => setIsPanelOpen(false)} 
+              <CustomerInfoPanel
+                session={activeSession}
+                onClose={() => setIsPanelOpen(false)}
               />
             </div>
 
             {/* Tablet & Mobile Slide-in Drawer with Backdrop (< 1280px) */}
             <div className="xl:hidden fixed inset-0 z-50 flex justify-end">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -327,16 +327,16 @@ const AgentLiveChatWorkspace = () => {
                 className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
                 onClick={() => setIsPanelOpen(false)}
               />
-              <motion.div 
+              <motion.div
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 240 }}
                 className="relative z-10 h-full w-[85vw] sm:w-90 max-w-100 shadow-2xl bg-white"
               >
-                <CustomerInfoPanel 
-                  session={activeSession} 
-                  onClose={() => setIsPanelOpen(false)} 
+                <CustomerInfoPanel
+                  session={activeSession}
+                  onClose={() => setIsPanelOpen(false)}
                   isMobile={true}
                 />
               </motion.div>

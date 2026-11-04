@@ -333,7 +333,7 @@ export const SuperAdminDashboard = () => {
 
   // Dynamic Revenue Leakage Indicators from PostgreSQL
   const unassignedLeads = React.useMemo(() => filteredLeads.filter(l => !l.assignedAgentId), [filteredLeads]);
-  const droppedRisk = React.useMemo(() => unassignedLeads.reduce((s, l) => s + (parseFloat(l.budget) || 1200), 0), [unassignedLeads]);
+  const droppedRisk = React.useMemo(() => unassignedLeads.reduce((s, l) => s + (parseFloat(l.budget) || 0), 0), [unassignedLeads]);
 
   const pendingPayments = React.useMemo(() => filteredPayments.filter(p => p.status === 'Pending'), [filteredPayments]);
   const pendingAmount = React.useMemo(() => pendingPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0), [pendingPayments]);
@@ -453,7 +453,7 @@ export const SuperAdminDashboard = () => {
               />
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 500 }}>
-              Welcome back, {currentUser?.name || 'Wael Madi (CEO)'}. Real-time overview of WOW MY FLIGHT sales, revenue & operations.
+              Welcome back, {currentUser?.name || 'Parminder (Super Admin)'}. Real-time overview of WOW MY FLIGHT sales, revenue & operations.
             </Typography>
           </Box>
         </Box>
@@ -606,7 +606,7 @@ export const SuperAdminDashboard = () => {
 
       {/* ─── 2. MIDDLE ROW: CHARTS + CONVERSION GAUGE + COMMUNICATION ANALYTICS ─── */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '8fr 4fr' }, gap: 2, mb: 3 }}>
-        
+
         {/* Left: Charts Grid */}
         <Box sx={{ display: 'grid', gap: 2 }}>
           {/* Revenue Growth Trend */}
@@ -693,12 +693,12 @@ export const SuperAdminDashboard = () => {
 
         {/* Right: Conversion Rate Gauge + Communication Analytics */}
         <Box sx={{ display: 'grid', gap: 2 }}>
-          
+
           {/* Conversion Rate Gauge Card */}
           <Paper elevation={0} sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, textAlign: 'center' }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>LEAD-TO-SALE CONVERSION GAUGE</Typography>
             <Typography variant="caption" color="text.secondary">Industry Benchmark: 15% - 20%</Typography>
-            
+
             <Box sx={{ position: 'relative', display: 'inline-flex', my: 2 }}>
               <CircularProgress
                 variant="determinate"
@@ -719,7 +719,7 @@ export const SuperAdminDashboard = () => {
                 <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>High Performer</Typography>
               </Box>
             </Box>
-            
+
             <Box sx={{ display: 'flex', justifyContent: 'space-around', pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
               <Box>
                 <Typography variant="caption" color="text.secondary">Total Inquiries</Typography>
@@ -746,7 +746,7 @@ export const SuperAdminDashboard = () => {
             <Box sx={{ display: 'grid', gap: 1.5 }}>
               {[
                 { label: 'Telnyx WebRTC DID', value: '+1 (850) 332-9681', freq: 'SIP Trunk Active', icon: <PhoneInTalkIcon sx={{ fontSize: 18 }} />, color: '#10B981', lightBg: 'var(--wl-F0FDF4, #F0FDF4)' },
-                { label: 'Registered Extensions', value: `${dbAgents.length || 3} Extensions`, freq: 'Softphone Ready', icon: <SupportAgentIcon sx={{ fontSize: 18 }} />, color: '#3B82F6', lightBg: 'var(--wl-EFF6FF, #EFF6FF)' },
+                { label: 'Registered Extensions', value: `${dbAgents.length} Extensions`, freq: 'Softphone Ready', icon: <SupportAgentIcon sx={{ fontSize: 18 }} />, color: '#3B82F6', lightBg: 'var(--wl-EFF6FF, #EFF6FF)' },
                 { label: 'Invoices Dispatched', value: `${filteredPayments.length} Invoices`, freq: 'Auto PDF Delivery', icon: <EmailIcon sx={{ fontSize: 18 }} />, color: '#F59E0B', lightBg: 'var(--wl-FFFBEB, #FFFBEB)' },
                 { label: 'Payment Reminders', value: `${pendingPayments.length} Queued`, freq: 'Tamara & Stripe Links', icon: <WhatsAppIcon sx={{ fontSize: 18 }} />, color: '#22C55E', lightBg: 'var(--wl-F0FDF4, #F0FDF4)' },
               ].map(item => (
@@ -819,7 +819,7 @@ export const SuperAdminDashboard = () => {
               <Typography variant="caption" sx={{ fontWeight: 800, color: isDark ? '#FCA5A5' : '#991B1B' }}>
                 DROPPED LEADS (SLA &gt; 15M)
               </Typography>
-              <Chip label={`${unassignedLeads.length || 1} Lead${(unassignedLeads.length || 1) > 1 ? 's' : ''}`} size="small" color="error" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 800 }} />
+              <Chip label={`${unassignedLeads.length} Lead${(unassignedLeads.length) > 1 ? 's' : ''}`} size="small" color="error" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 800 }} />
             </Box>
             <Typography variant="h5" sx={{ fontWeight: 900, color: isDark ? '#F87171' : '#DC2626' }}>-${droppedRisk.toLocaleString()}</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
@@ -830,7 +830,7 @@ export const SuperAdminDashboard = () => {
               variant="contained"
               color="error"
               fullWidth
-              onClick={() => showAlert(`${unassignedLeads.length || 1} unassigned inquiry reallocated to Top 3 Conversion Agents.`, 'success')}
+              onClick={() => showAlert(`${unassignedLeads.length} unassigned inquiry reallocated to Top 3 Conversion Agents.`, 'success')}
               sx={{ fontWeight: 800, fontSize: '0.68rem', py: 0.4 }}
             >
               Auto-Reassign to Top Agents
@@ -851,7 +851,7 @@ export const SuperAdminDashboard = () => {
               <Typography variant="caption" sx={{ fontWeight: 800, color: isDark ? '#FCD34D' : '#92400E' }}>
                 PENDING 2ND INSTALLMENTS
               </Typography>
-              <Chip label={`${pendingPayments.length || 1} Booking${(pendingPayments.length || 1) > 1 ? 's' : ''}`} size="small" color="warning" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 800 }} />
+              <Chip label={`${pendingPayments.length} Booking${(pendingPayments.length) > 1 ? 's' : ''}`} size="small" color="warning" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 800 }} />
             </Box>
             <Typography variant="h5" sx={{ fontWeight: 900, color: isDark ? '#FBBF24' : '#D97706' }}>+${pendingAmount.toLocaleString()}</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>

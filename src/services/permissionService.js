@@ -196,23 +196,22 @@ export const PERMISSION_MODULES = [
 // ============================================================================
 // STANDARD ROLES DEFINITION
 // ============================================================================
-export const INITIAL_ROLES = [
-  {
+export const INITIAL_ROLES = [{
     id: 'super_admin',
     name: 'Super Admin',
     description: 'Unrestricted organizational access across all branches, systems, APIs, and security controls.',
     isCustom: false,
-    userCount: 2,
+    userCount: 0,
     permissions: PERMISSION_MODULES.flatMap(m =>
       m.permissions.map(p => ({ key: p.key, enabled: true, scope: 'all' }))
     )
   },
-  {
+{
     id: 'admin',
     name: 'General Manager (Admin)',
     description: 'Full operational authority over sales, ticketing, finance, staff and reports across all branches.',
     isCustom: false,
-    userCount: 4,
+    userCount: 0,
     permissions: PERMISSION_MODULES.flatMap(m =>
       m.permissions.map(p => ({
         key: p.key,
@@ -221,150 +220,21 @@ export const INITIAL_ROLES = [
       }))
     )
   },
-  {
-    id: 'expert_team_leader',
-    name: 'Expert Team Leader',
-    description: 'Senior escalation authority for VIP clients, complex reissues, discount overrides & executive SLAs.',
-    isCustom: false,
-    userCount: 3,
-    permissions: PERMISSION_MODULES.flatMap(m =>
-      m.permissions.map(p => {
-        const isAllowed = !p.key.startsWith('system_') && !p.key.startsWith('users_delete') && !p.key.startsWith('users_configure');
-        return { key: p.key, enabled: isAllowed, scope: p.key.startsWith('leads_') || p.key.startsWith('quotes_') ? 'team' : 'branch' };
-      })
-    )
-  },
-  {
-    id: 'team_leader',
-    name: 'Team Leader',
-    description: 'Operational team supervisor managing lead distribution, rep call barge-in, discount approvals & QA.',
-    isCustom: false,
-    userCount: 6,
-    permissions: PERMISSION_MODULES.flatMap(m =>
-      m.permissions.map(p => {
-        const isAllowed = p.key.startsWith('leads_') || p.key.startsWith('customers_') || p.key.startsWith('calls_') || p.key.startsWith('quotes_') || p.key.startsWith('bookings_') || p.key.startsWith('qa_') || p.key.startsWith('sla_');
-        return { key: p.key, enabled: isAllowed, scope: 'team' };
-      })
-    )
-  },
-  {
-    id: 'consultant',
+{
+    id: 'sales_executive',
     name: 'Sales Agent',
     description: 'Frontline sales representative creating quotes, managing assigned leads, and handling softphone calls.',
     isCustom: false,
-    userCount: 18,
+    userCount: 0,
     permissions: PERMISSION_MODULES.flatMap(m =>
       m.permissions.map(p => {
         const isAllowed = ['leads_view', 'leads_create', 'leads_edit', 'customers_view', 'customers_create', 'calls_make', 'calls_receive', 'calls_schedule_callback', 'quotes_view', 'quotes_create', 'quotes_edit', 'quotes_discount_request', 'bookings_view', 'bookings_create', 'payments_link_create'].includes(p.key);
         return { key: p.key, enabled: isAllowed, scope: 'own' };
       })
     )
-  },
-  {
-    id: 'ticketing_agent',
-    name: 'Ticketing Agent (GDS)',
-    description: 'GDS specialist issuing electronic tickets, voiding same-day PNRs, and processing voluntary reissues.',
-    isCustom: false,
-    userCount: 5,
-    permissions: PERMISSION_MODULES.flatMap(m =>
-      m.permissions.map(p => {
-        const isAllowed = p.key.startsWith('ticketing_') || p.key.startsWith('bookings_') || p.key.startsWith('customers_docs');
-        return { key: p.key, enabled: isAllowed, scope: 'department' };
-      })
-    )
-  },
-  {
-    id: 'finance',
-    name: 'Finance & Accounts Agent',
-    description: 'Financial accountant managing payment links, gross profit reports, refund approvals & chargebacks.',
-    isCustom: false,
-    userCount: 4,
-    permissions: PERMISSION_MODULES.flatMap(m =>
-      m.permissions.map(p => {
-        const isAllowed = p.key.startsWith('payments_') || p.key.startsWith('finance_') || p.key.startsWith('bookings_view');
-        return { key: p.key, enabled: isAllowed, scope: 'all' };
-      })
-    )
-  },
-  {
-    id: 'qa_agent',
-    name: 'QA & Compliance Auditor',
-    description: 'Quality assurance officer auditing agent calls, fare rules compliance, and coaching checklists.',
-    isCustom: false,
-    userCount: 3,
-    permissions: PERMISSION_MODULES.flatMap(m =>
-      m.permissions.map(p => {
-        const isAllowed = p.key.startsWith('qa_') || p.key.startsWith('sla_') || p.key.startsWith('calls_recording_view');
-        return { key: p.key, enabled: isAllowed, scope: 'branch' };
-      })
-    )
-  },
-  {
-    id: 'marketing',
-    name: 'Marketing Manager',
-    description: 'Marketing strategist managing campaigns, CPL/CPB metrics, UTM links, and automation sequences.',
-    isCustom: false,
-    userCount: 2,
-    permissions: PERMISSION_MODULES.flatMap(m =>
-      m.permissions.map(p => {
-        const isAllowed = p.key.startsWith('marketing_') || p.key.startsWith('automation_') || p.key === 'leads_view';
-        return { key: p.key, enabled: isAllowed, scope: 'department' };
-      })
-    )
-  },
-  {
-    id: 'readonly',
-    name: 'Read-Only Auditor',
-    description: 'Observer role with view-only inspection access for external compliance & legal auditors.',
-    isCustom: false,
-    userCount: 1,
-    permissions: PERMISSION_MODULES.flatMap(m =>
-      m.permissions.map(p => ({ key: p.key, enabled: p.key.endsWith('_view') || p.key.startsWith('finance_view') || p.key.startsWith('leads_view'), scope: 'branch' }))
-    )
-  }
-];
+  }];
 
-export const INITIAL_HIERARCHY = {
-  company: 'WOW MY FLIGHT Travel Agency Group',
-  branches: [
-    {
-      id: 'branch-newyork',
-      name: 'New York HQ (USA)',
-      code: 'NYC-HQ',
-      departments: [
-        {
-          id: 'dept-sales-usa',
-          name: 'North America Sales Dept',
-          teams: [
-            { id: 'team-alpha', name: 'Alpha Sales Team', leader: 'Michael Chang' },
-            { id: 'team-beta', name: 'VIP Concierge Team', leader: 'Sofia Rodriguez' }
-          ]
-        },
-        {
-          id: 'dept-ops-usa',
-          name: 'GDS Ticketing & Fulfillment Ops',
-          teams: [
-            { id: 'team-ticketing', name: 'Sabre Issuance Desk', leader: 'Alex Miller' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'branch-delhi',
-      name: 'New Delhi Operational Center (India)',
-      code: 'DEL-OPS',
-      departments: [
-        {
-          id: 'dept-sales-india',
-          name: 'International Sales & Support',
-          teams: [
-            { id: 'team-gamma', name: 'Global Direct Sales', leader: 'Sarah Jenkins' }
-          ]
-        }
-      ]
-    }
-  ]
-};
+export const INITIAL_HIERARCHY = { company: 'Wow My Flight', branches: [] };
 
 // ============================================================================
 // LOCAL STORAGE KEYS & STORAGE HELPERS
@@ -378,7 +248,7 @@ export const permissionService = {
   getRoles: () => {
     try {
       const saved = localStorage.getItem(ROLES_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) { const value = JSON.parse(saved); if (Array.isArray(value) && value.some(role => role.id === 'sales_executive')) return value; }
     } catch (e) {
       console.warn('Error loading custom roles, resetting to initial dataset:', e);
     }
@@ -521,7 +391,7 @@ export const permissionService = {
   // Save specific user overrides
   saveUserOverride: (userId, userName, overrides, modifierName = 'Super Admin') => {
     const allOverrides = permissionService.getUserOverrides();
-    
+
     allOverrides[userId] = overrides;
     localStorage.setItem(USER_OVERRIDES_KEY, JSON.stringify(allOverrides));
     permissionControlService.saveOverride({ userId, userName, overrides, modifiedBy: modifierName }).catch(() => {});
@@ -572,7 +442,7 @@ export const permissionService = {
   // Evaluate if user has specific permission & scope
   checkUserPermission: (user, permissionKey) => {
     if (!user) return { allowed: false, scope: 'none', reason: 'No authenticated user session' };
-    
+
     // Super Admin has full unrestricted access
     if (user.role === 'super_admin') {
       return { allowed: true, scope: 'all', isSuperAdmin: true };
@@ -615,7 +485,7 @@ export const permissionService = {
   exportMatrixCSV: () => {
     const roles = permissionService.getRoles();
     const headers = ['Module', 'Permission Key', 'Permission Label', ...roles.map(r => r.name)];
-    
+
     const rows = [headers.join(',')];
 
     PERMISSION_MODULES.forEach(mod => {

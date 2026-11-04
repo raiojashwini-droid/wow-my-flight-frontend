@@ -5,6 +5,7 @@
  */
 
 import axios from 'axios';
+import { getAuthToken } from './dbService';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
@@ -12,6 +13,12 @@ const api = axios.create({
   baseURL: `${BASE_URL}/api/telnyx`,
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
+});
+
+api.interceptors.request.use(config => {
+  const token = getAuthToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

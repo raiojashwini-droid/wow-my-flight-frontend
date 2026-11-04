@@ -62,92 +62,7 @@ const INITIAL_NOTIF_KPIS = [
   { id: 'wa', title: 'WhatsApp Dispatches', value: '1,410 Delivered', change: '100% rate', isUp: true, color: '#059669', border: '#059669', icon: <WhatsAppIcon /> }
 ];
 
-const INITIAL_NOTIFICATION_FEED = [
-  {
-    id: 'NOTIF-101',
-    category: 'Payment',
-    title: 'Payment Failed',
-    description: 'Customer payment failed for Quote Q-8812. Immediate follow-up required.',
-    refId: 'BK-10892',
-    customer: 'Ambassador Harold Vance',
-    time: '14:25:10',
-    priority: 'Critical',
-    priorityColor: '#DC2626',
-    read: false,
-    channels: ['In-App', 'Email', 'WhatsApp'],
-    icon: <MonetizationOnIcon sx={{ color: '#DC2626' }} />
-  },
-  {
-    id: 'NOTIF-102',
-    category: 'SLA',
-    title: 'SLA Breached',
-    description: 'New Lead SLA 5m response breached. Case escalated to Expert TL.',
-    refId: 'LD-98440',
-    customer: 'Marcus Sterling',
-    time: '14:18:44',
-    priority: 'Critical',
-    priorityColor: '#DC2626',
-    read: false,
-    channels: ['In-App', 'Email', 'SMS'],
-    icon: <ReportProblemIcon sx={{ color: '#DC2626' }} />
-  },
-  {
-    id: 'NOTIF-103',
-    category: 'Refunds',
-    title: 'Refund Request Raised',
-    description: 'Customer requested $350 refund for ground transfer failure.',
-    refId: 'BK-10920',
-    customer: 'Marcus Sterling',
-    time: '14:02:15',
-    priority: 'High',
-    priorityColor: '#D97706',
-    read: false,
-    channels: ['In-App', 'Email'],
-    icon: <WarningAmberIcon sx={{ color: '#D97706' }} />
-  },
-  {
-    id: 'NOTIF-104',
-    category: 'Flights',
-    title: 'Flight Schedule Changed',
-    description: 'British Airways schedule shift on LHR → DXB segment.',
-    refId: 'BK-10892',
-    customer: 'Ambassador Harold Vance',
-    time: '13:45:00',
-    priority: 'High',
-    priorityColor: '#D97706',
-    read: true,
-    channels: ['In-App', 'Email', 'WhatsApp'],
-    icon: <AirplaneTicketIcon sx={{ color: '#D97706' }} />
-  },
-  {
-    id: 'NOTIF-105',
-    category: 'Leads',
-    title: 'New High-Value Lead Assigned',
-    description: 'Assigned $28k Multi-City First Class lead to Sarah Jenkins.',
-    refId: 'LD-99120',
-    customer: 'Dr. Harrison Wells',
-    time: '13:30:12',
-    priority: 'Medium',
-    priorityColor: '#2563EB',
-    read: true,
-    channels: ['In-App', 'WhatsApp'],
-    icon: <PeopleAltIcon sx={{ color: '#2563EB' }} />
-  },
-  {
-    id: 'NOTIF-106',
-    category: 'Bookings',
-    title: 'Ticket Issued Successfully',
-    description: 'E-Ticket 13381235436196 issued in Sabre GDS for DEL → LHR.',
-    refId: 'BK-10231',
-    customer: 'Arthur Pendelton',
-    time: '12:50:30',
-    priority: 'Normal',
-    priorityColor: '#059669',
-    read: true,
-    channels: ['In-App', 'Email', 'WhatsApp'],
-    icon: <CheckCircleIcon sx={{ color: 'var(--wd-059669, #059669)' }} />
-  }
-];
+const INITIAL_NOTIFICATION_FEED = [];
 
 const MULTI_CHANNEL_DELIVERY_DATA = [
   { id: 'DEL-01', channel: 'WhatsApp API', recipient: '+1 (555) 234-8901', payload: 'E-ticket PDF dispatched for PNR SAB78K', status: 'Delivered', time: '14:25:15' },
@@ -287,7 +202,7 @@ export default function CentralNotificationCenter() {
 
   return (
     <Box sx={{ pb: 6, minHeight: '100vh' }}>
-      
+
       {/* Top Executive Header */}
       <Paper elevation={0} sx={{ p: 2.5, px: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, bgcolor: 'background.paper' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
