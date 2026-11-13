@@ -5,6 +5,7 @@ export const useAuth = () => {
 
   const hasRole = (allowedRoles) => {
     if (!currentUser) return false;
+    if (currentUser.role === 'super_admin') return true;
     return allowedRoles.includes(currentUser.role);
   };
 
