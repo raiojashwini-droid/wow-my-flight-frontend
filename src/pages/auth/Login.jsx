@@ -3,8 +3,11 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Mail, Lock, Eye, EyeOff, ChevronDown,
+  ShieldAlert, ShieldCheck, Cpu, Headphones, Users, Diamond, Send, Ticket, Wrench, Wallet, Megaphone, LayoutDashboard
+} from 'lucide-react';
 import { getBackendUrl } from '../../services/dbService';
 import { useAuth } from '../../hooks/useAuth';
 import { useAlert } from '../../contexts/AlertContext';
@@ -17,6 +20,41 @@ const quickAccounts = [
   { name: 'George', role: 'Sales Executive' },
   { name: 'Adam', role: 'Sales Executive' },
   { name: 'Abu', role: 'Sales Executive' },
+];
+
+const dashboardCategories = [
+  {
+    id: 'admin',
+    title: '1. Management & Admin (3 Dashboards)',
+    description: 'Super Admin, General Manager & System Integration Control',
+    roles: [
+      { role: 'super_admin', label: 'Super Admin', desc: 'Full CRM system control', icon: <ShieldAlert size={16} /> },
+      { role: 'admin', label: 'Admin (GM)', desc: 'Manage team and approvals', icon: <ShieldCheck size={16} /> },
+      { role: 'api_manager', label: 'API / System Mgr', desc: 'GDS & integrations desk', icon: <Cpu size={16} /> },
+    ]
+  },
+  {
+    id: 'sales',
+    title: '2. Sales Department (4 Dashboards)',
+    description: 'Sales Executive desk, Team Leaders & GDS Live Pricing',
+    roles: [
+      { role: 'consultant', label: 'Sales Executive', desc: 'Client inquiries & sales desk', icon: <Headphones size={16} /> },
+      { role: 'team_leader', label: 'Team Leader', desc: 'Manage sales agents & queues', icon: <Users size={16} /> },
+      { role: 'expert_team_leader', label: 'Escalation TL', desc: 'VIP escalation & exceptions', icon: <Diamond size={16} /> },
+      { role: 'flight_expert', label: 'Flight Expert (GDS)', desc: 'GDS live routing & pricing desk', icon: <Send size={16} /> },
+    ]
+  },
+  {
+    id: 'operations',
+    title: '3. Ops, Finance & Marketing (4 Dashboards)',
+    description: 'Ticketing issuance, After-sales modifications, Finance & Marketing',
+    roles: [
+      { role: 'ticketing_agent', label: 'Ticketing Agent', desc: 'Issue & manage PNR e-tickets', icon: <Ticket size={16} /> },
+      { role: 'after_sales', label: 'After-Sales / Ops', desc: 'Post-booking modifications', icon: <Wrench size={16} /> },
+      { role: 'finance', label: 'Finance & Accounts', desc: 'Invoices, payments & reconciliations', icon: <Wallet size={16} /> },
+      { role: 'marketing', label: 'Marketing Manager', desc: 'Campaigns, traffic & promotions', icon: <Megaphone size={16} /> },
+    ]
+  }
 ];
 
 const schema = yup.object().shape({
@@ -33,6 +71,7 @@ export const Login = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [shake, setShake] = useState(false);
+  const [activeDashboardTab, setActiveDashboardTab] = useState('admin');
   const hasJustLoggedIn = React.useRef(false);
 
   useEffect(() => {
@@ -72,6 +111,59 @@ export const Login = () => {
       setShake(true);
       setTimeout(() => setShake(false), 500);
       showAlert(error.message || 'Unable to reach the server', 'error');
+    }
+  };
+
+  const handleDashboardLogin = (role) => {
+    let mockUser = {
+      id: 'usr-admin',
+      name: 'Xavier (Admin GM)',
+      email: 'xavier@wowmyflight.com',
+      role: 'admin',
+      token: 'wmf_demo_session_token'
+    };
+    let routePrefix = 'admin';
+
+    if (role === 'super_admin') {
+      mockUser = { id: 'usr-parminder', name: 'Parminder (Super Admin)', email: 'parminder@wowmyflight.com', role: 'super_admin', token: 'wmf_demo_session_token' };
+      routePrefix = 'super_admin';
+    } else if (role === 'admin') {
+      mockUser = { id: 'usr-xavier', name: 'Xavier (Admin GM)', email: 'xavier@wowmyflight.com', role: 'admin', token: 'wmf_demo_session_token' };
+      routePrefix = 'admin';
+    } else if (role === 'api_manager') {
+      mockUser = { id: 'usr-api-mgr', name: 'API / System Mgr', email: 'apimanager@wowmyflight.com', role: 'api_manager', token: 'wmf_demo_session_token' };
+      routePrefix = 'integrations';
+    } else if (role === 'consultant' || role === 'sales_executive') {
+      mockUser = { id: 'usr-issac', name: 'Issac (Sales Exec)', email: 'issac@wowmyflight.com', role: 'consultant', token: 'wmf_demo_session_token' };
+      routePrefix = 'agent';
+    } else if (role === 'team_leader') {
+      mockUser = { id: 'usr-george', name: 'George (Team Leader)', email: 'george@wowmyflight.com', role: 'team_leader', token: 'wmf_demo_session_token' };
+      routePrefix = 'team_leader';
+    } else if (role === 'expert_team_leader' || role === 'expert_tl') {
+      mockUser = { id: 'usr-expert-tl', name: 'Escalation TL', email: 'expertlead@wowmyflight.com', role: 'expert_team_leader', token: 'wmf_demo_session_token' };
+      routePrefix = 'expert_team_leader';
+    } else if (role === 'flight_expert') {
+      mockUser = { id: 'usr-flight-expert', name: 'Priya (GDS Flight Expert)', email: 'expert@wowmyflight.com', role: 'flight_expert', token: 'wmf_demo_session_token' };
+      routePrefix = 'flight_expert';
+    } else if (role === 'ticketing_agent') {
+      mockUser = { id: 'usr-adam', name: 'Adam (Ticketing Agent)', email: 'adam@wowmyflight.com', role: 'ticketing_agent', token: 'wmf_demo_session_token' };
+      routePrefix = 'ticketing_agent';
+    } else if (role === 'finance') {
+      mockUser = { id: 'usr-finance', name: 'Finance & Accounts', email: 'finance@wowmyflight.com', role: 'finance', token: 'wmf_demo_session_token' };
+      routePrefix = 'finance';
+    } else if (role === 'after_sales' || role === 'operations') {
+      mockUser = { id: 'usr-abu', name: 'Abu (After-Sales / Ops)', email: 'abu@wowmyflight.com', role: 'after_sales', token: 'wmf_demo_session_token' };
+      routePrefix = 'operations';
+    } else if (role === 'marketing') {
+      mockUser = { id: 'usr-marketing', name: 'Marketing Manager', email: 'marketing@wowmyflight.com', role: 'marketing', token: 'wmf_demo_session_token' };
+      routePrefix = 'marketing-manager';
+    }
+
+    if (routePrefix === 'integrations') {
+      executeLogin(mockUser, '', `Demo ${role.toUpperCase().replace('_', ' ')}`);
+      navigate('/integrations', { replace: true });
+    } else {
+      executeLogin(mockUser, routePrefix, `Demo ${role.toUpperCase().replace('_', ' ')}`);
     }
   };
 
@@ -204,6 +296,104 @@ export const Login = () => {
                     <span className="block text-sm font-semibold">{name}</span>
                     <span className={`block text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{role}</span>
                   </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 11 Dedicated Role Dashboards (Demo Preview) */}
+          <section className="mt-6 border-t border-slate-300/30 pt-5" aria-label="11 Dashboards Quick Access">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <LayoutDashboard size={16} className="text-indigo-500" />
+                <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  11 Role Dashboards (Demo Access)
+                </p>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+                1-Click Preview
+              </span>
+            </div>
+            <p className={`text-xs mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              Click any category below to expand and open all 11 CRM dashboards:
+            </p>
+
+            <div className="space-y-2.5">
+              {dashboardCategories.map((cat) => {
+                const isOpen = activeDashboardTab === cat.id;
+                return (
+                  <div
+                    key={cat.id}
+                    className={`rounded-xl border transition-all overflow-hidden ${
+                      isOpen
+                        ? isDark ? 'border-indigo-500/40 bg-slate-800/60' : 'border-indigo-400/40 bg-indigo-50/30'
+                        : isDark ? 'border-slate-800 bg-slate-900/40 hover:border-slate-700' : 'border-slate-200 bg-slate-50/40 hover:border-slate-300'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setActiveDashboardTab(isOpen ? '' : cat.id)}
+                      className={`w-full flex items-center justify-between p-3 text-left transition-colors ${
+                        isDark ? 'hover:bg-slate-800/40' : 'hover:bg-slate-100/50'
+                      }`}
+                    >
+                      <div>
+                        <h4 className={`text-xs font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                          {cat.title}
+                        </h4>
+                        <p className={`text-[10px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {cat.description}
+                        </p>
+                      </div>
+                      <ChevronDown
+                        size={15}
+                        className={`transition-transform duration-200 ${
+                          isDark ? 'text-slate-400' : 'text-slate-500'
+                        } ${isOpen ? 'rotate-180 text-indigo-500' : ''}`}
+                      />
+                    </button>
+
+                    <AnimatePresence>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <div className="p-3 pt-0 grid grid-cols-2 gap-2">
+                            {cat.roles.map((r) => (
+                              <button
+                                key={r.role}
+                                type="button"
+                                disabled={isSubmitting}
+                                onClick={() => handleDashboardLogin(r.role)}
+                                className={`flex items-start gap-2 p-2 rounded-lg text-left transition-all border ${
+                                  isDark
+                                    ? 'bg-slate-800/90 border-slate-700 hover:border-indigo-400 hover:bg-slate-700/80'
+                                    : 'bg-white border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/50 hover:shadow-sm'
+                                }`}
+                              >
+                                <div className={`mt-0.5 p-1 rounded-md shrink-0 ${
+                                  isDark ? 'bg-slate-700 text-amber-400' : 'bg-indigo-50 text-indigo-600'
+                                }`}>
+                                  {r.icon}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className={`text-[11px] font-bold truncate ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                    {r.label}
+                                  </div>
+                                  <div className={`text-[9px] truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    {r.desc}
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 );
               })}
             </div>
