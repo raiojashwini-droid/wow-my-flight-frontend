@@ -261,6 +261,14 @@ export default function FlightDealReview({ quote: propQuote }) {
       console.warn('Booking API error:', e.message);
     }
 
+    // Sync status in CRM quotes ledger to Accepted
+    try {
+      const qList = JSON.parse(localStorage.getItem('crm-quotes') || '[]');
+      const targetId = activeQuote?.id || activeQuote?.quoteId;
+      const updatedQ = qList.map(q => (q.id === targetId || q.quoteId === targetId) ? { ...q, status: 'Accepted' } : q);
+      localStorage.setItem('crm-quotes', JSON.stringify(updatedQ));
+    } catch (e) {}
+
     showAlert(`🎉 Booking successfully held under PNR #${newPnr}! E-ticket confirmed for ${activeQuote?.customerName || contactEmail}.`, 'success');
   };
 
