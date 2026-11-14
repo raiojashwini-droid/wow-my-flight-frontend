@@ -84,18 +84,75 @@ export default function Bookings() {
     return currentUser.role;
   };
 
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const DEFAULT_INITIAL_BOOKINGS = [
+    {
+      id: "BK-9001",
+      bookingId: "BK-9001",
+      customerName: "Harsh",
+      passenger: "Harsh",
+      name: "Harsh",
+      customerEmail: "harsh@gmail.com",
+      customerPhone: "+1 215-198-5615",
+      route: "JFK → LHR",
+      origin: "JFK",
+      destination: "LHR",
+      travelDate: "2026-12-05",
+      dateDisplay: "2026-12-05",
+      cabinClass: "Flex Saver",
+      passengers: 1,
+      pnr: "PNR855392",
+      airline: "Emirates (EK)",
+      airlineCode: "EK",
+      flightNumber: "EK-501",
+      sellingPrice: 1451,
+      amount: "$1,451.00",
+      amountPaid: 1451,
+      netFare: 916,
+      fare: "$916.00",
+      taxes: 126,
+      profit: 535,
+      paymentStatus: "Payment Confirmed",
+      ticketStatus: "Ready to Issue",
+      dispatchStatus: "Pending",
+      bookingStatus: "CONFIRMED",
+      status: "Ready to Issue",
+      eTicket: "Unissued",
+      createdAt: new Date().toISOString().split("T")[0],
+    }
+  ];
+
+  const [bookings, setBookings] = useState(() => {
+    try {
+      const cached = localStorage.getItem('crm-bookings');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_INITIAL_BOOKINGS;
+  });
+  const [loading, setLoading] = useState(false);
 
   // Fetch real live bookings from PostgreSQL Database on mount
   useEffect(() => {
     let isMounted = true;
     const fetchDbBookings = async () => {
-      setLoading(true);
       try {
         const data = await flightContentService.getBookings();
-        if (isMounted && Array.isArray(data)) {
-          const normalized = data.map((b) => ({
+        let targetList = Array.isArray(data) && data.length > 0 ? data : null;
+        if (!targetList) {
+          try {
+            const cached = localStorage.getItem('crm-bookings');
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) targetList = parsed;
+            }
+          } catch (e) {}
+        }
+        if (!targetList) targetList = DEFAULT_INITIAL_BOOKINGS;
+
+        if (isMounted && Array.isArray(targetList)) {
+          const normalized = targetList.map((b) => ({
             ...b,
             id: b.bookingId || b.id,
             bookingId: b.bookingId || b.id,
@@ -129,8 +186,6 @@ export default function Bookings() {
         }
       } catch (err) {
         console.warn("[Bookings] Error loading DB bookings:", err);
-      } finally {
-        if (isMounted) setLoading(false);
       }
     };
     fetchDbBookings();

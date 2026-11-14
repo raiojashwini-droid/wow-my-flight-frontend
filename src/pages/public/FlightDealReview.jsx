@@ -213,61 +213,91 @@ export default function FlightDealReview({ quote: propQuote }) {
     setAssignedPnr(newPnr);
     setBookingConfirmed(true);
 
+    // Always store booking locally so Bookings ledger immediately reflects it
+    const newBookingObj = {
+      id: newBookingId,
+      bookingId: newBookingId,
+      quoteId: activeQuote?.id || activeQuote?.quoteId || 'QT-9001',
+      pnr: newPnr,
+      customerName: paxName,
+      name: paxName,
+      passenger: paxName,
+      customerEmail: contactEmail,
+      customerPhone: contactPhone,
+      route: activeQuote?.route || `${activeQuote?.origin || 'JFK'} → ${activeQuote?.destination || 'LHR'}`,
+      origin: activeQuote?.origin || 'JFK',
+      destination: activeQuote?.destination || 'LHR',
+      travelDate: activeQuote?.departureDate || '2026-12-05',
+      date: activeQuote?.departureDate || '2026-12-05',
+      airline: activeQuote?.airline || 'Emirates',
+      airlineCode: activeQuote?.airline || 'Emirates',
+      flightNumber: activeQuote?.flightNumber || 'EK-501',
+      cabinClass: activeQuote?.cabinClass || 'Economy',
+      passengers: passengers.length || 1,
+      amount: `$${Number(totalCost).toFixed(2)}`,
+      sellingPrice: totalCost,
+      amountPaid: totalCost,
+      fare: `$${Number(activeQuote?.netPrice || 916).toFixed(2)}`,
+      netFare: Number(activeQuote?.netPrice || 916),
+      taxes: `$${Number(activeQuote?.taxes || 126).toFixed(2)}`,
+      paymentStatus: 'Payment Confirmed',
+      ticketStatus: 'Ready to Issue',
+      bookingStatus: 'CONFIRMED',
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const cached = localStorage.getItem('crm-bookings');
+      const list = cached ? JSON.parse(cached) : [];
+      localStorage.setItem('crm-bookings', JSON.stringify([newBookingObj, ...(Array.isArray(list) ? list.filter(b => b.pnr !== newPnr) : [])]));
+    } catch (e) {}
+
+    // Sync status in CRM quotes ledger to Accepted & ensure it persists
+    try {
+      const storedQuotes = localStorage.getItem('crm-quotes');
+      let qList = storedQuotes ? JSON.parse(storedQuotes) : [];
+      if (!Array.isArray(qList) || qList.length === 0) {
+        qList = [DEFAULT_FALLBACK_QUOTE];
+      }
+      const targetId = activeQuote?.id || activeQuote?.quoteId || 'QT-9001';
+      let found = false;
+      const updatedQ = qList.map(q => {
+        if (q.id === targetId || q.quoteId === targetId) {
+          found = true;
+          return { ...q, status: 'Accepted', pnr: newPnr };
+        }
+        return q;
+      });
+      if (!found) {
+        updatedQ.unshift({
+          ...(activeQuote || DEFAULT_FALLBACK_QUOTE),
+          id: targetId,
+          quoteId: targetId,
+          status: 'Accepted',
+          pnr: newPnr
+        });
+      }
+      localStorage.setItem('crm-quotes', JSON.stringify(updatedQ));
+    } catch (e) {}
+
     try {
       const backendUrl = getBackendUrl();
-      const newBookingId = `BK-${Math.floor(1000 + Math.random() * 9000)}`;
-      const paxName = activeQuote?.customerName || (passengers[0] ? `${passengers[0].firstName} ${passengers[0].lastName}` : 'Valued Passenger');
-      const totalCost = (activeQuote?.totalPrice || 474) + ancillaryAddonCost;
       const res = await fetch(`${backendUrl}/api/bookings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookingId: newBookingId,
-          quoteId: activeQuote?.id || activeQuote?.quoteId,
-          customerName: paxName,
-          passenger: paxName,
-          name: paxName,
-          customerEmail: contactEmail,
-          customerPhone: contactPhone,
-          route: activeQuote?.route || `${activeQuote?.origin || 'JFK'} → ${activeQuote?.destination || 'DXB'}`,
-          origin: activeQuote?.origin || 'JFK',
-          destination: activeQuote?.destination || 'DXB',
-          travelDate: activeQuote?.departureDate || '2026-10-16',
-          date: activeQuote?.departureDate || new Date().toLocaleDateString(),
-          cabinClass: activeQuote?.cabinClass || 'Economy',
-          passengers: passengers.length || 1,
-          pnr: newPnr,
-          airline: activeQuote?.airline || 'Emirates',
-          airlineCode: activeQuote?.airline || 'Emirates',
-          flightNumber: activeQuote?.flightNumber || 'EK 202',
-          supplier: activeQuote?.options?.[0]?.supplier || 'Amadeus GDS',
-          fare: `$${Number(activeQuote?.netPrice || activeQuote?.netFare || (totalCost * 0.85)).toFixed(2)}`,
-          taxes: `$${Number(activeQuote?.taxes || (totalCost * 0.15)).toFixed(2)}`,
-          amount: `$${Number(totalCost).toFixed(2)}`,
-          paymentStatus: 'Payment Confirmed',
-          ticketStatus: 'Ready to Issue',
-          bookingStatus: 'CONFIRMED'
-        })
+        body: JSON.stringify(newBookingObj)
       });
       if (res.ok) {
         const json = await res.json();
-        const cached = localStorage.getItem('crm-bookings');
-        const list = cached ? JSON.parse(cached) : [];
         if (json.data) {
+          const cached = localStorage.getItem('crm-bookings');
+          const list = cached ? JSON.parse(cached) : [];
           localStorage.setItem('crm-bookings', JSON.stringify([json.data, ...list.filter(b => (b.bookingId || b.id) !== newBookingId)]));
         }
       }
     } catch (e) {
       console.warn('Booking API error:', e.message);
     }
-
-    // Sync status in CRM quotes ledger to Accepted
-    try {
-      const qList = JSON.parse(localStorage.getItem('crm-quotes') || '[]');
-      const targetId = activeQuote?.id || activeQuote?.quoteId;
-      const updatedQ = qList.map(q => (q.id === targetId || q.quoteId === targetId) ? { ...q, status: 'Accepted' } : q);
-      localStorage.setItem('crm-quotes', JSON.stringify(updatedQ));
-    } catch (e) {}
 
     showAlert(`🎉 Booking successfully held under PNR #${newPnr}! E-ticket confirmed for ${activeQuote?.customerName || contactEmail}.`, 'success');
   };

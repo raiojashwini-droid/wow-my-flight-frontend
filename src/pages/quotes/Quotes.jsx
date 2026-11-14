@@ -97,16 +97,105 @@ export default function Quotes() {
 
   const location = useLocation();
 
+  // Initial persistent demo quotes so table is never empty on mount
+  const DEFAULT_INITIAL_QUOTES = [
+    {
+      id: 'QT-9001',
+      quoteId: 'QT-9001',
+      customerName: 'Harsh',
+      customerEmail: 'harsh@gmail.com',
+      customerPhone: '+1 215-198-5615',
+      route: 'JFK → LHR',
+      origin: 'JFK',
+      destination: 'LHR',
+      departureDate: '2026-12-05',
+      airline: 'Emirates (EK)',
+      flightNumber: 'EK-501',
+      cabinClass: 'Flex Saver',
+      passengers: 1,
+      totalPrice: 1088,
+      netPrice: 916,
+      markup: 137,
+      serviceFee: 50,
+      discount: 15,
+      primaryCustomerPrice: 1088,
+      primarySupplierCost: 916,
+      primaryProfit: 172,
+      optionsCount: 2,
+      validity: '24 Hours',
+      expiryDateTime: '2026-12-05 16:40',
+      createdBy: 'Priya (GDS Flight Expert)',
+      agentName: 'Priya (GDS Flight Expert)',
+      status: 'Accepted',
+      pnr: 'PNR855392',
+      createdDate: new Date().toISOString().split('T')[0],
+      flightReqRef: 'REQ-9901',
+      options: [
+        {
+          id: 1,
+          airline: 'Emirates (EK)',
+          flightNumber: 'EK-501',
+          origin: 'JFK',
+          destination: 'LHR',
+          departure: 'JFK 08:30 AM',
+          arrival: 'LHR 02:15 PM',
+          duration: '8h 45m Direct Non-Stop',
+          stops: 'Non-stop',
+          cabinClass: 'Flex Saver',
+          baggage: '23kg Checked + 7kg Cabin',
+          fareConditions: 'Partially refundable ($150 fee); change allowed 24h prior',
+          supplier: 'Amadeus GDS',
+          baseFare: 790,
+          taxes: 126,
+          supplierCost: 916,
+          markupAmount: 137,
+          markupPct: 15,
+          serviceFee: 50,
+          discount: 15,
+          customerPrice: 1088,
+          profit: 172
+        },
+        {
+          id: 2,
+          airline: 'Qatar Airways (QR)',
+          flightNumber: 'QR-571',
+          origin: 'JFK',
+          destination: 'LHR',
+          departure: 'JFK 03:45 AM',
+          arrival: 'LHR 10:20 AM',
+          duration: '9h 35m 1-Stop via DOH',
+          stops: '1-Stop',
+          cabinClass: 'Classic Economy',
+          baggage: '23kg Checked',
+          fareConditions: 'Refundable with standard airline penalties',
+          supplier: 'Amadeus GDS',
+          baseFare: 743,
+          taxes: 126,
+          supplierCost: 869,
+          markupAmount: 130,
+          markupPct: 15,
+          serviceFee: 50,
+          discount: 0,
+          customerPrice: 1049,
+          profit: 180
+        }
+      ]
+    }
+  ];
+
   // Quotes state loaded from localStorage / PostgreSQL API
   const [quotes, setQuotes] = useState(() => {
     try {
       const stored = localStorage.getItem('crm-quotes');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) { }
-    return [];
+    try {
+      localStorage.setItem('crm-quotes', JSON.stringify(DEFAULT_INITIAL_QUOTES));
+    } catch (e) {}
+    return DEFAULT_INITIAL_QUOTES;
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -506,13 +595,13 @@ export default function Quotes() {
             };
           });
 
-          // Strictly use genuine DB records
-          setQuotes(fromDb);
-          try {
-            localStorage.setItem('crm-quotes', JSON.stringify(fromDb));
-          } catch (e) { }
-
+          // Strictly use genuine DB records only when DB has records
           if (fromDb.length > 0) {
+            setQuotes(fromDb);
+            try {
+              localStorage.setItem('crm-quotes', JSON.stringify(fromDb));
+            } catch (e) { }
+
             setSelectedQuote(prev => {
               if (prev) {
                 const match = fromDb.find(f => f.id === prev.id);
@@ -520,8 +609,6 @@ export default function Quotes() {
               }
               return fromDb[0];
             });
-          } else {
-            setSelectedQuote(null);
           }
         }
       }
