@@ -38,29 +38,96 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import AncillariesAndSSRHub from '../../components/AncillariesAndSSRHub';
 import { useAlert } from '../../contexts/AlertContext';
 
+const DEFAULT_FALLBACK_QUOTE = {
+  id: 'QT-9001',
+  quoteId: 'QT-9001',
+  customerName: 'Harsh',
+  customerEmail: 'harsh@gmail.com',
+  customerPhone: '+1 215-198-5615',
+  airline: 'Emirates',
+  flightNumber: 'EK-501',
+  cabinClass: 'Flex Economy',
+  origin: 'JFK',
+  destination: 'LHR',
+  departureDate: '2026-12-05',
+  totalPrice: 1088,
+  netPrice: 916,
+  markup: 137,
+  serviceFee: 50,
+  agentName: 'Priya (GDS Flight Expert)',
+  options: [
+    {
+      airline: 'Emirates (EK)',
+      flightNumber: 'EK-501',
+      cabinClass: 'Flex Economy',
+      origin: 'JFK',
+      destination: 'LHR',
+      stops: 'Non-stop',
+      duration: '8h 45m',
+      departure: '08:30 AM (JFK)',
+      arrival: '02:15 PM (LHR)',
+      baggage: '23kg Checked + 7kg Cabin Included',
+      fareConditions: 'Partially refundable ($150 fee); change allowed 24h prior',
+      supplierCost: 916,
+      customerPrice: 1088
+    }
+  ]
+};
+
 export default function FlightDealReview({ quote: propQuote }) {
   const { dealId } = useParams();
   const navigate = useNavigate();
   const { showAlert } = useAlert();
 
-  // Resolve quote from props or fallback to cached quote
+  // Resolve quote from props or fallback to cached quote or default demo
   const [activeQuote, setActiveQuote] = useState(() => {
     if (propQuote) return propQuote;
     try {
       const stored = localStorage.getItem('crm-quotes');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (dealId) {
+            const found = parsed.find(q => q.id?.toLowerCase() === dealId.toLowerCase() || q.quoteId?.toLowerCase() === dealId.toLowerCase());
+            if (found) return found;
+          }
+          return parsed[0];
+        }
       }
     } catch (e) {}
-    return null;
+    return DEFAULT_FALLBACK_QUOTE;
   });
 
   useEffect(() => {
     if (propQuote) {
       setActiveQuote(propQuote);
+      return;
     }
-  }, [propQuote]);
+    if (dealId) {
+      try {
+        const stored = localStorage.getItem('crm-quotes');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const found = parsed.find(q => q.id?.toLowerCase() === dealId.toLowerCase() || q.quoteId?.toLowerCase() === dealId.toLowerCase());
+          if (found) {
+            setActiveQuote(found);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      const backendUrl = getBackendUrl();
+      fetch(`${backendUrl}/api/quotes`)
+        .then(res => res.json())
+        .then(json => {
+          if (json?.success && Array.isArray(json?.data)) {
+            const match = json.data.find(q => q.quoteId?.toLowerCase() === dealId.toLowerCase() || q.id?.toLowerCase() === dealId.toLowerCase());
+            if (match) setActiveQuote(match);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [propQuote, dealId]);
 
   // 24 Hour Countdown Timer state
   const [timeLeft, setTimeLeft] = useState({
