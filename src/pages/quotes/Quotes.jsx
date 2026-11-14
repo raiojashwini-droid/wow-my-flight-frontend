@@ -325,13 +325,29 @@ export default function Quotes() {
       searchFlightResults: prev.searchFlightResults.map(opt => {
         if (opt.id === id) {
           const updated = { ...opt, [field]: value };
-          // recalculate markupAmount if baseFare, taxes, or markupPct change
           const base = Number(updated.baseFare) || 0;
           const tax = Number(updated.taxes) || 0;
           const cost = base + tax;
-          const pct = Number(updated.markupPct) || 0;
-          const mkAmount = Math.round(cost * (pct / 100));
-          updated.markupAmount = mkAmount;
+
+          if (field === 'markupPct') {
+            if (value === '' || value === null) {
+              updated.markupPct = '';
+              updated.markupAmount = '';
+            } else {
+              const pct = Number(value);
+              updated.markupPct = isNaN(pct) ? '' : pct;
+              updated.markupAmount = isNaN(pct) ? '' : Math.round(cost * (pct / 100));
+            }
+          } else if (field === 'markupAmount') {
+            if (value === '' || value === null) {
+              updated.markupAmount = '';
+              updated.markupPct = '';
+            } else {
+              const amt = Number(value);
+              updated.markupAmount = isNaN(amt) ? '' : amt;
+              updated.markupPct = (cost > 0 && !isNaN(amt)) ? Math.round((amt / cost) * 100) : '';
+            }
+          }
           return updated;
         }
         return opt;
@@ -1457,8 +1473,9 @@ export default function Quotes() {
                           size="small"
                           type="number"
                           label="Markup Percentage (%) *"
-                          value={opt.markupPct}
-                          onChange={e => updateFlightResultField(opt.id, 'markupPct', Number(e.target.value))}
+                          value={opt.markupPct ?? ''}
+                          onFocus={e => e.target.select()}
+                          onChange={e => updateFlightResultField(opt.id, 'markupPct', e.target.value)}
                           InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
                         />
                       </Grid>
@@ -1468,8 +1485,9 @@ export default function Quotes() {
                           size="small"
                           type="number"
                           label="Markup Amount ($) *"
-                          value={opt.markupAmount}
-                          onChange={e => updateFlightResultField(opt.id, 'markupAmount', Number(e.target.value))}
+                          value={opt.markupAmount ?? ''}
+                          onFocus={e => e.target.select()}
+                          onChange={e => updateFlightResultField(opt.id, 'markupAmount', e.target.value)}
                           InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
                         />
                       </Grid>
@@ -1477,7 +1495,7 @@ export default function Quotes() {
                         <Box sx={{ p: 1.5, bgcolor: '#ECFDF5', borderRadius: 1.5, border: '1px solid #6EE7B7' }}>
                           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>Cost + Markup Subtotal:</Typography>
                           <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'success.main' }}>
-                            ${(cost + Number(opt.markupAmount)).toLocaleString()}
+                            ${(cost + (Number(opt.markupAmount) || 0)).toLocaleString()}
                           </Typography>
                         </Box>
                       </Grid>
@@ -1507,8 +1525,9 @@ export default function Quotes() {
                         size="small"
                         type="number"
                         label="Agency Service Fee ($) *"
-                        value={opt.serviceFee}
-                        onChange={e => updateFlightResultField(opt.id, 'serviceFee', Number(e.target.value))}
+                        value={opt.serviceFee ?? ''}
+                        onFocus={e => e.target.select()}
+                        onChange={e => updateFlightResultField(opt.id, 'serviceFee', e.target.value === '' ? '' : Number(e.target.value))}
                         InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
                         helperText="Handling and ticketing fee for sales agent"
                       />
@@ -1519,8 +1538,9 @@ export default function Quotes() {
                         size="small"
                         type="number"
                         label="Customer Discount ($)"
-                        value={opt.discount}
-                        onChange={e => updateFlightResultField(opt.id, 'discount', Number(e.target.value))}
+                        value={opt.discount ?? ''}
+                        onFocus={e => e.target.select()}
+                        onChange={e => updateFlightResultField(opt.id, 'discount', e.target.value === '' ? '' : Number(e.target.value))}
                         InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
                         helperText="Special promotional or loyalty discount"
                       />
