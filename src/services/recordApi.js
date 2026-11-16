@@ -1,7 +1,11 @@
 import { getBackendUrl } from '../config/backend.js';
+import { getAuthToken, ensureRealAuthToken } from './dbService.js';
 
 export async function saveRecord(endpoint, method, body, cacheKey, deletedId) {
-  const token = JSON.parse(localStorage.getItem('crm-auth-user') || 'null')?.token;
+  let token = getAuthToken();
+  if (!token) {
+    token = await ensureRealAuthToken();
+  }
   const response = await fetch(getBackendUrl() + endpoint, {
     method,
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },

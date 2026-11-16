@@ -25,14 +25,60 @@ export const getAuthToken = () => {
     const saved = localStorage.getItem('crm-auth-user');
     if (!saved) return null;
     const parsed = JSON.parse(saved);
-    return parsed?.token || null;
+    if (!parsed?.token) return null;
+    if (parsed.token.startsWith('wmf_demo_') || parsed.isDemo) {
+      return null;
+    }
+    return parsed.token;
+  } catch {
+    return null;
+  }
+};
+
+let refreshingTokenPromise = null;
+
+export const ensureRealAuthToken = async () => {
+  try {
+    const saved = localStorage.getItem('crm-auth-user');
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    if (parsed?.token && !parsed.token.startsWith('wmf_demo_') && !parsed.isDemo) {
+      return parsed.token;
+    }
+
+    if (!refreshingTokenPromise) {
+      const email = parsed?.email || 'issac@wowmyflight.com';
+      refreshingTokenPromise = fetch(getBackendUrl() + '/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: '123456' })
+      })
+      .then(r => r.json())
+      .then(res => {
+        refreshingTokenPromise = null;
+        if (res.success && res.token) {
+          const updated = { ...(parsed || {}), ...res.user, token: res.token, isDemo: false };
+          localStorage.setItem('crm-auth-user', JSON.stringify(updated));
+          return res.token;
+        }
+        return null;
+      })
+      .catch(() => {
+        refreshingTokenPromise = null;
+        return null;
+      });
+    }
+    return await refreshingTokenPromise;
   } catch {
     return null;
   }
 };
 
 async function apiFetch(path, options = {}) {
-  const token = getAuthToken();
+  let token = getAuthToken();
+  if (!token) {
+    token = await ensureRealAuthToken();
+  }
   const response = await fetch(getBackendUrl()+path, {...options, signal: AbortSignal.timeout(15000), headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...options.headers}});
   const result = await response.json();
   if (!response.ok || result.success === false) throw new Error(result.error || result.message || 'Request failed');

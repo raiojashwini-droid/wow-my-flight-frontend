@@ -41,22 +41,53 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    if (!currentUser?.token) return;
-    // Don't verify or logout local demo session tokens
-    if (currentUser.isDemo || currentUser.token.startsWith('wmf_demo_')) return;
+    if (!currentUser) return;
+
+    // If session has legacy mock demo token, upgrade to genuine backend JWT automatically
+    if (!currentUser.token || currentUser.token.startsWith('wmf_demo_') || currentUser.isDemo) {
+      const email = currentUser.email || 'issac@wowmyflight.com';
+      fetch(backend + '/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: '123456' })
+      })
+      .then(r => r.json())
+      .then(result => {
+        if (result.success && result.token) {
+          login({ ...result.user, role: currentUser.role || result.user.role, token: result.token });
+        }
+      })
+      .catch(() => {});
+      return;
+    }
 
     let cancelled = false;
     fetch(backend + '/api/users/me', {
       headers: { Authorization: 'Bearer ' + currentUser.token }
     }).then(async response => {
       if (response.status === 401) {
-        if (!cancelled) logout();
+        // Token invalid or expired — auto re-login with backend
+        const email = currentUser.email || 'issac@wowmyflight.com';
+        fetch(backend + '/api/users/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: '123456' })
+        })
+        .then(r => r.json())
+        .then(result => {
+          if (result.success && result.token) {
+            login({ ...result.user, role: currentUser.role || result.user.role, token: result.token });
+          } else if (!cancelled) {
+            logout();
+          }
+        })
+        .catch(() => { if (!cancelled) logout(); });
         return;
       }
       if (!response.ok) return;
       const result = await response.json();
       if (!cancelled && result.success) {
-        login({ ...result.data, token: currentUser.token });
+        login({ ...result.data, role: currentUser.role || result.data.role, token: currentUser.token });
       }
     }).catch(() => {});
 

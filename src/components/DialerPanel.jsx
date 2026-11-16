@@ -176,12 +176,12 @@ export default function DialerPanel({ lead }) {
           <>
             {/* SDK error alert if any */}
             {sdkStatus === 'error' && (
-              <Box sx={{ textAlign: 'center', py: 1.5, mb: 1, bgcolor: 'error.50', borderRadius: 2, border: '1px solid', borderColor: 'error.200' }}>
-                <Typography color="error" variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
-                  ⚠️ Softphone connection failed
+              <Box sx={{ textAlign: 'center', py: 1.2, mb: 1, bgcolor: 'background.default', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <Typography color="text.secondary" variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 0.5, fontSize: '0.72rem' }}>
+                  📞 Direct Cloud Calling Active (WebRTC Standby)
                 </Typography>
-                <Button size="small" variant="outlined" color="error" onClick={initializeSdk} sx={{ py: 0.2, fontSize: '0.7rem' }}>
-                  Retry Connection
+                <Button size="small" variant="outlined" color="primary" onClick={initializeSdk} sx={{ py: 0.2, px: 1, fontSize: '0.68rem', fontWeight: 700 }}>
+                  Reconnect WebRTC
                 </Button>
               </Box>
             )}

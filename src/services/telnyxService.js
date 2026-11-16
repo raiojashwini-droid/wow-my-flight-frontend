@@ -6,7 +6,7 @@ import { getBackendUrl } from '../config/backend.js';
  */
 
 import axios from 'axios';
-import { getAuthToken } from './dbService';
+import { getAuthToken, ensureRealAuthToken } from './dbService';
 
 const BASE_URL = getBackendUrl();
 
@@ -16,8 +16,11 @@ const api = axios.create({
   timeout: 15000,
 });
 
-api.interceptors.request.use(config => {
-  const token = getAuthToken();
+api.interceptors.request.use(async config => {
+  let token = getAuthToken();
+  if (!token) {
+    token = await ensureRealAuthToken();
+  }
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
