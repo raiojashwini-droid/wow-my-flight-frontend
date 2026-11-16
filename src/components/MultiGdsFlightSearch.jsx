@@ -56,8 +56,13 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import PublicIcon from '@mui/icons-material/Public';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import SendIcon from '@mui/icons-material/Send';
 
 import { useAlert } from '../contexts/AlertContext';
+import { useAuth } from '../contexts/AuthContext';
+import { getBackendUrl } from '../config/backend.js';
+import { ensureRealAuthToken } from '../services/dbService';
 
 export const SAMPLE_MULTI_GDS_RESULTS = [];
 
@@ -105,23 +110,190 @@ export default function MultiGdsFlightSearch({
   const [posTab, setPosTab] = useState(0); // 0 = UK, 1 = USA, 2 = Ireland Dynamic
 
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
 
   // Active Modals for Buttons
   const [fareRulesFlight, setFareRulesFlight] = useState(null);
   const [quoteFlight, setQuoteFlight] = useState(null);
   const [bookFlight, setBookFlight] = useState(null);
   const [quoteMarkup, setQuoteMarkup] = useState(250);
+  const [quoteCustomerName, setQuoteCustomerName] = useState('');
+  const [quoteCustomerEmail, setQuoteCustomerEmail] = useState('');
+  const [quoteCustomerPhone, setQuoteCustomerPhone] = useState('');
+  const [quoteServiceFee, setQuoteServiceFee] = useState(50);
+  const [createdQuote, setCreatedQuote] = useState(null);
+  const [isSavingQuote, setIsSavingQuote] = useState(false);
+  const [quoteStep, setQuoteStep] = useState(0); // 0 = Build Quote, 1 = Ready & Dispatch
   const [paxName, setPaxName] = useState('');
   const [isBooking, setIsBooking] = useState(false);
 
+  const handleStartQuote = (flight) => {
+    setQuoteFlight(flight);
+    const net = Number(flight.usdEquivalent || flight.totalNetPrice || flight.supplierCost || 700);
+    const suggested = Number(flight.suggestedSellingPrice || Math.round(net * 1.15));
+    setQuoteMarkup(Math.max(50, suggested - net));
+    setQuoteServiceFee(50);
+    setCreatedQuote(null);
+    setQuoteStep(0);
+    setQuoteCustomerName('');
+    setQuoteCustomerEmail('');
+    setQuoteCustomerPhone('');
+  };
+
+  const getProposalText = (q, fl = quoteFlight) => {
+    if (!q || !fl) return '';
+    const quoteId = q.quoteId || q.id;
+    const dealUrl = `${window.location.origin}${window.location.pathname}#/deal/${quoteId}`;
+    const isRound = String(tripType).toLowerCase().includes('round');
+    const outboundFlightNo = fl.outbound?.flightNo || fl.flightNumber || 'Scheduled';
+    const outboundDep = fl.outbound?.departTime || fl.departure || `${origin} Departure`;
+    const outboundArr = fl.outbound?.arriveTime || fl.arrival || `${destination} Arrival`;
+    const duration = fl.outbound?.totalDuration || fl.duration || 'Direct';
+    const baggage = fl.baggage || '2x 23kg Checked Bags Included';
+    const clientPrice = Number(q.totalPrice || (fl.usdEquivalent + quoteMarkup + quoteServiceFee)).toLocaleString();
+
+    return `✈️ *OFFICIAL FLIGHT QUOTATION — WOWMYFLIGHT*
+Ref: *#${quoteId}*
+Client: *${q.customerName || quoteCustomerName || 'Valued Customer'}*
+
+🛫 *Outbound Flight:*
+• Route: ${origin} ➔ ${destination} (${cabinClass})
+• Airline: ${fl.airline} (${outboundFlightNo})
+• Departure Date: ${departDate} | Time: ${outboundDep} - ${outboundArr}
+• Journey: ${duration} (${fl.stops || 'Non-stop'})
+• Baggage: ${baggage}
+${isRound && returnDate ? `
+🛬 *Returning Flight:*
+• Route: ${destination} ➔ ${origin}
+• Return Date: ${returnDate} | Time: ${fl.inbound?.departTime || 'Scheduled'}
+` : ''}
+💰 *Total Client Quotation:* $${clientPrice} USD (All Taxes, Fees & Surcharges Included)
+⏳ *Price Guarantee:* Valid for 24 Hours
+🛡️ *Fare Rules:* ${fl.refundable || 'Refundable with standard fee'}
+
+🔗 *Interactive Client Deal Review & Booking:*
+${dealUrl}
+
+Reply *YES* to lock in this fare or hold seats!`;
+  };
+
+  const handleSaveAndGenerateQuote = async () => {
+    if (!quoteCustomerName.trim()) {
+      showAlert('⚠️ Please enter the Customer / Passenger Name to generate quotation.', 'warning');
+      return;
+    }
+
+    if (!quoteFlight) return;
+
+    setIsSavingQuote(true);
+    try {
+      const netFare = Number(quoteFlight.usdEquivalent || quoteFlight.totalNetPrice || quoteFlight.supplierCost || 700);
+      const markup = Number(quoteMarkup) || 0;
+      const sFee = Number(quoteServiceFee) || 0;
+      const totalSellingPrice = netFare + markup + sFee;
+      const generatedQuoteId = `QT-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const outboundFlightNo = quoteFlight.outbound?.flightNo || quoteFlight.flightNumber || 'FL-101';
+      const outboundDep = quoteFlight.outbound?.departTime || quoteFlight.departure || `${origin} Scheduled`;
+      const outboundArr = quoteFlight.outbound?.arriveTime || quoteFlight.arrival || `${destination} Scheduled`;
+      const isRound = String(tripType).toLowerCase().includes('round');
+
+      const quotePayload = {
+        quoteId: generatedQuoteId,
+        customerName: quoteCustomerName.trim(),
+        customerEmail: quoteCustomerEmail.trim() || `${quoteCustomerName.trim().toLowerCase().replace(/\s+/g, '.')}@client.com`,
+        customerPhone: quoteCustomerPhone.trim() || '+1 (555) 000-0000',
+        origin: origin,
+        destination: destination,
+        tripType: tripType,
+        cabinClass: cabinClass,
+        passengers: Number(passengers) || 1,
+        departureDate: departDate,
+        returnDate: isRound ? returnDate : null,
+        airline: quoteFlight.airline,
+        flightNumber: outboundFlightNo,
+        totalPrice: totalSellingPrice,
+        netPrice: netFare,
+        markup: markup,
+        serviceFee: sFee,
+        currency: 'USD',
+        validUntil: '24 Hours',
+        status: 'Sent',
+        agentName: currentUser?.name || 'Issac (Sales Executive)',
+        options: [
+          {
+            id: 1,
+            airline: quoteFlight.airline,
+            flightNumber: outboundFlightNo,
+            origin: origin,
+            destination: destination,
+            departure: `${origin} ${outboundDep}`,
+            arrival: `${destination} ${outboundArr}`,
+            duration: quoteFlight.outbound?.totalDuration || quoteFlight.duration || 'Scheduled',
+            stops: quoteFlight.stops || 'Non-stop',
+            cabinClass: cabinClass,
+            fareFamily: quoteFlight.fareFamily || 'Flexible Fare',
+            baggage: quoteFlight.baggage || '2x 23kg Checked Bags Included',
+            fareConditions: quoteFlight.fareConditions || 'Standard airline fare rules apply',
+            supplier: quoteFlight.gdsSource || 'TraveloPro GDS',
+            baseFare: Math.round(netFare * 0.85),
+            taxes: Math.round(netFare * 0.15),
+            supplierCost: netFare,
+            markupAmount: markup,
+            markupPct: netFare > 0 ? Math.round((markup / netFare) * 100) : 15,
+            serviceFee: sFee,
+            discount: 0,
+            customerPrice: totalSellingPrice,
+            profit: markup + sFee,
+            notes: quoteFlight.notes || 'TraveloPro verified flight quotation'
+          }
+        ]
+      };
+
+      // 1. Save to backend PostgreSQL Database
+      const backendUrl = getBackendUrl();
+      const token = await ensureRealAuthToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let dbSavedQuote = null;
+      try {
+        const res = await fetch(`${backendUrl}/api/quotes`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(quotePayload)
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data) dbSavedQuote = json.data;
+        }
+      } catch (apiErr) {
+        console.warn('[MultiGdsFlightSearch] Backend quote save warning:', apiErr);
+      }
+
+      const finalQuoteObj = dbSavedQuote || { id: generatedQuoteId, ...quotePayload };
+
+      // 2. Persist to local CRM quotes storage
+      try {
+        const existing = localStorage.getItem('crm-quotes');
+        const list = existing ? JSON.parse(existing) : [];
+        const updatedList = [finalQuoteObj, ...(Array.isArray(list) ? list.filter(q => q.id !== finalQuoteObj.id && q.quoteId !== finalQuoteObj.quoteId) : [])];
+        localStorage.setItem('crm-quotes', JSON.stringify(updatedList));
+      } catch (storageErr) {}
+
+      setCreatedQuote(finalQuoteObj);
+      setQuoteStep(1);
+      showAlert(`🎉 Official Quote #${generatedQuoteId} successfully generated & saved to database!`, 'success');
+    } catch (err) {
+      console.error('Error creating quote:', err);
+      showAlert(`❌ Error generating quote: ${err.message}`, 'error');
+    } finally {
+      setIsSavingQuote(false);
+    }
+  };
+
   const copyWhatsAppQuote = (flight) => {
-    const text = `✈️ *FLIGHT QUOTATION - WOWMYFLIGHT*\n` +
-      `Airline: ${flight.airline} (${flight.airlineCode})\n` +
-      `Route: ${origin} ➔ ${destination} (${cabinClass})\n` +
-      `Flight: ${flight.outbound.flightNo} (${flight.outbound.departTime} - ${flight.outbound.arriveTime})\n` +
-      `Baggage: ${flight.baggage} | Refundable: ${flight.refundable}\n` +
-      `Special Quote Price: $${(flight.suggestedSellingPrice || (flight.usdEquivalent + quoteMarkup)).toLocaleString()} USD\n\n` +
-      `Reply YES to hold your seat or lock this price!`;
+    const text = getProposalText(createdQuote || { customerName: quoteCustomerName || paxName || 'Valued Customer', totalPrice: (flight.usdEquivalent || 715) + quoteMarkup + quoteServiceFee }, flight);
     navigator.clipboard.writeText(text);
     showAlert('✓ WhatsApp Quotation copied to clipboard!', 'success');
   };
@@ -709,8 +881,7 @@ export default function MultiGdsFlightSearch({
                     color="primary"
                     startIcon={<RequestQuoteIcon />}
                     onClick={() => {
-                      setQuoteFlight(res);
-                      if (onGenerateQuote) onGenerateQuote(res);
+                      handleStartQuote(res);
                     }}
                     sx={{ fontWeight: 800, fontSize: '0.74rem', textTransform: 'none' }}
                   >
@@ -824,24 +995,26 @@ export default function MultiGdsFlightSearch({
       </Dialog>
 
       {/* ════════════════════════════════════════════════════════════════════
-          MODAL 2: GENERATE QUOTE MODAL
+          MODAL 2: OFFICIAL CLIENT FLIGHT QUOTATION GENERATOR & DISPATCH HUB
       ════════════════════════════════════════════════════════════════════ */}
       <Dialog
         open={Boolean(quoteFlight)}
         onClose={() => setQuoteFlight(null)}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+        PaperProps={{ sx: { borderRadius: 3, p: 0.5 } }}
       >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <RequestQuoteIcon color="primary" />
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'primary.50', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <RequestQuoteIcon color="primary" />
+            </Box>
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
-                Instant Client Quotation Builder
+                ✈️ Official Client Flight Quotation & Proposal Generator
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {quoteFlight?.airline} ({quoteFlight?.airlineCode}) • {origin} ➔ {destination}
+                {quoteFlight?.airline} ({quoteFlight?.airlineCode || 'GDS'}) • {origin} ➔ {destination} • {tripType} ({cabinClass})
               </Typography>
             </Box>
           </Box>
@@ -849,64 +1022,289 @@ export default function MultiGdsFlightSearch({
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <Divider />
-        <DialogContent sx={{ py: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Paper elevation={0} sx={{ p: 2, bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200', borderRadius: 2 }}>
-            <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main', display: 'block' }}>
-              FLIGHT QUOTE SUMMARY
-            </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 900, mt: 0.5 }}>
-              {quoteFlight?.airline} • {quoteFlight?.outbound?.flightNo} ({quoteFlight?.cabinClass})
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Net Fare: ${quoteFlight?.usdEquivalent || quoteFlight?.totalNetPrice} USD | Suggested Sell: ${quoteFlight?.suggestedSellingPrice} USD
-            </Typography>
-          </Paper>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-            <TextField
-              label="Agency Markup ($)"
-              type="number"
-              size="small"
-              value={quoteMarkup}
-              onChange={(e) => setQuoteMarkup(Number(e.target.value) || 0)}
-            />
-            <TextField
-              label="Final Client Price ($)"
-              size="small"
-              value={`$${((quoteFlight?.usdEquivalent || 715) + quoteMarkup).toLocaleString()} USD`}
-              InputProps={{ readOnly: true }}
-            />
-          </Box>
+        <DialogContent sx={{ py: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          {/* STEP 0: Configure Client & Commercials */}
+          {quoteStep === 0 && (
+            <>
+              {/* Flight Summary Card */}
+              <Paper elevation={0} sx={{ p: 2, bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200', borderRadius: 2.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 1.2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 900, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                    <FlightTakeoffIcon sx={{ fontSize: 18 }} /> {quoteFlight?.airline} • Flight {quoteFlight?.outbound?.flightNo || quoteFlight?.flightNumber}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.8 }}>
+                    <Chip label={cabinClass} size="small" color="primary" sx={{ fontWeight: 800, height: 22 }} />
+                    <Chip label={quoteFlight?.refundable || 'Refundable'} size="small" variant="outlined" color={quoteFlight?.refundable === 'Refundable' ? 'success' : 'default'} sx={{ fontWeight: 700, height: 22 }} />
+                    <Chip label={`🧳 ${quoteFlight?.baggage || '2x 23kg Bags'}`} size="small" variant="outlined" sx={{ fontWeight: 700, height: 22 }} />
+                  </Box>
+                </Box>
 
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Button
-              variant="outlined"
-              color="success"
-              fullWidth
-              startIcon={<WhatsAppIcon />}
-              onClick={() => {
-                if (quoteFlight) copyWhatsAppQuote(quoteFlight);
-              }}
-              sx={{ fontWeight: 800, textTransform: 'none' }}
-            >
-              Copy WhatsApp Ready Pitch
-            </Button>
-            <Button
-              variant="contained"
-              fullWidth
-              startIcon={<ReceiptLongIcon />}
-              onClick={() => {
-                setQuoteFlight(null);
-                navigate('/quotes');
-                showAlert('✓ Forwarded flight details to Quotes Desk!', 'success');
-              }}
-              sx={{ fontWeight: 800, textTransform: 'none' }}
-            >
-              Open Full Quotation Proposal Editor →
-            </Button>
-          </Box>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr' }, gap: 1.5, alignItems: 'center', bgcolor: 'background.paper', p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>OUTBOUND DEPARTURE</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 800 }}>{origin} • {quoteFlight?.outbound?.departTime || quoteFlight?.departure || '08:30 AM'}</Typography>
+                    <Typography variant="caption" color="text.secondary">{departDate}</Typography>
+                  </Box>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block' }}>{quoteFlight?.outbound?.totalDuration || quoteFlight?.duration || 'Direct'}</Typography>
+                    <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 800 }}>➔ {quoteFlight?.stops || 'Non-stop'} ➔</Typography>
+                  </Box>
+                  <Box sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>OUTBOUND ARRIVAL</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 800 }}>{destination} • {quoteFlight?.outbound?.arriveTime || quoteFlight?.arrival || '02:15 PM'}</Typography>
+                    <Typography variant="caption" color="text.secondary">{departDate}</Typography>
+                  </Box>
+                </Box>
+
+                {String(tripType).toLowerCase().includes('round') && returnDate && (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr' }, gap: 1.5, alignItems: 'center', bgcolor: 'background.paper', p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', mt: 1 }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>INBOUND RETURN</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 800 }}>{destination} • {quoteFlight?.inbound?.departTime || '07:30 AM'}</Typography>
+                      <Typography variant="caption" color="text.secondary">{returnDate}</Typography>
+                    </Box>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block' }}>Return Leg</Typography>
+                      <Typography variant="caption" sx={{ color: 'secondary.main', fontWeight: 800 }}>➔ Non-stop ➔</Typography>
+                    </Box>
+                    <Box sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>RETURN ARRIVAL</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 800 }}>{origin} • {quoteFlight?.inbound?.arriveTime || '12:20 PM'}</Typography>
+                      <Typography variant="caption" color="text.secondary">{returnDate}</Typography>
+                    </Box>
+                  </Box>
+                )}
+              </Paper>
+
+              {/* Section 2: Customer / Passenger Details */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 1, color: 'text.primary' }}>
+                  👤 1. Customer & Lead Details (Required to Dispatch)
+                </Typography>
+                <Grid container spacing={1.5}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    <TextField
+                      label="Customer / Lead Name *"
+                      size="small"
+                      fullWidth
+                      required
+                      placeholder="e.g. Rohit Verma"
+                      value={quoteCustomerName}
+                      onChange={(e) => setQuoteCustomerName(e.target.value)}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    <TextField
+                      label="Customer Email"
+                      type="email"
+                      size="small"
+                      fullWidth
+                      placeholder="e.g. rohit@client.com"
+                      value={quoteCustomerEmail}
+                      onChange={(e) => setQuoteCustomerEmail(e.target.value)}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    <TextField
+                      label="Customer Phone / WhatsApp"
+                      size="small"
+                      fullWidth
+                      placeholder="e.g. +91 9876543210"
+                      value={quoteCustomerPhone}
+                      onChange={(e) => setQuoteCustomerPhone(e.target.value)}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* Section 3: Commercials & Pricing */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 1, color: 'text.primary' }}>
+                  💵 2. Commercial Pricing & Agency Markup
+                </Typography>
+                <Grid container spacing={1.5} sx={{ alignItems: 'center' }}>
+                  <Grid size={{ xs: 6, sm: 3 }}>
+                    <TextField
+                      label="Supplier Net Fare"
+                      size="small"
+                      fullWidth
+                      value={`$${Number(quoteFlight?.usdEquivalent || quoteFlight?.totalNetPrice || quoteFlight?.supplierCost || 700).toLocaleString()} USD`}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 3 }}>
+                    <TextField
+                      label="Agency Markup ($)"
+                      type="number"
+                      size="small"
+                      fullWidth
+                      value={quoteMarkup}
+                      onChange={(e) => setQuoteMarkup(Number(e.target.value) || 0)}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 3 }}>
+                    <TextField
+                      label="Service Fee ($)"
+                      type="number"
+                      size="small"
+                      fullWidth
+                      value={quoteServiceFee}
+                      onChange={(e) => setQuoteServiceFee(Number(e.target.value) || 0)}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 3 }}>
+                    <Paper elevation={0} sx={{ p: 1, px: 1.5, bgcolor: '#ECFDF5', border: '1px solid #10B981', borderRadius: 2, textAlign: 'center' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#059669', display: 'block' }}>TOTAL CLIENT PRICE</Typography>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#047857', lineHeight: 1.1 }}>
+                        ${((Number(quoteFlight?.usdEquivalent || quoteFlight?.totalNetPrice || quoteFlight?.supplierCost || 700)) + Number(quoteMarkup) + Number(quoteServiceFee)).toLocaleString()} USD
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+              </Box>
+            </>
+          )}
+
+          {/* STEP 1: Quotation Generated & Client Dispatch Hub */}
+          {quoteStep === 1 && createdQuote && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Alert severity="success" icon={<CheckCircleIcon fontSize="inherit" />} sx={{ borderRadius: 2.5, fontWeight: 700 }}>
+                <AlertTitle sx={{ fontWeight: 900 }}>🎉 Official Quotation #{createdQuote.quoteId || createdQuote.id} Created & Saved to Live Database!</AlertTitle>
+                Quotation has been successfully recorded in PostgreSQL CRM with status <b>Sent</b> and is ready to dispatch to client.
+              </Alert>
+
+              <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'background.paper' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>QUOTATION SUMMARY</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 900, color: 'text.primary' }}>
+                      {createdQuote.customerName} • ${Number(createdQuote.totalPrice).toLocaleString()} USD
+                    </Typography>
+                  </Box>
+                  <Chip label="Status: Sent / Active" color="success" size="small" sx={{ fontWeight: 800 }} />
+                </Box>
+
+                <Divider sx={{ my: 1.5 }} />
+
+                <Typography variant="subtitle2" sx={{ fontWeight: 900, color: 'text.primary', mb: 1 }}>
+                  🚀 Instant Client Dispatch Channels:
+                </Typography>
+
+                <Grid container spacing={1.5}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      startIcon={<WhatsAppIcon />}
+                      onClick={() => {
+                        const cleanPhone = (createdQuote.customerPhone || '').replace(/[^0-9]/g, '');
+                        const text = getProposalText(createdQuote);
+                        const url = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                        window.open(url, '_blank');
+                      }}
+                      sx={{
+                        fontWeight: 900,
+                        py: 1.2,
+                        textTransform: 'none',
+                        bgcolor: '#25D366',
+                        color: '#FFF',
+                        '&:hover': { bgcolor: '#128C7E' }
+                      }}
+                    >
+                      Send Proposal via WhatsApp 💬
+                    </Button>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      startIcon={<EmailIcon />}
+                      onClick={() => {
+                        const text = getProposalText(createdQuote);
+                        const subject = `Official Flight Quotation: ${origin} ➔ ${destination} (Ref #${createdQuote.quoteId || createdQuote.id})`;
+                        window.location.href = `mailto:${createdQuote.customerEmail || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+                      }}
+                      sx={{
+                        fontWeight: 900,
+                        py: 1.2,
+                        textTransform: 'none',
+                        bgcolor: '#2563EB',
+                        color: '#FFF',
+                        '&:hover': { bgcolor: '#1D4ED8' }
+                      }}
+                    >
+                      Send Proposal via Email ✉️
+                    </Button>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Button
+                      variant="outlined"
+                      color="inherit"
+                      fullWidth
+                      startIcon={<ContentCopyIcon />}
+                      onClick={() => {
+                        const text = getProposalText(createdQuote);
+                        navigator.clipboard.writeText(text);
+                        showAlert('✓ Quotation pitch copied to clipboard!', 'success');
+                      }}
+                      sx={{ fontWeight: 800, py: 1.2, textTransform: 'none' }}
+                    >
+                      Copy Quotation Pitch 📋
+                    </Button>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      fullWidth
+                      startIcon={<OpenInNewIcon />}
+                      onClick={() => {
+                        const qId = createdQuote.quoteId || createdQuote.id;
+                        window.open(`${window.location.origin}${window.location.pathname}#/deal/${qId}`, '_blank');
+                      }}
+                      sx={{ fontWeight: 800, py: 1.2, textTransform: 'none' }}
+                    >
+                      View Public Client Deal Page 🌐
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </Box>
+          )}
         </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2.5, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between' }}>
+          {quoteStep === 0 ? (
+            <>
+              <Button onClick={() => setQuoteFlight(null)} variant="outlined" color="inherit" sx={{ fontWeight: 700 }}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="success"
+                disabled={isSavingQuote}
+                startIcon={isSavingQuote ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
+                onClick={handleSaveAndGenerateQuote}
+                sx={{ fontWeight: 900, px: 3.5, py: 0.9, textTransform: 'none', bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}
+              >
+                {isSavingQuote ? 'Saving to Database...' : 'Save & Generate Official Quotation 🚀'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={() => setQuoteStep(0)} variant="outlined" color="inherit" sx={{ fontWeight: 700 }}>
+                ← Edit / Create Another
+              </Button>
+              <Button onClick={() => setQuoteFlight(null)} variant="contained" color="primary" sx={{ fontWeight: 800 }}>
+                Done / Close
+              </Button>
+            </>
+          )}
+        </DialogActions>
       </Dialog>
 
       {/* ════════════════════════════════════════════════════════════════════

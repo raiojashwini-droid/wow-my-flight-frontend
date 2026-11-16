@@ -409,9 +409,6 @@ export default function FlightRequests() {
 
       {pageTab === 0 ? (
         <MultiGdsFlightSearch
-          onGenerateQuote={(flight) => {
-            navigate('/quotes');
-          }}
           onSelectFlight={(flight) => {
             showAlert(`✓ Flight ${flight.airline} selected. Ready for PNR & Booking issuance!`, 'success');
           }}
