@@ -201,7 +201,7 @@ Reply *YES* to lock in this fare or hold seats!`;
       const quotePayload = {
         quoteId: generatedQuoteId,
         customerName: quoteCustomerName.trim(),
-        customerEmail: quoteCustomerEmail.trim() || `${quoteCustomerName.trim().toLowerCase().replace(/\s+/g, '.')}@client.com`,
+        customerEmail: quoteCustomerEmail.trim() || 'client@wowmyflight.com',
         customerPhone: quoteCustomerPhone.trim() || '+1 (555) 000-0000',
         origin: origin,
         destination: destination,
@@ -1085,11 +1085,11 @@ Reply *YES* to lock in this fare or hold seats!`;
                 <Grid container spacing={1.5}>
                   <Grid size={{ xs: 12, sm: 4 }}>
                     <TextField
-                      label="Customer / Lead Name *"
+                      label="Customer / Lead Name"
                       size="small"
                       fullWidth
                       required
-                      placeholder="e.g. Rohit Verma"
+                      placeholder="Full Name"
                       value={quoteCustomerName}
                       onChange={(e) => setQuoteCustomerName(e.target.value)}
                     />
@@ -1100,7 +1100,7 @@ Reply *YES* to lock in this fare or hold seats!`;
                       type="email"
                       size="small"
                       fullWidth
-                      placeholder="e.g. rohit@client.com"
+                      placeholder="email@example.com"
                       value={quoteCustomerEmail}
                       onChange={(e) => setQuoteCustomerEmail(e.target.value)}
                     />
@@ -1110,7 +1110,7 @@ Reply *YES* to lock in this fare or hold seats!`;
                       label="Customer Phone / WhatsApp"
                       size="small"
                       fullWidth
-                      placeholder="e.g. +91 9876543210"
+                      placeholder="+1 (555) 000-0000"
                       value={quoteCustomerPhone}
                       onChange={(e) => setQuoteCustomerPhone(e.target.value)}
                     />

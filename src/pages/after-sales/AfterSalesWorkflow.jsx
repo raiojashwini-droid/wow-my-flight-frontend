@@ -1007,7 +1007,7 @@ export default function AfterSalesWorkflow() {
                 size="small"
                 fullWidth
                 label="Customer Name"
-                placeholder="e.g. Rajesh Kumar"
+                placeholder="Customer Name"
                 value={newCaseData.customerName}
                 onChange={(e) => setNewCaseData(prev => ({ ...prev, customerName: e.target.value }))}
               />

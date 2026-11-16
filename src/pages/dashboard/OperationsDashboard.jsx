@@ -539,7 +539,7 @@ export const OperationsDashboard = () => {
                     </Typography>
                     <TextField
                       label="Client Name"
-                      placeholder="e.g. Johnathan Smith"
+                      placeholder="Client Full Name"
                       value={chatbotName}
                       onChange={(e) => setChatbotName(e.target.value)}
                       fullWidth
@@ -579,7 +579,7 @@ export const OperationsDashboard = () => {
                     </Typography>
                     <TextField
                       label="Candidate Name"
-                      placeholder="e.g. John Doe"
+                      placeholder="Candidate Full Name"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       fullWidth
@@ -696,8 +696,8 @@ export const OperationsDashboard = () => {
                     </Typography>
                     <TextField
                       label="Target Prospect Name"
-                      placeholder="e.g. Wael Mansoori"
-                      defaultValue="Wael Mansoori"
+                      placeholder="Prospect Full Name"
+                      defaultValue=""
                       id="followup-sim-name"
                       fullWidth
                       size="small"

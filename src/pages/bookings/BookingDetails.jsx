@@ -78,9 +78,9 @@ const CENTRAL_BOOKING_RECORD = {
     { label: '5. Quote Created', time: 'Aug 18 11:30', user: 'Issac (Sales Executive) (Q-8812)' },
     { label: '6. Follow-up Completed', time: 'Aug 19 14:10', user: 'Issac (Sales Executive)' },
     { label: '7. Payment Requested', time: 'Aug 19 14:15', user: 'Issac (Sales Executive) ($28,500)' },
-    { label: '8. Payment Received', time: 'Aug 19 14:20', user: 'Elena Finance (Amex)' },
+    { label: '8. Payment Received', time: 'Aug 19 14:20', user: 'Xavier (Finance) (Amex)' },
     { label: '9. Booking Confirmed', time: 'Aug 19 14:22', user: 'System (PNR SAB78K)' },
-    { label: '10. Ticket Issued', time: 'Aug 20 11:30', user: 'Carlos (13381235436196)' },
+    { label: '10. Ticket Issued', time: 'Aug 20 11:30', user: 'George (13381235436196)' },
     { label: '11. Confirmation Sent', time: 'Aug 20 11:32', user: 'System WhatsApp/Email' },
     { label: '12. After-Sales Activity', time: 'Aug 20 12:00', user: 'After-Sales Desk' },
     { label: '13. Refund/Reissue Check', time: 'Aug 20 12:15', user: 'None Required' },
@@ -89,20 +89,20 @@ const CENTRAL_BOOKING_RECORD = {
 
   // Real-Time 4-Question Tracking
   realtime4Q: {
-    activity: { what: 'Ticket Issued & Dispatched via WhatsApp', who: 'Carlos Ticketing & System', when: '2026-08-20 11:32', dept: 'Ticketing & After-Sales' },
+    activity: { what: 'Ticket Issued & Dispatched via WhatsApp', who: 'George (Ticketing) & System', when: '2026-08-20 11:32', dept: 'Ticketing & After-Sales' },
     operational: { status: 'CONFIRMED & TICKETED', nextAction: '24h Pre-departure Courtesy Call', pendingFollowup: 'Scheduled for 2026-09-14', slaStatus: '🟢 On Time (0 Breaches)' },
     financial: { customerPrice: 28500, supplierCost: 25800, markup: 2700, grossProfit: 2700, revenue: 28500, refund: 0, balance: 0 },
-    accountability: { leadOwner: 'Issac (Sales Executive)', bookingOwner: 'Issac (Sales Executive)', priceApprover: 'Adam (TL)', ticketIssuer: 'Carlos Ticketing', paymentProcessor: 'Elena Finance', qaVerifier: 'QA Verified Passed (14/14)' }
+    accountability: { leadOwner: 'Issac (Sales Executive)', bookingOwner: 'Issac (Sales Executive)', priceApprover: 'Adam (TL)', ticketIssuer: 'George (Ticketing)', paymentProcessor: 'Xavier (Finance)', qaVerifier: 'QA Verified Passed (14/14)' }
   },
 
   // Customer Profile
   customer: {
-    name: 'Ambassador Harold Vance',
-    phone: '+1 (555) 234-8901',
-    email: 'harold.vance@embassy.gov',
+    name: 'Lead Passenger',
+    phone: '+1 (555) 234-5678',
+    email: 'client@wowmyflight.com',
     nationality: 'United States',
     passport: 'P-9918234 (Exp: 2031-10-12)',
-    dob: '1978-04-12',
+    dob: '1985-04-12',
     vipTier: 'Tier 1 Black Diamond'
   },
 
@@ -135,8 +135,8 @@ const CENTRAL_BOOKING_RECORD = {
 
   // Travelers / Pax Manifest
   travelers: [
-    { id: 1, name: 'Ambassador Harold Vance', gender: 'Male', dob: '1978-04-12', passport: 'P-9918234', nationality: 'USA', seat: '1A (Window)', meal: 'Halal (MOML)', assistance: 'None' },
-    { id: 2, name: 'Lady Eleanor Vance', gender: 'Female', dob: '1982-08-24', passport: 'P-9918235', nationality: 'USA', seat: '1B (Aisle)', meal: 'Vegan (VGML)', assistance: 'None' }
+    { id: 1, name: 'Lead Passenger', gender: 'Male', dob: '1985-04-12', passport: 'P-9918234', nationality: 'USA', seat: '1A (Window)', meal: 'Standard Meal', assistance: 'None' },
+    { id: 2, name: 'Accompanying Passenger', gender: 'Female', dob: '1988-08-24', passport: 'P-9918235', nationality: 'USA', seat: '1B (Aisle)', meal: 'Standard Meal', assistance: 'None' }
   ],
 
   // Flight Segments & Itinerary
@@ -159,8 +159,8 @@ const CENTRAL_BOOKING_RECORD = {
 
   // Ticket Issuance & Reissues
   tickets: [
-    { traveler: 'Ambassador Harold Vance', ticketNumber: '13381235436196', airline: 'British Airways', status: 'TICKET ISSUED', issueDate: '2026-08-20 11:30', reissueStatus: 'INVOL WAIVER APPLIED' },
-    { traveler: 'Lady Eleanor Vance', ticketNumber: '13381235436197', airline: 'British Airways', status: 'TICKET ISSUED', issueDate: '2026-08-20 11:30', reissueStatus: 'NONE' }
+    { traveler: 'Lead Passenger', ticketNumber: '13381235436196', airline: 'British Airways', status: 'TICKET ISSUED', issueDate: '2026-08-20 11:30', reissueStatus: 'INVOL WAIVER APPLIED' },
+    { traveler: 'Accompanying Passenger', ticketNumber: '13381235436197', airline: 'British Airways', status: 'TICKET ISSUED', issueDate: '2026-08-20 11:30', reissueStatus: 'NONE' }
   ],
 
   // Supplier Details
@@ -220,8 +220,8 @@ const CENTRAL_BOOKING_RECORD = {
   auditLog: [
     { user: 'Issac (Sales Executive)', role: 'Sales Agent', action: 'Created Booking from Lead LD-99120', time: '2026-08-18 10:15' },
     { user: 'Adam', role: 'Team Leader', action: 'Approved Commercial Quote Q-8812', time: '2026-08-18 11:30' },
-    { user: 'Elena Finance', role: 'Finance', action: 'Confirmed Receipt of $28,500 via Amex', time: '2026-08-19 14:10' },
-    { user: 'Carlos Ticketing', role: 'Ticketing', action: 'Issued E-Tickets 13381235436196/97', time: '2026-08-20 11:30' }
+    { user: 'Xavier (Finance)', role: 'Finance', action: 'Confirmed Receipt of $28,500 via Amex', time: '2026-08-19 14:10' },
+    { user: 'George (Ticketing)', role: 'Ticketing', action: 'Issued E-Tickets 13381235436196/97', time: '2026-08-20 11:30' }
   ]
 };
 

@@ -561,7 +561,7 @@ export const FlightSearch = () => {
                         <input
                           type="text"
                           required
-                          placeholder="e.g. Rahul"
+                          placeholder="First Name"
                           value={leadForm.firstName}
                           onChange={(e) => setLeadForm({ ...leadForm, firstName: e.target.value })}
                           className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold focus:outline-none focus:border-indigo-600 focus:bg-white transition-colors"
@@ -571,7 +571,7 @@ export const FlightSearch = () => {
                         <label className="text-[11px] font-bold text-slate-600 block mb-1">Last Name</label>
                         <input
                           type="text"
-                          placeholder="e.g. Sharma"
+                          placeholder="Last Name"
                           value={leadForm.lastName}
                           onChange={(e) => setLeadForm({ ...leadForm, lastName: e.target.value })}
                           className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold focus:outline-none focus:border-indigo-600 focus:bg-white transition-colors"
@@ -585,7 +585,7 @@ export const FlightSearch = () => {
                         <input
                           type="email"
                           required
-                          placeholder="rahul.sharma@example.com"
+                          placeholder="name@example.com"
                           value={leadForm.email}
                           onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })}
                           className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold focus:outline-none focus:border-indigo-600 focus:bg-white transition-colors"

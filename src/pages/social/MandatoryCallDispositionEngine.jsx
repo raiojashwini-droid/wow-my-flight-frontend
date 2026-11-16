@@ -796,7 +796,7 @@ export default function MandatoryCallDispositionEngine() {
                 size="small"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="e.g. John Smith"
+                placeholder="Customer Name"
                 fullWidth
                 required
               />
@@ -805,7 +805,7 @@ export default function MandatoryCallDispositionEngine() {
                 size="small"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="e.g. +1 555-0199"
+                placeholder="+1 (555) 000-0000"
                 fullWidth
                 required
               />

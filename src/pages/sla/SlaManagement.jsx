@@ -575,9 +575,9 @@ export default function SlaManagement() {
                 const sampleAlert = {
                   id: `BR-${Date.now().toString().slice(-4)}`,
                   leadBookingId: 'BK-9912',
-                  customerName: 'Rohit Verma',
+                  customerName: 'Inbound Passenger',
                   type: 'New Lead Contact Overdue',
-                  agent: 'David Smith',
+                  agent: 'Issac (Sales Executive)',
                   overdueMinutes: '8m (Exceeded 5m target)',
                   severity: 'Critical Red',
                   time: 'Just now'

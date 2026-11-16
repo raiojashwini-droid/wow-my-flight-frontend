@@ -305,7 +305,7 @@ export const ClientIntakeForm = () => {
                         required
                         fullWidth
                         size="small"
-                        placeholder="John Doe"
+                        placeholder="Full Name"
                         InputLabelProps={{ shrink: true }}
                         sx={{ input: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: '#374151' } } }}
                       />

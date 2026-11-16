@@ -447,7 +447,7 @@ export const Settings = () => {
   const renderBodyWithMockData = (bodyText) => {
     if (!bodyText) return '';
     return bodyText
-      .replace(/{clientName}/g, 'Marcus Vance')
+      .replace(/{clientName}/g, 'Valued Customer')
       .replace(/{pnr}/g, 'WMF-78921')
       .replace(/{route}/g, 'JFK ➔ LHR (New York to London)')
       .replace(/{airline}/g, 'Delta Air Lines (DL 402)')
@@ -2055,7 +2055,7 @@ export const Settings = () => {
                       </Box>
                       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 0.8, borderBottom: '1px solid', borderColor: 'divider', fontSize: '0.75rem', bgcolor: 'background.paper' }}>
                         <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                          <strong>Subject:</strong> {editTemplateSubject ? editTemplateSubject.replace(/{clientName}/g, 'Marcus Vance').replace(/{pnr}/g, 'WMF-78921') : '(No Subject)'}
+                          <strong>Subject:</strong> {editTemplateSubject ? editTemplateSubject.replace(/{clientName}/g, 'Valued Customer').replace(/{pnr}/g, 'WMF-78921') : '(No Subject)'}
                         </Typography>
                       </Box>
                       <Box sx={{ p: 2.5, bgcolor: 'background.paper', color: 'var(--wd-334155, #334155)', fontSize: '0.78rem', lineHeight: 1.5, minHeight: 220, maxHeight: 300, overflowY: 'auto' }}>
@@ -2091,7 +2091,7 @@ export const Settings = () => {
                         }}>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', whiteSpace: 'pre-line', lineHeight: 1.35, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                             {editTemplateBody ? editTemplateBody
-                              .replace(/{clientName}/g, 'Marcus Vance')
+                              .replace(/{clientName}/g, 'Valued Customer')
                               .replace(/{pnr}/g, 'WMF-78921')
                               .replace(/{route}/g, 'JFK ➔ LHR')
                               .replace(/{bookingLink}/g, 'https://wowmyflight.com/itinerary/WMF-78921') : '(No body text)'}

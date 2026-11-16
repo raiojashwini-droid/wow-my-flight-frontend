@@ -482,7 +482,7 @@ export const CalendarView = () => {
             value={clientName}
             onChange={(e) => setClientName(e.target.value)}
             label="Client or Lead Name"
-            placeholder="e.g. Amelia Watson"
+            placeholder="Client Full Name"
             fullWidth
             required
           />

@@ -126,13 +126,7 @@ export default function FinanceDashboard() {
       });
     }
 
-    // Default real baseline records if DB is empty
-    return [
-      { id: 'BK-4821', pnr: 'TP-7YKL9M', passenger: 'Marcus Vance', route: 'JFK → LHR', grossPrice: 4200, bspCost: 3450, gatewayFee: 105.00, netProfit: 645.00, marginPct: '15.4%', status: 'Cleared', bspStatus: 'Settled' },
-      { id: 'BK-7742', pnr: 'TP-9X1WP2', passenger: 'Amina Al-Mansoor', route: 'DXB → SIN', grossPrice: 1850, bspCost: 1520, gatewayFee: 46.25, netProfit: 283.75, marginPct: '15.3%', status: 'Cleared', bspStatus: 'Pending Cycle' },
-      { id: 'BK-6320', pnr: 'TP-4M2Q8R', passenger: 'Liam O\'Connor', route: 'SYD → SFO', grossPrice: 2450, bspCost: 2010, gatewayFee: 61.25, netProfit: 378.75, marginPct: '15.5%', status: 'Pending Review', bspStatus: 'Under Audit' },
-      { id: 'BK-9169', pnr: 'TP-ZOEFV1', passenger: 'Rajesh Sharma', route: 'DEL → LHR', grossPrice: 960, bspCost: 790, gatewayFee: 24.00, netProfit: 146.00, marginPct: '15.2%', status: 'Cleared', bspStatus: 'Settled' },
-    ];
+    return [];
   }, [dbBookings]);
 
   // ─── DYNAMIC FLIGHT MARGINS & BSP KPI TOTALS ───

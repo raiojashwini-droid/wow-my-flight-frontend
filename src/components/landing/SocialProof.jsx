@@ -34,7 +34,7 @@ const REVIEWS = [
   },
   {
     id: 3,
-    name: 'Marcus Vance',
+    name: 'Aarav Mehta',
     role: 'Tech Founder & Investor',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
     rating: 5,

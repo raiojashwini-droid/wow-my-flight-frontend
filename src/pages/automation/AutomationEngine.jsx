@@ -520,7 +520,7 @@ export default function AutomationEngine() {
 
     // Real DB Booking Confirmation & Ticket Issued
     bookings.forEach(b => {
-      const passenger = b.passenger || b.name || 'Rajesh Sharma';
+      const passenger = b.passenger || b.name || 'Inbound Passenger';
       const rep = b.issuingAgent || 'Issac (Sales Executive)';
       const dateStr = b.createdAt ? new Date(b.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Today';
       list.push({
@@ -537,7 +537,7 @@ export default function AutomationEngine() {
 
     // Real DB Payments
     payments.forEach(p => {
-      const customer = p.customerName || 'Marcus Vance';
+      const customer = p.customerName || 'Inbound Passenger';
       const dateStr = p.createdAt ? new Date(p.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Today';
       list.push({
         id: `HIS-PAY-${p.invoiceNumber || 'INV'}`,
