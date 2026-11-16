@@ -84,52 +84,21 @@ export default function Bookings() {
     return currentUser.role;
   };
 
-  const DEFAULT_INITIAL_BOOKINGS = [
-    {
-      id: "BK-9001",
-      bookingId: "BK-9001",
-      customerName: "Harsh",
-      passenger: "Harsh",
-      name: "Harsh",
-      customerEmail: "harsh@gmail.com",
-      customerPhone: "+1 215-198-5615",
-      route: "JFK → LHR",
-      origin: "JFK",
-      destination: "LHR",
-      travelDate: "2026-12-05",
-      dateDisplay: "2026-12-05",
-      cabinClass: "Flex Saver",
-      passengers: 1,
-      pnr: "PNR855392",
-      airline: "Emirates (EK)",
-      airlineCode: "EK",
-      flightNumber: "EK-501",
-      sellingPrice: 1451,
-      amount: "$1,451.00",
-      amountPaid: 1451,
-      netFare: 916,
-      fare: "$916.00",
-      taxes: 126,
-      profit: 535,
-      paymentStatus: "Payment Confirmed",
-      ticketStatus: "Ready to Issue",
-      dispatchStatus: "Pending",
-      bookingStatus: "CONFIRMED",
-      status: "Ready to Issue",
-      eTicket: "Unissued",
-      createdAt: new Date().toISOString().split("T")[0],
-    }
-  ];
+  const DEFAULT_INITIAL_BOOKINGS = [];
 
   const [bookings, setBookings] = useState(() => {
     try {
       const cached = localStorage.getItem('crm-bookings');
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        const fakeNames = ['Harsh', 'Harsh Sharma', 'Sarah Jenkins', 'Michael Chang'];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const real = parsed.filter(b => !fakeNames.includes(b.customerName) && !fakeNames.includes(b.passenger) && b.id !== 'BK-9001');
+          return real;
+        }
       }
     } catch (e) {}
-    return DEFAULT_INITIAL_BOOKINGS;
+    return [];
   });
   const [loading, setLoading] = useState(false);
 

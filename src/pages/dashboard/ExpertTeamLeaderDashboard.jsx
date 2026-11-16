@@ -201,7 +201,7 @@ export default function ExpertTeamLeaderDashboard() {
         level: idx === 0 ? 'Tier 1 Black Diamond' : idx === 1 ? 'Platinum Elite' : 'Gold Concierge',
         lifetimeRevenue: `$${((idx + 2) * 32400).toLocaleString()}`,
         tripsCount: 4 + idx * 2,
-        assignedAgent: 'Sarah Jenkins',
+        assignedAgent: 'Issac (Sales Executive)',
         specialRequests: c.notes || 'Aisle seat forward cabin, Fast-track immigration, Lounge access',
         priorityStatus: 'Immediate 24/7 Executive SLA'
       }));
@@ -239,7 +239,7 @@ export default function ExpertTeamLeaderDashboard() {
   const [caseNotes, setCaseNotes] = useState('');
 
   const [assignExpertModal, setAssignExpertModal] = useState(false);
-  const [targetExpert, setTargetExpert] = useState('Sarah Jenkins (Senior Specialist)');
+  const [targetExpert, setTargetExpert] = useState('Issac (Senior Specialist)');
 
   const [resolveModal, setResolveModal] = useState(false);
   const [resolutionSummary, setResolutionSummary] = useState('');
@@ -1019,9 +1019,9 @@ export default function ExpertTeamLeaderDashboard() {
           <FormControl fullWidth size="small">
             <InputLabel>Target Senior Specialist</InputLabel>
             <Select value={targetExpert} label="Target Senior Specialist" onChange={e => setTargetExpert(e.target.value)}>
-              <MenuItem value="Sarah Jenkins (Senior Specialist)">Sarah Jenkins (Senior Specialist - VIP)</MenuItem>
-              <MenuItem value="Alex Miller (Corporate Specialist)">Alex Miller (Corporate Specialist - Groups)</MenuItem>
-              <MenuItem value="Adam (Luxury Expert)">Adam (Luxury Expert - RTW)</MenuItem>
+              <MenuItem value="Issac (Senior Specialist)">Issac (Senior Specialist - VIP)</MenuItem>
+              <MenuItem value="Abu (Floor Specialist)">Abu (Floor Specialist - Groups)</MenuItem>
+              <MenuItem value="Adam (Team Leader)">Adam (Luxury Expert - RTW)</MenuItem>
             </Select>
           </FormControl>
         </DialogContent>

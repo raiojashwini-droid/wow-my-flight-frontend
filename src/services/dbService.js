@@ -95,7 +95,11 @@ if (typeof window !== 'undefined') {
       'crm-payments',
       'crm-documents',
       'crm-agents-list',
-      'crm-conversations'
+      'crm-conversations',
+      'crm-quotes',
+      'crm-bookings',
+      'crm_quotes',
+      'crm_bookings'
     ];
     keysToCheck.forEach(k => {
       const val = localStorage.getItem(k);
@@ -106,12 +110,16 @@ if (typeof window !== 'undefined') {
         val.includes('Autonomo') ||
         val.includes('Digital Nomad Visa') ||
         val.includes('Spanish Consulate') ||
-        val.includes('Harsh Sharma') ||
+        val.includes('Harsh') ||
         val.includes('Sarah Jenkins') ||
         val.includes('Michael Chang') ||
         val.includes('harsh.sharma@example.com') ||
         val.includes('s.jenkins@corporate.com') ||
-        val.includes('m.chang@globetravel.net')
+        val.includes('m.chang@globetravel.net') ||
+        val.includes('QT-9001') ||
+        val.includes('BK-9001') ||
+        val.includes('DEMO_QA') ||
+        val.includes('Harold Vance')
       )) {
         localStorage.removeItem(k);
       }

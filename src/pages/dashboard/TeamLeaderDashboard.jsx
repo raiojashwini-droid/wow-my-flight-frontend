@@ -202,7 +202,7 @@ export default function TeamLeaderDashboard() {
       destination: l.destination && l.origin ? `${l.origin} → ${l.destination}` : (l.destination || l.route || 'Flight Inquiry'),
       travelDate: l.travelDate || l.departureDate || (l.createdAt ? String(l.createdAt).substring(0, 10) : '2026-10-20'),
       priority: l.priority || (l.budget && l.budget > 5000 ? 'VIP' : 'Normal'),
-      assignedAgent: assignedLeadOverrides[l.id] || l.assignedAgentName || (l.assignedConsultantId ? 'Sarah Jenkins' : 'Unassigned'),
+      assignedAgent: assignedLeadOverrides[l.id] || l.assignedAgentName || (l.assignedConsultantId ? (dbAgents.find(a => a.id === l.assignedConsultantId)?.name || 'Assigned Specialist') : 'Unassigned'),
       status: l.status || 'New Lead',
       source: l.source || 'Website Organic',
       pax: l.pax || l.passengers || 1
@@ -371,7 +371,7 @@ export default function TeamLeaderDashboard() {
     // Active floor reps for round-robin
     const activeReps = (floorAgents && floorAgents.length > 0)
       ? floorAgents.map(a => a.name)
-      : ['Issac (Sales Executive)', 'Xavier (Admin)', 'Sarah Jenkins'];
+      : ['Issac (Sales Executive)', 'Xavier (Admin)', 'Abu (Sales Executive)'];
 
     let repIdx = 0;
     const newOverrides = { ...assignedLeadOverrides };
@@ -404,7 +404,7 @@ export default function TeamLeaderDashboard() {
 
   const handleOpenAssign = (lead) => {
     setSelectedLead(lead);
-    setSelectedAgentToAssign(lead.assignedAgent !== 'Unassigned' ? lead.assignedAgent : 'Sarah Jenkins');
+    setSelectedAgentToAssign(lead.assignedAgent !== 'Unassigned' ? lead.assignedAgent : (floorAgents[0]?.name || 'Issac (Sales Executive)'));
     setAssignModalOpen(true);
   };
 
@@ -467,7 +467,7 @@ export default function TeamLeaderDashboard() {
   };
 
   const handleReassignEscalation = (escId, currentAgent) => {
-    const nextAgent = currentAgent === 'Sarah Jenkins' ? 'Alex Miller' : 'Sarah Jenkins';
+    const nextAgent = currentAgent === 'Issac (Sales Executive)' ? 'Abu (Sales Executive)' : 'Issac (Sales Executive)';
     setEscalations(prev => prev.map(e => e.id === escId ? { ...e, assignedAgent: nextAgent, notes: `${e.notes} [Reassigned to Senior Agent ${nextAgent}]` } : e));
     showAlert(`Escalation ${escId} reassigned to ${nextAgent}`, 'info');
   };
@@ -1494,7 +1494,7 @@ export default function TeamLeaderDashboard() {
                   Track 1-on-1 coaching logs and QA improvement targets
                 </Typography>
               </Box>
-              <Button variant="contained" size="small" color="primary" onClick={() => handleOpenCoach('Sarah Jenkins')} startIcon={<SchoolIcon />} sx={{ fontWeight: 800 }}>
+              <Button variant="contained" size="small" color="primary" onClick={() => handleOpenCoach(floorAgents[0]?.name || 'Issac (Sales Executive)')} startIcon={<SchoolIcon />} sx={{ fontWeight: 800 }}>
                 Log Session
               </Button>
             </Box>

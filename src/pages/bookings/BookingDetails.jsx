@@ -65,19 +65,19 @@ const CENTRAL_BOOKING_RECORD = {
   type: 'Multi-City / RTW',
   travelDate: '2026-09-15',
   createdDate: '2026-08-18 10:15',
-  agent: 'Sarah Jenkins',
+  agent: 'Issac (Sales Executive)',
   teamLeader: 'Adam',
   priority: 'Critical VIP',
 
   // 14-Stage Real-Time Lifecycle
   lifecycleStages: [
     { label: '1. Lead Created', time: 'Aug 18 10:15', user: 'System (Web Form)' },
-    { label: '2. Lead Assigned', time: 'Aug 18 10:16', user: 'Sarah Jenkins (Agent)' },
-    { label: '3. First Contact', time: 'Aug 18 10:18', user: 'Sarah Jenkins (Call 2m)' },
-    { label: '4. Requirements Captured', time: 'Aug 18 10:25', user: 'Sarah Jenkins' },
-    { label: '5. Quote Created', time: 'Aug 18 11:30', user: 'Sarah Jenkins (Q-8812)' },
-    { label: '6. Follow-up Completed', time: 'Aug 19 14:10', user: 'Sarah Jenkins' },
-    { label: '7. Payment Requested', time: 'Aug 19 14:15', user: 'Sarah Jenkins ($28,500)' },
+    { label: '2. Lead Assigned', time: 'Aug 18 10:16', user: 'Issac (Sales Executive) (Agent)' },
+    { label: '3. First Contact', time: 'Aug 18 10:18', user: 'Issac (Sales Executive) (Call 2m)' },
+    { label: '4. Requirements Captured', time: 'Aug 18 10:25', user: 'Issac (Sales Executive)' },
+    { label: '5. Quote Created', time: 'Aug 18 11:30', user: 'Issac (Sales Executive) (Q-8812)' },
+    { label: '6. Follow-up Completed', time: 'Aug 19 14:10', user: 'Issac (Sales Executive)' },
+    { label: '7. Payment Requested', time: 'Aug 19 14:15', user: 'Issac (Sales Executive) ($28,500)' },
     { label: '8. Payment Received', time: 'Aug 19 14:20', user: 'Elena Finance (Amex)' },
     { label: '9. Booking Confirmed', time: 'Aug 19 14:22', user: 'System (PNR SAB78K)' },
     { label: '10. Ticket Issued', time: 'Aug 20 11:30', user: 'Carlos (13381235436196)' },
@@ -92,7 +92,7 @@ const CENTRAL_BOOKING_RECORD = {
     activity: { what: 'Ticket Issued & Dispatched via WhatsApp', who: 'Carlos Ticketing & System', when: '2026-08-20 11:32', dept: 'Ticketing & After-Sales' },
     operational: { status: 'CONFIRMED & TICKETED', nextAction: '24h Pre-departure Courtesy Call', pendingFollowup: 'Scheduled for 2026-09-14', slaStatus: '🟢 On Time (0 Breaches)' },
     financial: { customerPrice: 28500, supplierCost: 25800, markup: 2700, grossProfit: 2700, revenue: 28500, refund: 0, balance: 0 },
-    accountability: { leadOwner: 'Sarah Jenkins', bookingOwner: 'Sarah Jenkins', priceApprover: 'Adam (TL)', ticketIssuer: 'Carlos Ticketing', paymentProcessor: 'Elena Finance', qaVerifier: 'QA Verified Passed (14/14)' }
+    accountability: { leadOwner: 'Issac (Sales Executive)', bookingOwner: 'Issac (Sales Executive)', priceApprover: 'Adam (TL)', ticketIssuer: 'Carlos Ticketing', paymentProcessor: 'Elena Finance', qaVerifier: 'QA Verified Passed (14/14)' }
   },
 
   // Customer Profile
@@ -117,7 +117,7 @@ const CENTRAL_BOOKING_RECORD = {
     utmContent: 'banner_blue_v2',
     landingPage: '/flights/europe-summer-sale',
     referral: 'google.com Direct',
-    leadOwner: 'Sarah Jenkins'
+    leadOwner: 'Issac (Sales Executive)'
   },
 
   // Quote & Commercial Breakdown
@@ -205,7 +205,7 @@ const CENTRAL_BOOKING_RECORD = {
   // Communications Timeline
   communications: [
     { type: 'Email', sender: 'System', text: 'E-Ticket PDF dispatched to harold.vance@embassy.gov', time: '2026-08-20 11:32' },
-    { type: 'WhatsApp', sender: 'Sarah Jenkins', text: 'Confirmed seat 1A and 1B with British Airways concierge', time: '2026-08-20 10:15' },
+    { type: 'WhatsApp', sender: 'Issac (Sales Executive)', text: 'Confirmed seat 1A and 1B with British Airways concierge', time: '2026-08-20 10:15' },
     { type: 'Call', sender: 'Customer', text: 'Inbound call: Confirmed Halal meal preference for Mr. Vance', time: '2026-08-19 16:20' },
     { type: 'Note', sender: 'Expert TL', text: 'Executive waiver authorized for schedule change', time: '2026-08-19 11:00' }
   ],
@@ -213,12 +213,12 @@ const CENTRAL_BOOKING_RECORD = {
   // Tasks & SLA Management
   tasks: [
     { name: 'Issue E-Tickets in Sabre', assignedTo: 'Ticketing Agent', dueDate: '2026-08-20', status: 'Completed', sla: 'On Time' },
-    { name: '24h Pre-departure Courtesy Call', assignedTo: 'Sarah Jenkins', dueDate: '2026-09-14', status: 'Pending', sla: 'Scheduled' }
+    { name: '24h Pre-departure Courtesy Call', assignedTo: 'Issac (Sales Executive)', dueDate: '2026-09-14', status: 'Pending', sla: 'Scheduled' }
   ],
 
   // Audit Trail
   auditLog: [
-    { user: 'Sarah Jenkins', role: 'Sales Agent', action: 'Created Booking from Lead LD-99120', time: '2026-08-18 10:15' },
+    { user: 'Issac (Sales Executive)', role: 'Sales Agent', action: 'Created Booking from Lead LD-99120', time: '2026-08-18 10:15' },
     { user: 'Adam', role: 'Team Leader', action: 'Approved Commercial Quote Q-8812', time: '2026-08-18 11:30' },
     { user: 'Elena Finance', role: 'Finance', action: 'Confirmed Receipt of $28,500 via Amex', time: '2026-08-19 14:10' },
     { user: 'Carlos Ticketing', role: 'Ticketing', action: 'Issued E-Tickets 13381235436196/97', time: '2026-08-20 11:30' }

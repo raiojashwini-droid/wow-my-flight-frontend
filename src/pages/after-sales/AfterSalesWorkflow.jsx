@@ -59,10 +59,10 @@ export const SUB_TYPES_BY_CATEGORY = {
 export const CASE_STATUSES = ['Open', 'In Progress', 'Pending Airline', 'Approved', 'Completed', 'Rejected', 'Escalated'];
 
 export const TEAM_OWNERS = [
-  'Maria Santos (Ops)',
+  'George (Ticketing)',
   'Abu (Sales Executive)',
-  'Sarah Jenkins (Support)',
-  'Karan Singh (Flight Expert)',
+  'Issac (Sales Executive)',
+  'Parminder (Super Admin)',
   'Unassigned (Queue)'
 ];
 

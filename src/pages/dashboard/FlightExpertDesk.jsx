@@ -174,7 +174,7 @@ export default function FlightExpertDesk() {
         priority: 'Urgent',
         status: q.status || 'New',
         netFare: Number(q.totalPrice) || 3450,
-        salesAgent: q.agentName || 'Sarah Jenkins',
+        salesAgent: q.agentName || 'Issac (Sales Executive)',
         notes: q.notes || 'Client requested flexible date options and lounge access.'
       });
     });
@@ -193,28 +193,10 @@ export default function FlightExpertDesk() {
         priority: 'High',
         status: b.status === 'Ticketed' ? 'Completed' : 'Quote Ready',
         netFare: Number(b.totalAmount) || Number(b.fare) || 2800,
-        salesAgent: 'Alex Miller',
+        salesAgent: b.agentName || 'Issac (Sales Executive)',
         notes: `Carrier: ${b.airline || 'Travelopro GDS'} • PNR: ${b.pnr || 'Active'}`
       });
     });
-
-    if (list.length === 0) {
-      list.push({
-        id: 'REQ-4821',
-        customerName: 'Marcus Vance',
-        origin: 'JFK',
-        destination: 'LHR',
-        departureDate: '2026-10-25',
-        returnDate: '2026-11-02',
-        passengers: 2,
-        cabinClass: 'Business Class',
-        priority: 'Urgent',
-        status: 'In Progress',
-        netFare: 4200,
-        salesAgent: 'Sarah Jenkins',
-        notes: 'British Airways Club World • Fast-track security required'
-      });
-    }
 
     return list;
   }, [dbQuotes, dbBookings]);

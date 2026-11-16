@@ -38,41 +38,7 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import AncillariesAndSSRHub from '../../components/AncillariesAndSSRHub';
 import { useAlert } from '../../contexts/AlertContext';
 
-const DEFAULT_FALLBACK_QUOTE = {
-  id: 'QT-9001',
-  quoteId: 'QT-9001',
-  customerName: 'Harsh',
-  customerEmail: 'harsh@gmail.com',
-  customerPhone: '+1 215-198-5615',
-  airline: 'Emirates',
-  flightNumber: 'EK-501',
-  cabinClass: 'Flex Economy',
-  origin: 'JFK',
-  destination: 'LHR',
-  departureDate: '2026-12-05',
-  totalPrice: 1088,
-  netPrice: 916,
-  markup: 137,
-  serviceFee: 50,
-  agentName: 'Priya (GDS Flight Expert)',
-  options: [
-    {
-      airline: 'Emirates (EK)',
-      flightNumber: 'EK-501',
-      cabinClass: 'Flex Economy',
-      origin: 'JFK',
-      destination: 'LHR',
-      stops: 'Non-stop',
-      duration: '8h 45m',
-      departure: '08:30 AM (JFK)',
-      arrival: '02:15 PM (LHR)',
-      baggage: '23kg Checked + 7kg Cabin Included',
-      fareConditions: 'Partially refundable ($150 fee); change allowed 24h prior',
-      supplierCost: 916,
-      customerPrice: 1088
-    }
-  ]
-};
+const DEFAULT_FALLBACK_QUOTE = null;
 
 export default function FlightDealReview({ quote: propQuote }) {
   const { dealId } = useParams();
@@ -217,7 +183,7 @@ export default function FlightDealReview({ quote: propQuote }) {
     const newBookingObj = {
       id: newBookingId,
       bookingId: newBookingId,
-      quoteId: activeQuote?.id || activeQuote?.quoteId || 'QT-9001',
+      quoteId: activeQuote?.id || activeQuote?.quoteId || '',
       pnr: newPnr,
       customerName: paxName,
       name: paxName,
@@ -256,21 +222,21 @@ export default function FlightDealReview({ quote: propQuote }) {
     try {
       const storedQuotes = localStorage.getItem('crm-quotes');
       let qList = storedQuotes ? JSON.parse(storedQuotes) : [];
-      if (!Array.isArray(qList) || qList.length === 0) {
-        qList = [DEFAULT_FALLBACK_QUOTE];
+      if (!Array.isArray(qList)) {
+        qList = [];
       }
-      const targetId = activeQuote?.id || activeQuote?.quoteId || 'QT-9001';
+      const targetId = activeQuote?.id || activeQuote?.quoteId;
       let found = false;
       const updatedQ = qList.map(q => {
-        if (q.id === targetId || q.quoteId === targetId) {
+        if (targetId && (q.id === targetId || q.quoteId === targetId)) {
           found = true;
           return { ...q, status: 'Accepted', pnr: newPnr };
         }
         return q;
       });
-      if (!found) {
+      if (!found && activeQuote && targetId) {
         updatedQ.unshift({
-          ...(activeQuote || DEFAULT_FALLBACK_QUOTE),
+          ...activeQuote,
           id: targetId,
           quoteId: targetId,
           status: 'Accepted',

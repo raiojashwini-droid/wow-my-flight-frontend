@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -42,6 +42,7 @@ import CloseIcon from '@mui/icons-material/Close';
 
 import DualClock from '../../components/DualClock';
 import { useAlert } from '../../contexts/AlertContext';
+import { dbService } from '../../services/dbService';
 
 // ==========================================
 // MANDATORY DATASETS & CONSTANTS
@@ -68,78 +69,7 @@ const STAGES = [
   { id: 'Cancelled', label: '12. Cancelled', color: '#9CA3AF' }
 ];
 
-const INITIAL_LEADS = [
-  {
-    id: 'LD-99120',
-    firstName: 'Harold',
-    lastName: 'Vance',
-    email: 'harold.vance@embassy.gov',
-    phone: '+1 555-234-8901',
-    country: 'United States',
-    language: 'English',
-    contactMethod: 'WhatsApp',
-    timeZone: 'EST (UTC-5)',
-    origin: 'DEL',
-    destination: 'LHR → JFK',
-    depDate: '2026-09-15',
-    retDate: '2026-09-25',
-    tripType: 'Multi-City',
-    adults: 2,
-    children: 0,
-    infants: 0,
-    cabinClass: 'First Class',
-    flexible: 'Yes (±3 Days)',
-    airlinePref: 'British Airways',
-    baggage: '2x32kg Checked',
-    source: 'Google Ads',
-    campaign: 'summer_europe_sale_2026',
-    assignedAgent: 'Sarah Jenkins',
-    assignedTeam: 'Alpha Sales Team',
-    priority: 'VIP',
-    score: 95,
-    status: 'Quote Sent',
-    expectedValue: 28500,
-    expectedTravelDate: '2026-09-15',
-    lostReason: '',
-    slaTimer: '02m 45s (SLA Met)',
-    createdDate: '2026-08-20 10:15'
-  },
-  {
-    id: 'LD-99121',
-    firstName: 'Sophia',
-    lastName: 'Chen',
-    email: 'sophia.chen@techcorp.io',
-    phone: '+1 415-889-1200',
-    country: 'USA',
-    language: 'English',
-    contactMethod: 'Call',
-    timeZone: 'PST (UTC-8)',
-    origin: 'SFO',
-    destination: 'HND (Tokyo)',
-    depDate: '2026-10-01',
-    retDate: '2026-10-14',
-    tripType: 'Round Trip',
-    adults: 1,
-    children: 0,
-    infants: 0,
-    cabinClass: 'Business',
-    flexible: 'No',
-    airlinePref: 'ANA / Japan Airlines',
-    baggage: '2x23kg Checked',
-    source: 'Website',
-    campaign: 'organic_search',
-    assignedAgent: 'Alex Miller',
-    assignedTeam: 'Corporate Sales',
-    priority: 'High',
-    score: 88,
-    status: 'Contacted',
-    expectedValue: 8400,
-    expectedTravelDate: '2026-10-01',
-    lostReason: '',
-    slaTimer: '04m 10s',
-    createdDate: '2026-08-20 11:30'
-  }
-];
+const INITIAL_LEADS = [];
 
 // ==========================================
 // MAIN COMPONENT
@@ -163,21 +93,93 @@ export default function LeadManagementSuite() {
     origin: '', destination: '', depDate: '', retDate: '', tripType: 'Round Trip',
     adults: 1, children: 0, infants: 0, cabinClass: 'Economy', flexible: 'No',
     airlinePref: 'Any Airline', baggage: 'Standard',
-    source: 'Website', campaign: 'direct_inbound', assignedAgent: 'Sarah Jenkins',
+    source: 'Website', campaign: 'direct_inbound', assignedAgent: 'Issac (Sales Executive)',
     assignedTeam: 'Alpha Sales', priority: 'High', score: 85, status: 'New',
     expectedValue: 3500, expectedTravelDate: ''
   });
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLeads = async () => {
+      try {
+        const live = await dbService.getLeads();
+        if (isMounted && Array.isArray(live)) {
+          const mapped = live.map(l => ({
+            id: l.id || `LD-${l._id || Math.floor(1000 + Math.random() * 9000)}`,
+            firstName: l.firstName || (l.customerName ? l.customerName.split(' ')[0] : 'Inbound'),
+            lastName: l.lastName || (l.customerName ? l.customerName.split(' ').slice(1).join(' ') : 'Passenger'),
+            email: l.customerEmail || l.email || 'inquiry@wowmyflight.com',
+            phone: l.customerPhone || l.phone || '+1 (555) 000-0000',
+            country: l.country || 'USA',
+            language: l.language || 'English',
+            contactMethod: l.contactMethod || 'Call',
+            timeZone: l.timeZone || 'EST',
+            origin: l.origin || 'DEL',
+            destination: l.destination || 'LHR',
+            depDate: l.departureDate || l.travelDate || (l.createdAt ? String(l.createdAt).substring(0, 10) : '2026-10-20'),
+            retDate: l.returnDate || '',
+            tripType: l.tripType || 'One Way',
+            adults: l.passengers || l.pax || 1,
+            children: 0,
+            infants: 0,
+            cabinClass: l.cabinClass || 'Economy',
+            flexible: 'No',
+            airlinePref: l.airlinePref || 'Any Airline',
+            baggage: 'Standard',
+            source: l.source || 'Website',
+            campaign: l.campaign || 'direct_inbound',
+            assignedAgent: l.assignedAgentName || l.assignedAgent || 'Issac (Sales Executive)',
+            assignedTeam: 'Alpha Sales',
+            priority: l.priority || 'High',
+            score: l.score || 85,
+            status: l.status || 'New',
+            expectedValue: l.budget || 2500,
+            expectedTravelDate: l.departureDate || l.travelDate || '',
+            lostReason: '',
+            slaTimer: '02m 45s',
+            createdDate: l.createdAt ? String(l.createdAt).replace('T', ' ').substring(0, 16) : new Date().toISOString().slice(0, 16).replace('T', ' ')
+          }));
+          setLeads(mapped);
+        }
+      } catch (e) {
+        console.warn('Failed to load DB leads in LeadManagementSuite:', e);
+      }
+    };
+    fetchLeads();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleCreateLead = () => {
+  const handleCreateLead = async () => {
     const newId = `LD-${Math.floor(10000 + Math.random() * 90000)}`;
     const createdLead = { ...formData, id: newId, createdDate: new Date().toISOString().slice(0, 16).replace('T', ' ') };
     setLeads([createdLead, ...leads]);
     setNewLeadModalOpen(false);
     showAlert(`✓ New Lead ${newId} created & auto-assigned to ${formData.assignedAgent}!`, 'success');
+    try {
+      await dbService.createLead({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        customerName: `${formData.firstName} ${formData.lastName}`.trim(),
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        origin: formData.origin,
+        destination: formData.destination,
+        departureDate: formData.depDate,
+        returnDate: formData.retDate,
+        cabinClass: formData.cabinClass,
+        passengers: formData.adults,
+        assignedAgentName: formData.assignedAgent,
+        status: formData.status,
+        source: formData.source,
+        budget: formData.expectedValue
+      });
+    } catch (e) {
+      console.warn('Backend save lead error:', e);
+    }
   };
 
   const filteredLeads = leads.filter((l) => {
@@ -516,7 +518,7 @@ export default function LeadManagementSuite() {
               </TextField>
               <TextField label="Campaign Name" size="small" value={formData.campaign} onChange={(e) => handleInputChange('campaign', e.target.value)} fullWidth />
               <TextField select label="Assigned Agent" size="small" value={formData.assignedAgent} onChange={(e) => handleInputChange('assignedAgent', e.target.value)} fullWidth>
-                {['Sarah Jenkins', 'Alex Miller', 'Adam', 'Unassigned (Auto-Assign)'].map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+                {['Issac (Sales Executive)', 'Abu (Sales Executive)', 'George (Ticketing)', 'Xavier (Admin)', 'Parminder (Super Admin)', 'Adam (Team Leader)', 'Unassigned (Auto-Assign)'].map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
               </TextField>
               <TextField select label="Priority" size="small" value={formData.priority} onChange={(e) => handleInputChange('priority', e.target.value)} fullWidth>
                 {['Low', 'Medium', 'High', 'VIP'].map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
