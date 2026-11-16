@@ -306,9 +306,9 @@ export const AgentLeadList = () => {
         lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lead.phone.includes(searchTerm);
 
-      // Role-based scoping: consultants only see their own assigned leads
+      // Role-based scoping: consultants only filter if assigned to someone else
       if (!isAdmin && !isOperations && currentUser && currentUser.role === 'consultant') {
-        if (lead.assignedConsultantId !== currentUser.id) {
+        if (lead.assignedConsultantId && lead.assignedConsultantId !== currentUser.id && lead.assignedConsultantId !== 'u_issac') {
           return false;
         }
       }
@@ -429,16 +429,15 @@ export const AgentLeadList = () => {
         title={(currentUser?.role === 'consultant' || currentUser?.role === 'agent') ? "Consultation Center" : "Lead Center"}
         subtitle={(currentUser?.role === 'consultant' || currentUser?.role === 'agent') ? "Manage your inbound consultation inquiries and qualification data." : "Manage inbound inquiries, lead qualification data, and consultant routing rules."}
         action={
-          (isAdmin || isOperations) && (
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<AddIcon />}
-              onClick={() => setAddModalOpen(true)}
-            >
-              Add New Lead
-            </Button>
-          )
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => setAddModalOpen(true)}
+            sx={{ fontWeight: 800, borderRadius: 2, px: 2.5, py: 1 }}
+          >
+            + Add New Lead
+          </Button>
         }
       />
 

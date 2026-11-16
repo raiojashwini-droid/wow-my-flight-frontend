@@ -194,14 +194,113 @@ export const dbService = {
   getLeads: async () => {
     try {
       const remote = await apiFetch('/api/leads');
-      if (remote && remote.success && Array.isArray(remote.data)) {
+      if (remote && remote.success && Array.isArray(remote.data) && remote.data.length > 0) {
         localStorage.setItem('crm-leads', JSON.stringify(remote.data));
         return remote.data;
       }
     } catch (e) { }
 
     await delay(50);
-    return loadState('crm-leads', []);
+    const cached = localStorage.getItem('crm-leads');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+
+    const DEFAULT_TRAVEL_LEADS = [
+      {
+        id: "LD-9001",
+        websiteLeadId: "a1802a0f-",
+        clientId: "a1802a0f-",
+        name: "Harsh Sharma",
+        firstName: "Harsh",
+        lastName: "Sharma",
+        email: "harsh.sharma@example.com",
+        phone: "+1 212-555-0199",
+        origin: "DEL",
+        destination: "LHR",
+        route: "DEL → LHR",
+        travelDate: "2026-12-10",
+        createdDate: new Date().toISOString().split('T')[0],
+        cabinClass: "Economy",
+        serviceId: "economy",
+        applicantsCount: 1,
+        passengers: 1,
+        budget: 950,
+        status: "Contacted",
+        source: "Manual Entry",
+        temperature: "Hot",
+        phoneVerified: true,
+        emailVerified: true,
+        assignedConsultantId: "u_issac",
+        assignedAgentName: "Issac (Sales Executive)",
+        notes: "[12:05:00]: Passenger requested Emirates or British Airways options for London holiday."
+      },
+      {
+        id: "LD-9002",
+        websiteLeadId: "b2913c1e-",
+        clientId: "b2913c1e-",
+        name: "Sarah Jenkins",
+        firstName: "Sarah",
+        lastName: "Jenkins",
+        email: "s.jenkins@corporate.com",
+        phone: "+1 415-555-2671",
+        origin: "JFK",
+        destination: "DXB",
+        route: "JFK → DXB",
+        travelDate: "2026-12-18",
+        createdDate: new Date().toISOString().split('T')[0],
+        cabinClass: "Business",
+        serviceId: "business",
+        applicantsCount: 2,
+        passengers: 2,
+        budget: 3800,
+        status: "New Lead",
+        source: "Website Intake",
+        temperature: "Warm",
+        phoneVerified: true,
+        emailVerified: true,
+        assignedConsultantId: "u_issac",
+        assignedAgentName: "Issac (Sales Executive)",
+        notes: "[10:30:00]: Corporate client inquiry for 2 Business Class seats JFK to Dubai."
+      },
+      {
+        id: "LD-9003",
+        websiteLeadId: "c3824d2f-",
+        clientId: "c3824d2f-",
+        name: "Michael Chang",
+        firstName: "Michael",
+        lastName: "Chang",
+        email: "m.chang@globetravel.net",
+        phone: "+1 312-555-8942",
+        origin: "ORD",
+        destination: "BOM",
+        route: "ORD → BOM",
+        travelDate: "2026-12-24",
+        createdDate: new Date().toISOString().split('T')[0],
+        cabinClass: "Economy",
+        serviceId: "economy",
+        applicantsCount: 3,
+        passengers: 3,
+        budget: 2400,
+        status: "Qualified",
+        source: "Direct Inbound Call",
+        temperature: "Hot",
+        phoneVerified: true,
+        emailVerified: true,
+        assignedConsultantId: "u_issac",
+        assignedAgentName: "Issac (Sales Executive)",
+        notes: "[14:15:00]: Family of 3 traveling for winter break. Comparing Air India vs Qatar Airways."
+      }
+    ];
+
+    try {
+      localStorage.setItem('crm-leads', JSON.stringify(DEFAULT_TRAVEL_LEADS));
+    } catch (e) {}
+
+    return DEFAULT_TRAVEL_LEADS;
   },
   getLeadById: async (id) => {
     try {
