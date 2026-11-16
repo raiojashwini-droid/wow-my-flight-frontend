@@ -108,11 +108,12 @@ export const AgentLeadList = () => {
   const [endDate, setEndDate] = useState(() => {
     return location.state?.endDate || '';
   });
-  const mockToday = '2026-06-18'; // Mock current date
+  const mockToday = new Date().toISOString().split('T')[0]; // Real today's date (dynamic)
 
   const filterByDate = (dateStr, start, end) => {
     if (!start && !end) return true;
-    if (!dateStr) return false;
+    // If lead has no date, don't hide it — show it always when no date filter applied
+    if (!dateStr) return true;
     const formatted = dateStr.substring(0, 10);
     if (start && !end) return formatted === start;
     return formatted >= start && formatted <= end;
@@ -318,7 +319,7 @@ export const AgentLeadList = () => {
       const matchConsultant = filters.assignedConsultantId
         ? lead.assignedConsultantId === filters.assignedConsultantId
         : true;
-      const matchToday = filters.todayOnly ? lead.createdDate?.startsWith('2026-06-18') : true;
+      const matchToday = filters.todayOnly ? lead.createdDate?.startsWith(mockToday) : true;
 
       return matchSearch && matchService && matchStatus && matchConsultant && matchToday;
     })
@@ -528,10 +529,12 @@ export const AgentLeadList = () => {
             { label: '30D', key: '30d' },
             { label: 'All', key: 'all' },
           ].map(preset => {
+            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
             const isActive =
               preset.key === 'today' ? startDate === mockToday && endDate === mockToday :
-              preset.key === '7d' ? startDate === '2026-06-12' && endDate === mockToday :
-              preset.key === '30d' ? startDate === '2026-05-20' && endDate === mockToday :
+              preset.key === '7d' ? startDate === sevenDaysAgo && endDate === mockToday :
+              preset.key === '30d' ? startDate === thirtyDaysAgo && endDate === mockToday :
               preset.key === 'all' ? !startDate && !endDate : false;
             return (
               <Button
@@ -544,10 +547,10 @@ export const AgentLeadList = () => {
                     setStartDate(mockToday);
                     setEndDate(mockToday);
                   } else if (preset.key === '7d') {
-                    setStartDate('2026-06-12');
+                    setStartDate(sevenDaysAgo);
                     setEndDate(mockToday);
                   } else if (preset.key === '30d') {
-                    setStartDate('2026-05-20');
+                    setStartDate(thirtyDaysAgo);
                     setEndDate(mockToday);
                   } else {
                     setStartDate('');
