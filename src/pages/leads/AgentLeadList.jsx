@@ -308,16 +308,18 @@ export const AgentLeadList = () => {
         lead.phone.includes(searchTerm);
 
       // Role-based scoping: consultants only filter if assigned to someone else
-      if (!isAdmin && !isOperations && currentUser && currentUser.role === 'consultant') {
-        if (lead.assignedConsultantId && lead.assignedConsultantId !== currentUser.id && lead.assignedConsultantId !== 'u_issac') {
+      if (!isAdmin && !isOperations && currentUser && (currentUser.role === 'consultant' || currentUser.role === 'sales_executive')) {
+        const assignedId = lead.assignedAgentId || lead.assignedConsultantId;
+        if (assignedId && assignedId !== currentUser.id && assignedId !== 'usr-issac' && assignedId !== 'u_issac') {
           return false;
         }
       }
 
       const matchService = filters.serviceId ? lead.serviceId === filters.serviceId : true;
       const matchStatus = filters.status ? lead.status === filters.status : true;
+      const assignedId = lead.assignedAgentId || lead.assignedConsultantId;
       const matchConsultant = filters.assignedConsultantId
-        ? lead.assignedConsultantId === filters.assignedConsultantId
+        ? assignedId === filters.assignedConsultantId
         : true;
       const matchToday = filters.todayOnly ? lead.createdDate?.startsWith(mockToday) : true;
 
@@ -376,8 +378,9 @@ export const AgentLeadList = () => {
       id: 'assignedConsultant',
       label: 'Agent',
       render: (row) => {
-        const agent = agents.find((c) => c.id === row.assignedConsultantId);
-        return agent ? agent.name : <Typography variant="caption" color="text.secondary">Unassigned</Typography>;
+        const aId = row.assignedAgentId || row.assignedConsultantId;
+        const agent = agents.find((c) => c.id === aId);
+        return agent ? agent.name : (row.assignedAgent?.name || row.assignedAgentName || <Typography variant="caption" color="text.secondary">Unassigned</Typography>);
       } },
     {
       id: 'status',

@@ -67,67 +67,8 @@ const labelColors = {
   "Verified OTP": ["#DCFCE7", "#15803D", "✓"],
 };
 
-// Fallback seed leads if DB is brand new/empty
-const FALLBACK_LEADS = [
-  {
-    id: "LD-9001",
-    websiteLeadId: "a1802a0f-",
-    clientId: "a1802a0f-",
-    name: "Harsh Sharma",
-    firstName: "Harsh",
-    lastName: "Sharma",
-    phone: "+1 212-555-0199",
-    fullPhone: "+12125550199",
-    email: "harsh.sharma@example.com",
-    origin: "DEL",
-    destination: "LHR",
-    travelDate: "2026-12-10",
-    cabinClass: "Economy",
-    serviceId: "economy",
-    passengers: 1,
-    budget: 950,
-    status: "Contacted",
-    source: "Manual Entry",
-    labels: ["Hot Lead", "Verified OTP"],
-    isDay: true,
-    country: "India",
-    city: "New Delhi",
-    timeZone: "UTC+05:30 India Standard Time",
-    timezone: "Asia/Kolkata",
-    activities: [
-      { time: "12:05:00", agent: "Issac", status: "Contacted", comments: "Discussed Emirates & British Airways options. Customer interested in morning departures." }
-    ]
-  },
-  {
-    id: "LD-9002",
-    websiteLeadId: "b2913c1e-",
-    clientId: "b2913c1e-",
-    name: "Sarah Jenkins",
-    firstName: "Sarah",
-    lastName: "Jenkins",
-    phone: "+1 415-555-2671",
-    fullPhone: "+14155552671",
-    email: "s.jenkins@corporate.com",
-    origin: "JFK",
-    destination: "DXB",
-    travelDate: "2026-12-18",
-    cabinClass: "Business",
-    serviceId: "business",
-    passengers: 2,
-    budget: 3800,
-    status: "New Lead",
-    source: "Website Intake",
-    labels: ["VIP", "Hot Lead"],
-    isDay: true,
-    country: "USA",
-    city: "New York",
-    timeZone: "UTC-04:00 Eastern Time",
-    timezone: "America/New_York",
-    activities: [
-      { time: "10:30:00", agent: "System", status: "New Lead", comments: "Website inquiry received for 2 Business Class seats JFK to Dubai." }
-    ]
-  }
-];
+// No dummy fallback leads — only real database records are shown
+const FALLBACK_LEADS = [];
 
 /**
  * City / Timezone resolver from airport code or phone

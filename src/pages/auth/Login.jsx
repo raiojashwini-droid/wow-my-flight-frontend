@@ -156,7 +156,41 @@ export const Login = () => {
     showAlert('Invalid email or password', 'error');
   };
 
-  const handleDashboardLogin = (role) => {
+  const handleDashboardLogin = async (role) => {
+    let email = 'parminder@wowmyflight.com';
+    let routePrefix = 'super_admin';
+    if (role === 'admin') { email = 'xavier@wowmyflight.com'; routePrefix = 'admin'; }
+    else if (role === 'consultant' || role === 'sales_executive') { email = 'issac@wowmyflight.com'; routePrefix = 'agent'; }
+    else if (role === 'team_leader') { email = 'george@wowmyflight.com'; routePrefix = 'team_leader'; }
+    else if (role === 'expert_team_leader' || role === 'expert_tl') { email = 'george@wowmyflight.com'; routePrefix = 'expert_team_leader'; }
+    else if (role === 'flight_expert') { email = 'issac@wowmyflight.com'; routePrefix = 'flight_expert'; }
+    else if (role === 'ticketing_agent') { email = 'adam@wowmyflight.com'; routePrefix = 'ticketing_agent'; }
+    else if (role === 'finance') { email = 'xavier@wowmyflight.com'; routePrefix = 'finance'; }
+    else if (role === 'after_sales' || role === 'operations') { email = 'abu@wowmyflight.com'; routePrefix = 'operations'; }
+    else if (role === 'marketing') { email = 'xavier@wowmyflight.com'; routePrefix = 'marketing-manager'; }
+    else if (role === 'api_manager') { email = 'parminder@wowmyflight.com'; routePrefix = 'integrations'; }
+
+    try {
+      const response = await fetch(getBackendUrl() + '/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: '123456' })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.ok && result.success && result.token) {
+        const userObj = {
+          ...result.user,
+          role: role === 'consultant' ? 'sales_executive' : role,
+          token: result.token
+        };
+        executeLogin(userObj, routePrefix === 'integrations' ? '' : routePrefix, result.user.name);
+        if (routePrefix === 'integrations') navigate('/integrations', { replace: true });
+        return;
+      }
+    } catch (e) {
+      console.warn('[Login] Live backend auth failed, falling back:', e.message);
+    }
+
     let mockUser = {
       id: 'usr-admin',
       name: 'Xavier (Admin GM)',
@@ -165,7 +199,7 @@ export const Login = () => {
       token: `wmf_demo_session_${Date.now()}`,
       isDemo: true
     };
-    let routePrefix = 'admin';
+    routePrefix = 'admin';
 
     if (role === 'super_admin') {
       mockUser = { id: 'usr-parminder', name: 'Parminder (Super Admin)', email: 'parminder@wowmyflight.com', role: 'super_admin', token: `wmf_demo_session_${Date.now()}`, isDemo: true };
