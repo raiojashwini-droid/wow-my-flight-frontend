@@ -196,7 +196,7 @@ const CENTRAL_BOOKING_RECORD = {
 
   // Document Manager
   documents: [
-    { name: 'Passport_Copy_Harold_Vance.pdf', type: 'Passport', date: '2026-08-18' },
+    { name: 'Passport_Copy_Primary_Passenger.pdf', type: 'Passport', date: '2026-08-18' },
     { name: 'US_Diplomatic_Visa_Copy.pdf', type: 'Visa', date: '2026-08-18' },
     { name: 'E_Ticket_Receipt_BA_13381235436196.pdf', type: 'E-Ticket', date: '2026-08-20' },
     { name: 'Tax_Invoice_INV-9912.pdf', type: 'Invoice', date: '2026-08-19' }
@@ -204,9 +204,9 @@ const CENTRAL_BOOKING_RECORD = {
 
   // Communications Timeline
   communications: [
-    { type: 'Email', sender: 'System', text: 'E-Ticket PDF dispatched to harold.vance@embassy.gov', time: '2026-08-20 11:32' },
+    { type: 'Email', sender: 'System', text: 'E-Ticket PDF dispatched to passenger@client.com', time: '2026-08-20 11:32' },
     { type: 'WhatsApp', sender: 'Issac (Sales Executive)', text: 'Confirmed seat 1A and 1B with British Airways concierge', time: '2026-08-20 10:15' },
-    { type: 'Call', sender: 'Customer', text: 'Inbound call: Confirmed Halal meal preference for Mr. Vance', time: '2026-08-19 16:20' },
+    { type: 'Call', sender: 'Customer', text: 'Inbound call: Confirmed Halal meal preference for Passenger', time: '2026-08-19 16:20' },
     { type: 'Note', sender: 'Expert TL', text: 'Executive waiver authorized for schedule change', time: '2026-08-19 11:00' }
   ],
 
