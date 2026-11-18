@@ -42,44 +42,67 @@ export default function LiveCallMonitoringModal({ open, onClose, agent, activeCa
   const { showAlert } = useAlert();
   const { currentUser } = useAuth();
 
+  const realActiveCall = activeCall || agent?.activeCallData;
+  const isRealCallLive = Boolean(realActiveCall && (realActiveCall.status === 'answered' || realActiveCall.status === 'in_progress' || realActiveCall.status === 'active' || realActiveCall.status === 'initiated'));
+
   const [mode, setMode] = useState(agent?.initialMode || 'listen'); // 'listen' | 'whisper' | 'barge'
+  const [testAudioActive, setTestAudioActive] = useState(false);
 
   useEffect(() => {
     if (agent?.initialMode) {
       setMode(agent.initialMode);
     }
   }, [agent]);
+
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
-  const [callSeconds, setCallSeconds] = useState(145);
+
+  // Compute real initial seconds
+  const initialSeconds = isRealCallLive && realActiveCall?.startedAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(realActiveCall.startedAt).getTime()) / 1000))
+    : 0;
+
+  const [callSeconds, setCallSeconds] = useState(initialSeconds);
   const [customCue, setCustomCue] = useState('');
   const [qaRating, setQaRating] = useState(5);
   const [supervisorNotes, setSupervisorNotes] = useState('');
   const [sentCues, setSentCues] = useState([]);
-  const [audioLevel, setAudioLevel] = useState([20, 45, 75, 30, 85, 55, 90, 40, 60, 25, 70, 50]);
+  const [audioLevel, setAudioLevel] = useState([8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]);
 
-  const callControlId = activeCall?.callControlId || activeCall?.id || `CALL-LIVE-${agent?.id || 'REP'}`;
-  const agentName = agent?.name || activeCall?.agentName || 'Sales Executive';
-  const customerPhone = activeCall?.toNumber || activeCall?.fullPhone || '+1 (850) 332-9681';
-  const routeOrLead = agent?.currentLead || activeCall?.route || 'DEL ➔ LHR (Inbound Inquiry)';
+  const callControlId = realActiveCall?.callControlId || realActiveCall?.id || `CALL-STANDBY-${agent?.id || 'REP'}`;
+  const agentName = agent?.name || realActiveCall?.agentName || 'Sales Executive';
+  const customerPhone = isRealCallLive
+    ? (realActiveCall?.toNumber || realActiveCall?.fromNumber || '+1 (850) 332-9681')
+    : 'Standby / No Inbound Caller';
+  const routeOrLead = isRealCallLive
+    ? (realActiveCall?.route || 'Live Call in Progress')
+    : (agent?.currentLead || 'Ready for Next Inbound');
 
   // Live timer tick
   useEffect(() => {
     if (!open) return;
-    const interval = setInterval(() => {
-      setCallSeconds(s => s + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [open]);
+    if (isRealCallLive || testAudioActive) {
+      const interval = setInterval(() => {
+        setCallSeconds(s => s + 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setCallSeconds(0);
+    }
+  }, [open, isRealCallLive, testAudioActive]);
 
   // Audio equalizer visualizer simulator
   useEffect(() => {
     if (!open) return;
-    const interval = setInterval(() => {
-      setAudioLevel(Array.from({ length: 14 }, () => Math.floor(Math.random() * 85) + 15));
-    }, 180);
-    return () => clearInterval(interval);
-  }, [open]);
+    if (isRealCallLive || testAudioActive) {
+      const interval = setInterval(() => {
+        setAudioLevel(Array.from({ length: 14 }, () => Math.floor(Math.random() * 85) + 15));
+      }, 180);
+      return () => clearInterval(interval);
+    } else {
+      setAudioLevel([8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]);
+    }
+  }, [open, isRealCallLive, testAudioActive]);
 
   // Notify backend when supervisor joins
   useEffect(() => {
@@ -203,10 +226,10 @@ export default function LiveCallMonitoringModal({ open, onClose, agent, activeCa
             🔴 LIVE SUPERVISOR CALL STUDIO
           </Typography>
           <Chip
-            label={mode.toUpperCase()}
+            label={isRealCallLive ? `🔴 LIVE: ${mode.toUpperCase()}` : `STANDBY: ${mode.toUpperCase()}`}
             size="small"
             sx={{
-              bgcolor: 'rgba(255,255,255,0.2)',
+              bgcolor: isRealCallLive ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.2)',
               color: '#FFFFFF',
               fontWeight: 900,
               fontSize: '0.68rem',
@@ -232,6 +255,43 @@ export default function LiveCallMonitoringModal({ open, onClose, agent, activeCa
       </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>
+        {/* ─── Standby Notice if no real call currently connected ─── */}
+        {!isRealCallLive && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1.5,
+              mb: 2,
+              borderRadius: 2.5,
+              bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1.5,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 800, color: '#D97706', fontSize: '0.76rem' }}>
+                🟡 STANDBY MODE — {agentName} is currently available on floor (no live customer call connected).
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.68rem' }}>
+                When {agentName} dials or receives an actual phone call via Telnyx, caller audio will stream here automatically.
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant={testAudioActive ? 'contained' : 'outlined'}
+              color={testAudioActive ? 'warning' : 'inherit'}
+              onClick={() => setTestAudioActive(!testAudioActive)}
+              sx={{ py: 0.3, px: 1.2, fontSize: '0.68rem', fontWeight: 800, borderRadius: 1.5 }}
+            >
+              {testAudioActive ? 'Stop Simulation' : '🧪 Test Audio Simulator'}
+            </Button>
+          </Paper>
+        )}
+
         {/* ─── Call Participants Banner ─── */}
         <Paper
           variant="outlined"
@@ -297,7 +357,12 @@ export default function LiveCallMonitoringModal({ open, onClose, agent, activeCa
               <Typography variant="body1" sx={{ fontWeight: 900, color: 'text.primary' }}>
                 {customerPhone}
               </Typography>
-              <Chip label="Verified Caller" size="small" color="success" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 800 }} />
+              <Chip
+                label={isRealCallLive ? "Verified Active Call" : "Standby Mode"}
+                size="small"
+                color={isRealCallLive ? "success" : "default"}
+                sx={{ height: 18, fontSize: '0.62rem', fontWeight: 800 }}
+              />
             </Box>
             <Avatar sx={{ bgcolor: '#059669', fontWeight: 900 }}>
               <PhoneInTalkIcon sx={{ fontSize: 18 }} />

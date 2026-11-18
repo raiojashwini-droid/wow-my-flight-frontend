@@ -90,6 +90,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dbService } from '../../services/dbService';
 import { teamLeaderDashboardService } from '../../services/phase3Service';
+import { fetchActiveFloorCalls } from '../../services/telnyxService';
 import LiveCallMonitoringModal from '../../components/LiveCallMonitoringModal';
 
 // ==========================================
@@ -180,6 +181,13 @@ export default function TeamLeaderDashboard() {
   const isDbLive = dbHealth?.database?.connected !== false;
   const isRefreshing = leadsLoading;
 
+  // Real-time active calls on the floor from Telnyx / PostgreSQL
+  const { data: realActiveCalls = [] } = useQuery({
+    queryKey: ['realActiveCalls'],
+    queryFn: fetchActiveFloorCalls,
+    refetchInterval: 4000,
+  });
+
   const handleManualRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['leads'] });
     queryClient.invalidateQueries({ queryKey: ['agents'] });
@@ -187,6 +195,7 @@ export default function TeamLeaderDashboard() {
     queryClient.invalidateQueries({ queryKey: ['payments'] });
     queryClient.invalidateQueries({ queryKey: ['quotes'] });
     queryClient.invalidateQueries({ queryKey: ['dbHealth'] });
+    queryClient.invalidateQueries({ queryKey: ['realActiveCalls'] });
   };
 
   // States for sub-modules & lead overrides
@@ -236,26 +245,37 @@ export default function TeamLeaderDashboard() {
         qaScore: 100,
         slaStatus: 'On Track',
         badge: idx === 0 ? 'Top Performer' : 'Consistent',
-        status: idx % 3 === 0 ? 'ON CALL' : idx % 3 === 1 ? 'AVAILABLE' : 'WRAP UP'
+        status: 'AVAILABLE'
       }));
     }
     return INITIAL_AGENTS;
   }, [dbAgents]);
 
   const floorAgents = useMemo(() => {
-    return agents.map((a, i) => ({
-      id: a.id,
-      name: a.name,
-      status: a.status,
-      timeOnStatus: 'Active',
-      currentLead: 'Ready for Next Inbound',
-      todayCalls: 0,
-      todayBookings: 0,
-      followupsDue: 0,
-      qaPct: a.qaScore,
-      color: a.status === 'ON CALL' ? 'success' : a.status === 'AVAILABLE' ? 'info' : 'warning'
-    }));
-  }, [agents]);
+    return agents.map((a) => {
+      // Check real active calls from Telnyx backend
+      const liveCall = realActiveCalls.find(c =>
+        (c.agentId && (c.agentId === a.id || c.agentId === a._id)) ||
+        (c.agentName && c.agentName.toLowerCase().includes(a.name.toLowerCase()))
+      );
+
+      const isLiveOnCall = Boolean(liveCall && (liveCall.status === 'answered' || liveCall.status === 'in_progress' || liveCall.status === 'active' || liveCall.status === 'initiated'));
+
+      return {
+        id: a.id,
+        name: a.name,
+        status: isLiveOnCall ? 'ON CALL' : 'AVAILABLE',
+        timeOnStatus: isLiveOnCall ? 'Speaking with Client' : 'Standby (Ready)',
+        currentLead: isLiveOnCall ? (liveCall.toNumber || liveCall.fromNumber || 'Inbound Passenger') : 'Ready for Next Inbound',
+        activeCallData: liveCall || null,
+        todayCalls: 0,
+        todayBookings: 0,
+        followupsDue: 0,
+        qaPct: a.qaScore,
+        color: isLiveOnCall ? 'success' : 'info'
+      };
+    });
+  }, [agents, realActiveCalls]);
 
   // Dynamic pending payments from DB
   const pendingPayments = useMemo(() => {
