@@ -90,6 +90,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dbService } from '../../services/dbService';
 import { teamLeaderDashboardService } from '../../services/phase3Service';
+import LiveCallMonitoringModal from '../../components/LiveCallMonitoringModal';
 
 // ==========================================
 // DATASETS & LIVE DEFAULTS (FALLBACKS)
@@ -193,6 +194,13 @@ export default function TeamLeaderDashboard() {
   const [approvals, setApprovals] = useState(INITIAL_APPROVALS);
   const [escalations, setEscalations] = useState(INITIAL_ESCALATIONS);
   const [coachingList, setCoachingList] = useState(INITIAL_COACHING);
+  const [monitorModalOpen, setMonitorModalOpen] = useState(false);
+  const [monitoredAgent, setMonitoredAgent] = useState(null);
+
+  const handleOpenLiveMonitor = (agent) => {
+    setMonitoredAgent(agent);
+    setMonitorModalOpen(true);
+  };
 
   // Dynamic leads computed from real PostgreSQL DB
   const leads = useMemo(() => {
@@ -907,10 +915,33 @@ export default function TeamLeaderDashboard() {
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Chip label={agent.status} size="small" color={agent.color} sx={{ height: 22, fontSize: '0.65rem', fontWeight: 900 }} />
-                      {agent.status === 'ON CALL' && (
-                        <Tooltip title="Listen to live call / Audio QA Barge">
-                          <Button size="small" variant="contained" color="success" onClick={() => showAlert(`Listening into ${agent.name}'s live call with customer (${agent.currentLead})`, 'info')} sx={{ fontSize: '0.68rem', fontWeight: 800, py: 0.4 }}>
-                            🎧 Listen
+                      {agent.status === 'ON CALL' ? (
+                        <Tooltip title="Join Live Call Monitoring Studio (Listen In, Whisper, Barge)">
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="success"
+                            onClick={() => handleOpenLiveMonitor(agent)}
+                            sx={{
+                              fontSize: '0.68rem',
+                              fontWeight: 900,
+                              py: 0.4,
+                              boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)',
+                            }}
+                          >
+                            🎧 Listen In
+                          </Button>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip title="Open Live Call Supervisor Studio">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="inherit"
+                            onClick={() => handleOpenLiveMonitor(agent)}
+                            sx={{ fontSize: '0.68rem', fontWeight: 700, py: 0.4, opacity: 0.8 }}
+                          >
+                            🎧 Monitor
                           </Button>
                         </Tooltip>
                       )}
@@ -2004,6 +2035,13 @@ export default function TeamLeaderDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ─── LIVE CALL MONITORING STUDIO MODAL ─── */}
+      <LiveCallMonitoringModal
+        open={monitorModalOpen}
+        onClose={() => setMonitorModalOpen(false)}
+        agent={monitoredAgent}
+      />
 
     </Box>
   );

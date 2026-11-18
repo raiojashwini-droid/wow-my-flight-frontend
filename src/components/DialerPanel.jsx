@@ -52,6 +52,7 @@ export default function DialerPanel({ lead }) {
     isMuted, isOnHold,
     phoneNumbers, selectedFromNumber, setSelectedFromNumber,
     makeCall, hangup, toggleMute, toggleHold, sendDTMF,
+    liveWhisperCue, clearWhisperCue,
   } = useTelnyx();
 
   const [tab, setTab] = useState(0);              // 0=Dialer, 1=SMS, 2=History
@@ -174,6 +175,33 @@ export default function DialerPanel({ lead }) {
         {/* ──────────────────────────────────────────────────────────────────────── */}
         {tab === 0 && (
           <>
+            {/* Live Supervisor Whisper Coaching Cue Banner */}
+            {liveWhisperCue && (
+              <Box
+                sx={{
+                  mb: 1.5,
+                  p: 1.2,
+                  bgcolor: '#EFF6FF',
+                  border: '1.5px solid #3B82F6',
+                  borderRadius: 2,
+                  boxShadow: '0 4px 12px rgba(59,130,246,0.15)',
+                  animation: 'pulse 2s infinite',
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 900, color: '#1D4ED8', display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.68rem' }}>
+                    🗣️ COACH TIP ({liveWhisperCue.supervisorName || 'Team Leader'})
+                  </Typography>
+                  <IconButton size="small" onClick={clearWhisperCue} sx={{ p: 0.2, color: '#6B7280' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 900 }}>✕</span>
+                  </IconButton>
+                </Box>
+                <Typography variant="body2" sx={{ fontWeight: 800, color: '#1E3A8A', fontSize: '0.76rem', lineHeight: 1.3 }}>
+                  "{liveWhisperCue.tipText}"
+                </Typography>
+              </Box>
+            )}
+
             {/* SDK error alert if any */}
             {sdkStatus === 'error' && (
               <Box sx={{ textAlign: 'center', py: 1.2, mb: 1, bgcolor: 'background.default', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>

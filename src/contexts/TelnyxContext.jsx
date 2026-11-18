@@ -65,6 +65,7 @@ export const TelnyxProvider = ({ children }) => {
   const [socketConnected, setSocketConnected] = useState(false);
   const [dispositionPending, setDispositionPending] = useState(null); // call that needs disposition
   const [incomingChatRequest, setIncomingChatRequest] = useState(null); // Real-time incoming website chat request
+  const [liveWhisperCue, setLiveWhisperCue] = useState(null); // Real-time supervisor whisper coaching tip
 
   // ── Socket.io: Connect to backend for real-time events ──────────────────────
   useEffect(() => {
@@ -150,6 +151,17 @@ export const TelnyxProvider = ({ children }) => {
     socket.on('telnyx:sms_received', (data) => {
       console.log('[TelnyxContext] Inbound SMS:', data);
       // TODO: Show notification
+    });
+
+    // Supervisor Live Whisper Cue
+    socket.on('telnyx:whisper_cue', (data) => {
+      console.log('[TelnyxContext] Live whisper cue received:', data);
+      setLiveWhisperCue(data);
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.volume = 0.3;
+        audio.play().catch(() => {});
+      } catch (e) {}
     });
 
     return () => {
@@ -534,6 +546,10 @@ export const TelnyxProvider = ({ children }) => {
     incomingChatRequest,
     acceptChatRequest,
     dismissChatRequest,
+
+    // Supervisor Live Whisper Cue
+    liveWhisperCue,
+    clearWhisperCue: () => setLiveWhisperCue(null),
 
     // Phone numbers
     phoneNumbers,

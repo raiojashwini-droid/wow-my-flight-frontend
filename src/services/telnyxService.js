@@ -118,6 +118,64 @@ export const deleteCallRecord = async (id) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Supervisor Live Call Monitoring (Listen In, Whisper Coach, Barge-In)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch all currently active calls on the floor
+ */
+export const fetchActiveFloorCalls = async () => {
+  try {
+    const response = await api.get('/calls/active');
+    return response.data.data || [];
+  } catch (err) {
+    console.warn('[Telnyx] fetchActiveFloorCalls fallback:', err.message);
+    return [];
+  }
+};
+
+/**
+ * Join an active call as Supervisor in Listen, Whisper, or Barge mode
+ */
+export const startMonitoringCall = async ({ callControlId, supervisorId, supervisorName, mode = 'listen', agentId, agentName }) => {
+  const response = await api.post('/calls/monitor/start', {
+    callControlId,
+    supervisorId,
+    supervisorName,
+    mode,
+    agentId,
+    agentName,
+  });
+  return response.data.data;
+};
+
+/**
+ * Send an instant discrete whisper cue / tip to the agent during a live call
+ */
+export const sendWhisperCue = async ({ callControlId, agentId, tipText, supervisorName }) => {
+  const response = await api.post('/calls/monitor/whisper-cue', {
+    callControlId,
+    agentId,
+    tipText,
+    supervisorName,
+  });
+  return response.data.data;
+};
+
+/**
+ * Change monitoring mode (switch between listen, whisper, barge) or leave call
+ */
+export const updateMonitorAction = async ({ callControlId, supervisorId, action, mode }) => {
+  const response = await api.post('/calls/monitor/action', {
+    callControlId,
+    supervisorId,
+    action,
+    mode,
+  });
+  return response.data;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SMS
 // ─────────────────────────────────────────────────────────────────────────────
 
