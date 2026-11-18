@@ -42,7 +42,13 @@ export default function LiveCallMonitoringModal({ open, onClose, agent, activeCa
   const { showAlert } = useAlert();
   const { currentUser } = useAuth();
 
-  const [mode, setMode] = useState('listen'); // 'listen' | 'whisper' | 'barge'
+  const [mode, setMode] = useState(agent?.initialMode || 'listen'); // 'listen' | 'whisper' | 'barge'
+
+  useEffect(() => {
+    if (agent?.initialMode) {
+      setMode(agent.initialMode);
+    }
+  }, [agent]);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [callSeconds, setCallSeconds] = useState(145);

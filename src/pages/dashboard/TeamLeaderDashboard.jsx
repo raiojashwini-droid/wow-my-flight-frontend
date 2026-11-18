@@ -197,8 +197,8 @@ export default function TeamLeaderDashboard() {
   const [monitorModalOpen, setMonitorModalOpen] = useState(false);
   const [monitoredAgent, setMonitoredAgent] = useState(null);
 
-  const handleOpenLiveMonitor = (agent) => {
-    setMonitoredAgent(agent);
+  const handleOpenLiveMonitor = (agent, initialMode = 'listen') => {
+    setMonitoredAgent({ ...agent, initialMode });
     setMonitorModalOpen(true);
   };
 
@@ -705,8 +705,8 @@ export default function TeamLeaderDashboard() {
         </Box>
       </Box>
 
-      {/* Activity Feed Bar */}
-      <AgentActivityFeed agents={floorAgents} />
+      {/* Activity Feed Bar with Live Call Studio Action Trigger */}
+      <AgentActivityFeed agents={floorAgents} onMonitorAgent={handleOpenLiveMonitor} />
 
       {/* DASHBOARD MODULE NAVIGATION (2 NEAT ROWS OF 4 - NO CUTOFF) */}
       <Box
