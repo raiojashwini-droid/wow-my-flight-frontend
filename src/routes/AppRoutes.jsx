@@ -1044,7 +1044,7 @@ export const AppRoutes = () => {
           path="/agent/leads/details/:id"
           element={
             <ProtectedRoute allowedRoles={['sales_executive', 'super_admin']}>
-              <SuperAdminLeadDetails />
+              <AgentLeadDetails />
             </ProtectedRoute>
           }
         />
