@@ -17,6 +17,7 @@ import VideocamIcon from '@mui/icons-material/Videocam';
 
 const STATUS_OPTIONS = [
   'New Lead',
+  'In GDS Review',
   'Contacted',
   'Callback',
   'Qualified',
