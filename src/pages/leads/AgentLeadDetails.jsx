@@ -430,21 +430,8 @@ export const AgentLeadDetails = () => {
                   Email
                 </Button>
               </Grid>
-              {/* WHATSAPP */}
-              <Grid item xs={6}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  color="success"
-                  startIcon={<WhatsAppIcon />}
-                  onClick={handleWhatsApp}
-                  sx={{ justifyContent: 'flex-start' }}
-                >
-                  WhatsApp
-                </Button>
-              </Grid>
               {/* ADD NOTE */}
-              <Grid item xs={6}>
+              <Grid item xs={12}>
                 <Button
                   fullWidth
                   variant="outlined"
