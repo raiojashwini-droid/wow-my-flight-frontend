@@ -139,10 +139,10 @@ export default function ClientPanel({ lead, onComment, onAction, onStatusChange 
         }}>
           <Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
             <FlightTakeoffIcon fontSize="small" />
-            {lead.origin || 'DEL'} → {lead.destination || 'LHR'}
+            {lead.origin && lead.destination ? `${lead.origin} → ${lead.destination}` : (lead.origin || lead.destination ? `${lead.origin || '—'} → ${lead.destination || '—'}` : 'Flight Route Pending')}
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', color: 'text.secondary', fontWeight: 600, mt: 0.5, fontSize: '0.75rem' }}>
-            <span>Depart: {lead.travelDate || 'Flexible'}</span>
+            <span>Depart: {lead.travelDate || 'Flexible / Not set'}</span>
             {lead.returnDate && <span>Return: {lead.returnDate}</span>}
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}>

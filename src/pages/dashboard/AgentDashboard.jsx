@@ -149,8 +149,6 @@ function normalizeLead(raw) {
     origin = r.originAirportCode || r.originCityName || "";
     destination = r.destinationAirportCode || r.destinationCityName || "";
   }
-  if (!origin) origin = "DEL";
-  if (!destination) destination = "LHR";
 
   const loc = resolveLocationAndTimezone(origin, fullPhone);
   const isDay = isDaytimeInTimezone(loc.timezone);
@@ -205,7 +203,7 @@ function normalizeLead(raw) {
     timezone: loc.timezone,
     origin,
     destination,
-    travelDate: raw.travelDate || "15 Nov 2026",
+    travelDate: raw.travelDate || (origin && destination ? "Flexible" : "Flexible / Not specified"),
     returnDate: raw.returnDate || "",
     cabinClass: cabin === "FIRST" ? "First" : cabin === "BUSINESS" ? "Business" : "Economy",
     passengers: raw.passengers || 1,
@@ -681,9 +679,9 @@ export default function AgentDashboard() {
         lastName: newLeadForm.lastName,
         phone: newLeadForm.phone,
         email: newLeadForm.email,
-        origin: (newLeadForm.origin || "DEL").toUpperCase(),
-        destination: (newLeadForm.destination || "LHR").toUpperCase(),
-        travelDate: newLeadForm.travelDate || "15 Nov 2026",
+        origin: (newLeadForm.origin || "").trim().toUpperCase(),
+        destination: (newLeadForm.destination || "").trim().toUpperCase(),
+        travelDate: newLeadForm.travelDate || "Flexible",
         cabinClass: newLeadForm.cabinClass,
         serviceId: newLeadForm.cabinClass.toLowerCase(),
         passengers: parseInt(newLeadForm.passengers, 10) || 1,
@@ -1138,7 +1136,7 @@ export default function AgentDashboard() {
                         </Typography>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "text.secondary", fontSize: "0.7rem", fontWeight: 600 }}>
                           <FlightTakeoffIcon sx={{ fontSize: 13, color: "primary.light" }} />
-                          {row.origin} → {row.destination}
+                          {row.origin && row.destination ? `${row.origin} → ${row.destination}` : (row.origin || row.destination ? `${row.origin || '—'} → ${row.destination || '—'}` : 'Route Pending')}
                         </Box>
                       </td>
 

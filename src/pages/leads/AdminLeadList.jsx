@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
 
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
@@ -48,17 +49,41 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SERVICES } from '../../constants/mockData';
 
+const AIRPORT_OPTIONS = [
+  'DEL - New Delhi Indira Gandhi',
+  'LHR - London Heathrow',
+  'JFK - New York JFK',
+  'DXB - Dubai International',
+  'SIN - Singapore Changi',
+  'BOM - Mumbai Chhatrapati Shivaji',
+  'CDG - Paris Charles de Gaulle',
+  'SYD - Sydney Kingsford Smith',
+  'YYZ - Toronto Pearson',
+  'FRA - Frankfurt'
+];
+
 const leadSchema = yup.object().shape({
   firstName: yup.string().required('First Name is required'),
   lastName: yup.string().required('Last Name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
-  phone: yup.string().required('Phone is required'),
-  nationality: yup.string().required('Nationality is required'),
-  preferredLanguage: yup.string().required('Preferred language is required'),
-  serviceId: yup.string().required('Visa service is required'),
-  applicantsCount: yup.number().typeError('Must be a number').min(1, 'At least 1 applicant').required(),
+  phone: yup.string().required('Phone number is required'),
+  country: yup.string().default(''),
+  city: yup.string().default(''),
+  timezone: yup.string().default(''),
+  origin: yup.string().required('Origin airport is required'),
+  destination: yup.string().required('Destination airport is required'),
+  travelDate: yup.string().required('Travel date is required'),
+  returnDate: yup.string().default(''),
+  cabinClass: yup.string().required('Cabin class is required'),
+  adults: yup.number().min(1).default(1),
+  children: yup.number().min(0).default(0),
+  infants: yup.number().min(0).default(0),
+  flexibility: yup.string().default('Exact Dates'),
+  budget: yup.string().default(''),
   source: yup.string().required('Lead source is required'),
-  notes: yup.string() });
+  priority: yup.string().default('Medium'),
+  notes: yup.string().default('')
+});
 
 export const AdminLeadList = () => {
   const navigate = useNavigate();
@@ -244,34 +269,55 @@ export const AdminLeadList = () => {
     handleSubmit,
     reset,
     watch,
-    formState: { errors } } = useForm({
+    formState: { errors }
+  } = useForm({
     resolver: yupResolver(leadSchema),
     defaultValues: {
       firstName: '',
       lastName: '',
       email: '',
       phone: '',
-      nationality: '',
-      preferredLanguage: 'English',
-      serviceId: 'dnv',
-      applicantsCount: 1,
-      source: 'Google Ads',
-      notes: '' } });
+      country: '',
+      city: '',
+      timezone: '',
+      origin: '',
+      destination: '',
+      travelDate: '',
+      returnDate: '',
+      cabinClass: 'Economy',
+      adults: 1,
+      children: 0,
+      infants: 0,
+      flexibility: 'Exact Dates',
+      budget: '',
+      source: 'Website Direct',
+      priority: 'Medium',
+      notes: ''
+    }
+  });
 
   const { data: leadStages = [] } = useQuery({
     queryKey: ['lead-stages'],
-    queryFn: dbService.getLeadStages });
-
-  const watchServiceId = watch('serviceId');
-  const watchSource = watch('source');
+    queryFn: dbService.getLeadStages
+  });
 
   // Handle forms
   const handleCreateLead = (data) => {
     const defaultStatus = leadStages[0]?.name || 'New Lead';
     createLeadMutation.mutate({
       ...data,
+      passengers: (Number(data.adults) || 1) + (Number(data.children) || 0) + (Number(data.infants) || 0),
       status: defaultStatus,
-      assignedConsultantId: '' });
+      assignedConsultantId: '',
+      activities: [
+        {
+          time: new Date().toLocaleTimeString(),
+          agent: currentUser?.name || 'Admin',
+          status: 'New Lead Created',
+          comments: `Flight request for ${data.origin} → ${data.destination} (${data.cabinClass || 'Economy'})`
+        }
+      ]
+    });
   };
 
   const handleOpenAssignModal = (lead) => {
@@ -627,119 +673,160 @@ export const AdminLeadList = () => {
       {/* MODAL 1: Add New Lead */}
       <AppModal
         open={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        title="Add New Qualified Lead"
+        onClose={() => { setAddModalOpen(false); reset(); }}
+        title="Add New Flight Lead"
         maxWidth="md"
         actions={
           <>
-            <Button onClick={() => setAddModalOpen(false)} variant="outlined">
+            <Button onClick={() => { setAddModalOpen(false); reset(); }} variant="outlined">
               Cancel
             </Button>
             <Button
               onClick={handleSubmit(handleCreateLead)}
               variant="contained"
-              color="secondary"
+              color="primary"
               disabled={createLeadMutation.isPending}
             >
-              Save Lead
+              Save Flight Lead
             </Button>
           </>
         }
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4, width: '100%' }}>
-            {/* Left Column: Personal Info */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-              <Box sx={{ borderBottom: '2px solid', borderColor: 'secondary.main', pb: 1, mb: 1 }}>
-                <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                  Contact Information
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-                <TextField {...register('firstName')} label="First Name" error={!!errors.firstName} helperText={errors.firstName?.message} sx={{ flex: 1 }} />
-                <TextField {...register('lastName')} label="Last Name" error={!!errors.lastName} helperText={errors.lastName?.message} sx={{ flex: 1 }} />
-              </Box>
-
-              <TextField {...register('email')} label="Email Address" error={!!errors.email} helperText={errors.email?.message} fullWidth />
-
-              <TextField {...register('phone')} label="Phone Number" error={!!errors.phone} helperText={errors.phone?.message} fullWidth />
-
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-                <TextField {...register('nationality')} label="Nationality" error={!!errors.nationality} helperText={errors.nationality?.message} sx={{ flex: 1 }} />
-                <TextField {...register('preferredLanguage')} label="Preferred Language" error={!!errors.preferredLanguage} helperText={errors.preferredLanguage?.message} sx={{ flex: 1 }} />
-              </Box>
+        <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          {/* Group 1: Personal Info */}
+          <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5, color: 'primary.main' }}>
+              👤 PERSONAL INFO
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+              <TextField {...register('firstName')} label="First Name *" size="small" error={!!errors.firstName} helperText={errors.firstName?.message} />
+              <TextField {...register('lastName')} label="Last Name *" size="small" error={!!errors.lastName} helperText={errors.lastName?.message} />
+              <TextField {...register('email')} label="Email Address *" size="small" error={!!errors.email} helperText={errors.email?.message} />
+              <TextField {...register('phone')} label="Phone Number (with Country Code) *" placeholder="e.g. +91 9876543210" size="small" error={!!errors.phone} helperText={errors.phone?.message} />
+              <TextField {...register('country')} label="Country" placeholder="e.g. India" size="small" />
+              <TextField {...register('city')} label="City" placeholder="e.g. Delhi" size="small" />
+              <TextField {...register('timezone')} label="Time Zone (optional)" placeholder="e.g. IST (UTC+5:30) or EST" size="small" sx={{ gridColumn: { sm: 'span 2' } }} />
             </Box>
+          </Paper>
 
-            {/* Right Column: Case Details */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-              <Box sx={{ borderBottom: '2px solid', borderColor: 'secondary.main', pb: 1, mb: 1 }}>
-                <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                  Visa & Case Setup
-                </Typography>
-              </Box>
-
-              <FormControl fullWidth size="small" error={!!errors.serviceId}>
-                <InputLabel id="service-id-label">Visa Service</InputLabel>
-                <Select
-                  labelId="service-id-label"
-                  {...register('serviceId')}
-                  value={watchServiceId || ''}
-                  label="Visa Service"
-                >
-                  {SERVICES.map((s) => (
-                    <MenuItem key={s.id} value={s.id}>
-                      {s.name}
-                    </MenuItem>
+          {/* Group 2: Flight Request */}
+          <Paper elevation={0} sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(14, 165, 233, 0.12)' : '#F0F9FF', borderRadius: 2, border: '1px solid #BAE6FD' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5, color: 'info.main' }}>
+              ✈️ FLIGHT REQUEST
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.5 }}>
+              <FormControl size="small" fullWidth error={!!errors.origin}>
+                <InputLabel>Origin Airport *</InputLabel>
+                <Select {...register('origin')} defaultValue="" label="Origin Airport *">
+                  <MenuItem value=""><em>Select Origin Airport</em></MenuItem>
+                  {AIRPORT_OPTIONS.map(a => (
+                    <MenuItem key={a} value={a.split(' - ')[0]}>{a}</MenuItem>
                   ))}
                 </Select>
-                {errors.serviceId && (
-                  <FormHelperText>{errors.serviceId.message}</FormHelperText>
-                )}
+                {errors.origin && <Typography variant="caption" color="error" sx={{ mt: 0.3, display: 'block' }}>{errors.origin.message}</Typography>}
               </FormControl>
 
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'flex-start' }}>
-                <TextField
-                  {...register('applicantsCount')}
-                  type="number"
-                  label="Number of Applicants"
-                  error={!!errors.applicantsCount}
-                  helperText={errors.applicantsCount?.message}
-                  sx={{ flex: 1 }}
-                />
-                <FormControl sx={{ flex: 1 }} size="small" error={!!errors.source}>
-                  <InputLabel id="source-label">Lead Source Channel</InputLabel>
-                  <Select
-                    labelId="source-label"
-                    {...register('source')}
-                    value={watchSource || ''}
-                    label="Lead Source Channel"
-                  >
-                    <MenuItem value="Google Ads">Google Ads</MenuItem>
-                    <MenuItem value="Facebook Ads">Facebook Ads</MenuItem>
-                    <MenuItem value="Instagram Ads">Instagram Ads</MenuItem>
-                    <MenuItem value="WhatsApp Click Ads">WhatsApp Click Ads</MenuItem>
-                    <MenuItem value="Website Forms">Website Forms</MenuItem>
-                    <MenuItem value="Website Traffic">Website Traffic</MenuItem>
-                    <MenuItem value="WeChat">WeChat</MenuItem>
-                    <MenuItem value="Telegram">Telegram</MenuItem>
-                  </Select>
-                  {errors.source && (
-                    <FormHelperText>{errors.source.message}</FormHelperText>
-                  )}
-                </FormControl>
-              </Box>
+              <FormControl size="small" fullWidth error={!!errors.destination}>
+                <InputLabel>Destination Airport *</InputLabel>
+                <Select {...register('destination')} defaultValue="" label="Destination Airport *">
+                  <MenuItem value=""><em>Select Destination Airport</em></MenuItem>
+                  {AIRPORT_OPTIONS.map(a => (
+                    <MenuItem key={a} value={a.split(' - ')[0]}>{a}</MenuItem>
+                  ))}
+                </Select>
+                {errors.destination && <Typography variant="caption" color="error" sx={{ mt: 0.3, display: 'block' }}>{errors.destination.message}</Typography>}
+              </FormControl>
+
+              <FormControl size="small" fullWidth error={!!errors.cabinClass}>
+                <InputLabel>Cabin Class *</InputLabel>
+                <Select {...register('cabinClass')} defaultValue="Economy" label="Cabin Class *">
+                  {['Economy', 'Premium Economy', 'Business', 'First Class'].map(c => (
+                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField
+                {...register('travelDate')}
+                label="Travel Date *"
+                type="date"
+                size="small"
+                slotProps={{ inputLabel: { shrink: true } }}
+                InputLabelProps={{ shrink: true }}
+                error={!!errors.travelDate}
+                helperText={errors.travelDate?.message}
+              />
+              <TextField
+                {...register('returnDate')}
+                label="Return Date (optional)"
+                type="date"
+                size="small"
+                slotProps={{ inputLabel: { shrink: true } }}
+                InputLabelProps={{ shrink: true }}
+              />
+              
+              <FormControl size="small" fullWidth>
+                <InputLabel>Flexibility</InputLabel>
+                <Select {...register('flexibility')} defaultValue="Exact Dates" label="Flexibility">
+                  {['Exact Dates', '±3 days', '±7 days', 'Flexible'].map(f => (
+                    <MenuItem key={f} value={f}>{f}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField {...register('adults')} label="Adults (1-9) *" type="number" size="small" defaultValue={1} inputProps={{ min: 1, max: 9 }} />
+              <TextField {...register('children')} label="Children (0-6)" type="number" size="small" defaultValue={0} inputProps={{ min: 0, max: 6 }} />
+              <TextField {...register('infants')} label="Infants (0-4)" type="number" size="small" defaultValue={0} inputProps={{ min: 0, max: 4 }} />
+
+              <FormControl size="small" fullWidth sx={{ gridColumn: { sm: 'span 3' } }}>
+                <InputLabel>Budget Range (optional)</InputLabel>
+                <Select {...register('budget')} defaultValue="" label="Budget Range (optional)">
+                  <MenuItem value=""><em>Select Budget Range (optional)</em></MenuItem>
+                  {['$500 - $1,000', '$1,000 - $2,500', '$2,500 - $5,000', '$5,000+', 'Flexible'].map(b => (
+                    <MenuItem key={b} value={b}>{b}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </Paper>
+
+          {/* Group 3: Lead Info & Labels */}
+          <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5 }}>
+              🏷️ LEAD INFO & LABELS
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+              <FormControl size="small" fullWidth error={!!errors.source}>
+                <InputLabel>Traffic Source *</InputLabel>
+                <Select {...register('source')} defaultValue="Website Direct" label="Traffic Source *">
+                  <MenuItem value=""><em>Select Traffic Source</em></MenuItem>
+                  {['Website Direct', 'Google Ads', 'Facebook Ads', 'WhatsApp', 'Instagram', 'Referral', 'Walk-in'].map(s => (
+                    <MenuItem key={s} value={s}>{s}</MenuItem>
+                  ))}
+                </Select>
+                {errors.source && <Typography variant="caption" color="error" sx={{ mt: 0.3, display: 'block' }}>{errors.source.message}</Typography>}
+              </FormControl>
+
+              <FormControl size="small" fullWidth>
+                <InputLabel>Priority</InputLabel>
+                <Select {...register('priority')} defaultValue="Medium" label="Priority">
+                  {['High', 'Medium', 'Low'].map(p => (
+                    <MenuItem key={p} value={p}>{p}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
               <TextField
                 {...register('notes')}
-                label="Consultant Notes / Qualification Details"
+                label="Lead Notes / Flight Requirements"
                 multiline
-                rows={4}
-                fullWidth
-                placeholder="Enter initial client background details, passive income records, or relocation timeline notes..."
+                rows={3}
+                placeholder="Specific airline preference, layover requirements, meal requests, etc."
+                size="small"
+                sx={{ gridColumn: { sm: 'span 2' } }}
               />
             </Box>
-          </Box>
+          </Paper>
         </Box>
       </AppModal>
 
@@ -747,7 +834,7 @@ export const AdminLeadList = () => {
       <AppModal
         open={assignModalOpen}
         onClose={() => setAssignModalOpen(false)}
-        title="Assign Spain Visa Agent"
+        title="Assign Flight Travel Specialist"
         actions={
           <>
             <Button onClick={() => setAssignModalOpen(false)} variant="outlined">
@@ -767,7 +854,7 @@ export const AdminLeadList = () => {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {selectedLead && (
             <Typography variant="body2" sx={{ mb: 1 }}>
-              Select the Spain Visa agent to handle the case for{' '}
+              Select the flight travel specialist to handle this booking for{' '}
               <strong>
                 {selectedLead.firstName} {selectedLead.lastName}
               </strong>{' '}

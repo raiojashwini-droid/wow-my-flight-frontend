@@ -99,27 +99,27 @@ export const AdminLeadDetails = () => {
     {
       id: 'greeting',
       label: 'Initial Greeting',
-      body: (lead) => `Hello ${lead?.firstName} 👋, I'm from AAA Business Consultancy. We received your inquiry regarding Spain ${lead?.serviceId || 'visa'} services. May we schedule a quick consultation call to understand your goals?` },
+      body: (lead) => `Hello ${lead?.firstName} 👋, I'm from Wow My Flight. We received your flight request for ${[lead?.origin, lead?.destination].filter(Boolean).join(' → ') || 'your trip'}. May we connect on a quick call to share the best discounted flight options?` },
     {
       id: 'qualification_q1',
-      label: 'Q1 - Income Qualification',
-      body: (lead) => `Hi ${lead?.firstName} 👋! To assess your eligibility, could you share:\n• Your current monthly income (after tax)?\n• Is your income from remote work, business, or passive investments?\n• Your current country of residence?` },
+      label: 'Q1 - Dates & Flexibility',
+      body: (lead) => `Hi ${lead?.firstName} 👋! To get you the lowest available airfare, could you confirm:\n• Preferred departure date (${lead?.travelDate || 'Flexible'})?\n• Return date (if round-trip)?\n• Are your dates flexible by ±1-3 days for lower pricing?` },
     {
       id: 'qualification_q2',
-      label: 'Q2 - Family & Dependents',
-      body: (lead) => `Thank you ${lead?.firstName}! One more question:\n• Will you be applying with family members (spouse/children)?\n• How many total applicants?\n• Do you have an existing Spanish connection or assets?` },
+      label: 'Q2 - Passengers & Cabin Class',
+      body: (lead) => `Thank you ${lead?.firstName}! Just a couple more details:\n• Number of adult passengers, children, or infants?\n• Preferred cabin class (Economy, Premium Economy, Business, First)?\n• Any preferred airlines or non-stop requirements?` },
     {
       id: 'booking_link',
-      label: 'Book Consultation Link',
-      body: (lead) => `Hi ${lead?.firstName}! You can book your FREE initial consultation directly here:\n👉 https://calendly.com/aaaconsultancy/assessment\n\nOur team is ready to guide your Spain residency journey. 🇪🇸` },
+      label: 'Flight Proposal Link',
+      body: (lead) => `Hi ${lead?.firstName}! Your custom flight itinerary proposal is ready to review:\n👉 https://wowmyflight.com/quotes\n\nOur GDS team has locked in unpublished net fares for your review. ✈️` },
     {
       id: 'docs_reminder',
-      label: 'Documents Checklist Reminder',
-      body: (lead) => `Dear ${lead?.firstName}, this is a friendly reminder to prepare the following documents:\n📄 Valid Passport (6+ months validity)\n💰 3-Month Bank Statements\n📋 Employment / Income Proof\n🏠 Proof of Address\nPlease upload them through our secure portal as soon as possible.` },
+      label: 'Passport & Travel Info',
+      body: (lead) => `Dear ${lead?.firstName}, to finalize your airline ticket booking, please ensure:\n📄 Valid Passport names match passenger IDs exactly\n🎂 Dates of birth for all passengers\n🛂 Any transit visa requirements checked\nPlease reply or share via our secure portal.` },
     {
       id: 'follow_up',
-      label: 'Follow-Up Nudge',
-      body: (lead) => `Hi ${lead?.firstName} 👋! We wanted to follow up on your Spain visa inquiry. Our team has an opening this week for a consultation. Would you like to schedule a quick call to discuss your options?` },
+      label: 'Follow-Up Fare Alert',
+      body: (lead) => `Hi ${lead?.firstName} 👋! We wanted to follow up on your flight search for ${[lead?.origin, lead?.destination].filter(Boolean).join(' → ') || 'your destination'}. Fares fluctuate daily and current seat holds expire soon. Would you like to lock in this special rate?` },
   ];
 
   // Fetch Lead details
@@ -310,7 +310,7 @@ export const AdminLeadDetails = () => {
         status: lead.status || 'New Lead',
         email: lead.email,
         phone: lead.phone,
-        country: lead.nationality || 'Spain',
+        country: lead.country || lead.nationality || 'United States',
         preferredLanguage: lead.preferredLanguage || 'English',
         serviceId: lead.serviceId,
         messages: [
@@ -359,7 +359,7 @@ export const AdminLeadDetails = () => {
         status: lead.status || 'New Lead',
         email: lead.email,
         phone: lead.phone,
-        country: lead.nationality || 'Spain',
+        country: lead.country || lead.nationality || 'United States',
         preferredLanguage: lead.preferredLanguage || 'English',
         serviceId: lead.serviceId,
         messages: [
@@ -769,7 +769,7 @@ export const AdminLeadDetails = () => {
                                     status: lead.status || 'New Lead',
                                     email: lead.email,
                                     phone: lead.phone,
-                                    country: lead.nationality || 'Spain',
+                                    country: lead.country || lead.nationality || 'United States',
                                     preferredLanguage: lead.preferredLanguage || 'English',
                                     serviceId: lead.serviceId,
                                     messages: [
