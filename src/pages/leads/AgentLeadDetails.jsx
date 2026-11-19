@@ -156,9 +156,21 @@ export const AgentLeadDetails = () => {
       },
       ...prevActivities,
     ];
+
+    const cleanedBudget = editForm.budget === '' || editForm.budget === null || editForm.budget === undefined
+      ? null
+      : parseFloat(editForm.budget);
+
     updateLeadMutation.mutate({
       ...lead,
       ...editForm,
+      budget: isNaN(cleanedBudget) ? null : cleanedBudget,
+      adults: parseInt(editForm.adults, 10) || 1,
+      passengers: parseInt(editForm.adults, 10) || 1,
+      children: parseInt(editForm.children, 10) || 0,
+      infants: parseInt(editForm.infants, 10) || 0,
+      returnDate: editForm.returnDate || null,
+      travelDate: editForm.travelDate || null,
       activities: updatedActivities,
     });
   };
