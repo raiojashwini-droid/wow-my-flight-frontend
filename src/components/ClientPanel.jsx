@@ -275,7 +275,22 @@ export default function ClientPanel({ lead, onComment, onAction, onStatusChange 
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
-        <Button onClick={() => onAction('quote')} size="small" variant="outlined" sx={{ borderRadius: 2, fontWeight: 700, py: 0.8, fontSize: '0.7rem', textTransform: 'none' }}>📄 Full Quote</Button>
+        <Button 
+          onClick={() => onAction('flight_search')} 
+          size="small" 
+          variant="contained" 
+          color="primary" 
+          sx={{ 
+            borderRadius: 2, 
+            fontWeight: 800, 
+            py: 0.85, 
+            fontSize: '0.72rem', 
+            textTransform: 'none',
+            boxShadow: '0 2px 6px rgba(14, 165, 233, 0.3)'
+          }}
+        >
+          🔍 Search Flights
+        </Button>
         <Button onClick={() => onAction('payment')} size="small" variant="outlined" color="secondary" sx={{ borderRadius: 2, fontWeight: 700, py: 0.8, fontSize: '0.7rem', textTransform: 'none' }}>💳 Pay Link</Button>
       </Box>
     </Paper>

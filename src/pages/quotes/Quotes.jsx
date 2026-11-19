@@ -166,20 +166,25 @@ export default function Quotes() {
     return Object.keys(errors).length === 0;
   };
 
-  // If navigated from Customer 360 (e.g. abcd k or Priya Verma), auto-fill their profile!
+  // If navigated from Customer 360 or Lead Desk (e.g. Harsh Jain or Priya Verma), auto-fill their flight request!
   useEffect(() => {
-    if (location.state?.client) {
-      const c = location.state.client;
+    if (location.state?.lead || location.state?.client) {
+      const c = location.state.lead || location.state.client;
       const fullName = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+      const originAirport = (c.origin || '').trim().toUpperCase();
+      const destAirport = (c.destination || '').trim().toUpperCase();
+      const departDateStr = c.travelDate ? dayjs(c.travelDate).format('YYYY-MM-DD') : '';
+
       setEngineData(prev => ({
         ...prev,
         customerName: fullName,
         customerEmail: c.email || '',
-        customerPhone: c.phone || '',
-        cabinClass: c.preferredCabinClass || prev.cabinClass || 'Economy',
-        origin: '',
-        destination: '',
-        departDate: '',
+        customerPhone: c.fullPhone || c.phone || '',
+        cabinClass: c.cabinClass || c.preferredCabinClass || prev.cabinClass || 'Economy',
+        origin: originAirport,
+        destination: destAirport,
+        departDate: departDateStr,
+        passengers: c.passengers || c.adults || 1,
         searchFlightResults: []
       }));
       setActiveStep(0);

@@ -802,8 +802,21 @@ export default function AgentDashboard() {
       setVideoMeetingOpen(true);
     } else if (action === "whatsapp_quote") {
       setWaDialogOpen(true);
-    } else if (action === "quote") {
-      navigate("/quotes");
+    } else if (action === "flight_search" || action === "quote") {
+      navigate("/quotes", {
+        state: {
+          lead: {
+            ...activeLead,
+            origin: activeLead.origin,
+            destination: activeLead.destination,
+            travelDate: activeLead.travelDate,
+            cabinClass: activeLead.cabinClass,
+            passengers: activeLead.passengers || 1,
+            budget: activeLead.budget,
+          }
+        }
+      });
+      showAlert(`Loading Flight Search Engine for ${activeLead.origin} → ${activeLead.destination}...`, "info");
     } else if (action === "booking") {
       navigate("/bookings");
     } else if (action === "payment") {
