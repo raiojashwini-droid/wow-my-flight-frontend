@@ -234,7 +234,7 @@ export default function ClientPanel({ lead, onComment, onAction, onStatusChange 
           📹 Video Consultation
         </Button>
         <Button 
-          onClick={() => onAction('whatsapp_quote')} 
+          onClick={() => onAction('schedule_call')} 
           size="small" 
           variant="contained" 
           sx={{ 
@@ -243,13 +243,13 @@ export default function ClientPanel({ lead, onComment, onAction, onStatusChange 
             py: 0.9, 
             fontSize: '0.72rem', 
             textTransform: 'none',
-            bgcolor: '#16A34A',
-            '&:hover': { bgcolor: '#15803D', transform: 'translateY(-1px)' },
-            boxShadow: '0 2px 8px rgba(22, 163, 74, 0.25)',
+            bgcolor: '#0284C7',
+            '&:hover': { bgcolor: '#0369A1', transform: 'translateY(-1px)' },
+            boxShadow: '0 2px 8px rgba(2, 132, 199, 0.25)',
             transition: 'all 0.15s ease'
           }}
         >
-          📱 WhatsApp
+          ⏰ Schedule Call
         </Button>
       </Box>
 
@@ -264,13 +264,13 @@ export default function ClientPanel({ lead, onComment, onAction, onStatusChange 
           ✈️ GDS Desk
         </Button>
         <Button 
-          onClick={() => onAction('tl_approval')} 
+          onClick={() => onAction('email_invite')} 
           size="small" 
           variant="outlined" 
-          color="warning"
+          color="info"
           sx={{ borderRadius: 2, fontWeight: 700, py: 0.8, fontSize: '0.7rem', textTransform: 'none' }}
         >
-          🛡️ TL Discount
+          ✉️ Email Invite
         </Button>
       </Box>
 

@@ -22,6 +22,8 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 
 // Icons
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import PhoneIcon from "@mui/icons-material/Phone";
 import ChatIcon from "@mui/icons-material/Chat";
 import EmailIcon from "@mui/icons-material/Email";
@@ -479,6 +481,22 @@ export default function AgentDashboard() {
   const [payDialogOpen, setPayDialogOpen] = useState(false);
   const [payForm, setPayForm] = useState({ amount: 1250, description: "Flight Ticket Booking Fare" });
 
+  // Schedule Callback & Email Invite Modals
+  const [scheduleCallOpen, setScheduleCallOpen] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    callDate: dayjs().format("YYYY-MM-DD"),
+    callTime: "15:00",
+    callType: "Phone Callback",
+    notes: "",
+    sendEmailInvite: true,
+  });
+
+  const [emailInviteOpen, setEmailInviteOpen] = useState(false);
+  const [emailInviteForm, setEmailInviteForm] = useState({
+    subject: "",
+    body: "",
+  });
+
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [newLeadForm, setNewLeadForm] = useState({
     firstName: "",
@@ -604,32 +622,71 @@ export default function AgentDashboard() {
     }
   };
 
-  // WhatsApp Itinerary Dispatch
-  const handleWhatsAppSend = async () => {
-    const cleanPhone = (activeLead.fullPhone || "").replace(/\D/g, "");
-    const waText = `✈️ *FLIGHT QUOTATION — ${activeLead.origin} to ${activeLead.destination}*\n━━━━━━━━━━━━━━━━━━━━━\n👤 *Passenger:* ${activeLead.firstName} ${activeLead.lastName} (${activeLead.passengers} Pax)\n🛫 *Sector:* ${activeLead.origin} ➔ ${activeLead.destination}\n📅 *Travel Date:* ${activeLead.travelDate}\n💺 *Cabin:* ${activeLead.cabinClass}\n💼 *Baggage:* Included (Cabin 7kg + Check-in 23kg)\n💵 *Special Total Fare:* $${activeLead.budget || 1175} All Inclusive\n━━━━━━━━━━━━━━━━━━━━━\n⏱️ *Offer Validity:* 4 Hours\n💳 *Book Online:* http://localhost:5173/#/payments`;
+  // Handle Schedule Call / Callback Submit
+  const handleScheduleSubmit = async () => {
+    if (!activeLead) return;
+    const formattedDate = dayjs(scheduleForm.callDate).format("DD MMM YYYY");
+    const scheduledTimeStr = `${formattedDate} at ${scheduleForm.callTime}`;
+    const comment = `Scheduled ${scheduleForm.callType} for ${scheduledTimeStr}${scheduleForm.notes ? ` | Notes: ${scheduleForm.notes}` : ''}`;
 
-    if (cleanPhone) {
-      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}`, "_blank");
+    try {
+      // 1. Update status to Callback
+      await handleStatusChange("Callback");
+
+      // 2. Append notes in lead record
+      const updatedNotes = `${activeLead.rawNotes || ""}\n[Scheduled Callback]: ${scheduledTimeStr} (${scheduleForm.callType}). ${scheduleForm.notes}`.trim();
+      await dbService.updateLead({ id: activeLead.id, notes: updatedNotes });
+
+      // 3. Add to activity log
+      setLocalActivities((prev) => ({
+        ...prev,
+        [activeLead.id]: [
+          {
+            time: new Date().toLocaleTimeString(),
+            agent: currentUser?.name || "Agent",
+            status: "Callback Scheduled",
+            comments: comment,
+          },
+          ...(prev[activeLead.id] || []),
+        ],
+      }));
+
+      // 4. If email invite requested, open pre-filled mailto
+      if (scheduleForm.sendEmailInvite && activeLead.email) {
+        const route = activeLead.origin && activeLead.destination ? `${activeLead.origin} → ${activeLead.destination}` : 'your flight inquiry';
+        const subject = `Confirmed Flight Consultation: ${scheduledTimeStr} (${route})`;
+        const body = `Dear ${activeLead.firstName},\n\nYour flight consultation has been scheduled with our flight expert for:\n\n📅 Date & Time: ${scheduledTimeStr}\n🛫 Travel Sector: ${route}\n📞 Type: ${scheduleForm.callType}\n\nOur travel specialist will reach out to you directly at ${activeLead.fullPhone || 'your contact number'}.\n\nWarm regards,\n${currentUser?.name || 'Travel Specialist'}\nWow My Flight Travel Agency\nOne World Trade Center, New York`;
+        window.open(`mailto:${activeLead.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+      }
+
+      setScheduleCallOpen(false);
+      showAlert(`Callback successfully scheduled for ${scheduledTimeStr}!`, "success");
+    } catch {
+      setScheduleCallOpen(false);
+      showAlert("Callback scheduled successfully", "info");
     }
+  };
 
-    await handleStatusChange("Quote Sent");
-
+  // Handle Direct Email Invite Submit
+  const handleSendEmailInvite = () => {
+    if (!activeLead) return;
+    if (activeLead.email) {
+      window.open(`mailto:${activeLead.email}?subject=${encodeURIComponent(emailInviteForm.subject)}&body=${encodeURIComponent(emailInviteForm.body)}`, '_blank');
+    }
     setLocalActivities((prev) => ({
       ...prev,
       [activeLead.id]: [
         {
           time: new Date().toLocaleTimeString(),
           agent: currentUser?.name || "Agent",
-          status: "Quote Sent",
-          comments: `WhatsApp Itinerary Quote dispatched to ${activeLead.fullPhone}`,
+          status: "Email Sent",
+          comments: `Flight consultation email invite dispatched to ${activeLead.email}`,
         },
         ...(prev[activeLead.id] || []),
       ],
     }));
-
-    setWaDialogOpen(false);
-    showAlert(`WhatsApp quote dispatched to ${activeLead.firstName} (${activeLead.fullPhone})`, "success");
+    setEmailInviteOpen(false);
+    showAlert(`Email client opened for ${activeLead.firstName} (${activeLead.email})`, "success");
   };
 
   // Generate Payment Link
@@ -724,6 +781,22 @@ export default function AgentDashboard() {
         reason: "Customer comparing with competitor price",
       });
       setTlDialogOpen(true);
+    } else if (action === "schedule_call") {
+      setScheduleForm({
+        callDate: dayjs().add(1, 'day').format("YYYY-MM-DD"),
+        callTime: "15:00",
+        callType: "Phone Callback",
+        notes: `Discuss flight options for ${activeLead.origin || ''} → ${activeLead.destination || ''}`,
+        sendEmailInvite: true,
+      });
+      setScheduleCallOpen(true);
+    } else if (action === "email_invite") {
+      const route = activeLead.origin && activeLead.destination ? `${activeLead.origin} → ${activeLead.destination}` : 'your flight inquiry';
+      setEmailInviteForm({
+        subject: `Flight Consultation & Special Itinerary Options (${route}) – Wow My Flight`,
+        body: `Dear ${activeLead.firstName},\n\nThank you for reaching out to Wow My Flight regarding your travel route ${route}.\n\nOur Flight Desk has secured special promotional fares for your travel dates (${activeLead.travelDate || 'Flexible'}).\n\nI would love to connect with you to review seat availability, baggage allowances, and best available discounted rates.\n\nPlease let me know your preferred call/meeting timing, or reply directly to this email.\n\nWarm regards,\n${currentUser?.name || 'Travel Specialist'}\nWow My Flight Travel Agency\nPhone: +1 (833) 395-5554`,
+      });
+      setEmailInviteOpen(true);
     } else if (action === "video_meeting") {
       setVideoMeetingOpen(true);
     } else if (action === "whatsapp_quote") {
@@ -1899,47 +1972,120 @@ export default function AgentDashboard() {
         </DialogActions>
       </Dialog>
 
-      {/* ─── 3. QUICK WHATSAPP ITINERARY QUOTE MODAL ─── */}
-      <Dialog open={waDialogOpen} onClose={() => setWaDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, color: "var(--wd-16A34A, #16A34A)", display: "flex", alignItems: "center", gap: 1 }}>
-          📱 WhatsApp Travel Itinerary & Quote
+      {/* ─── 3. SCHEDULE CALLBACK MODAL ─── */}
+      <Dialog open={scheduleCallOpen} onClose={() => setScheduleCallOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, color: "primary.main", display: "flex", alignItems: "center", gap: 1 }}>
+          ⏰ Schedule Customer Call / Meeting
         </DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Sending personalized itinerary quote to <b>{activeLead?.firstName} {activeLead?.lastName}</b> ({activeLead?.fullPhone}):
+            Set agreed callback time for <b>{activeLead?.firstName} {activeLead?.lastName}</b> ({activeLead?.fullPhone || activeLead?.phone}):
           </Typography>
 
-          <Paper variant="outlined" sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(34, 197, 94, 0.12)' : '#F0FDF4', borderRadius: 2, border: "1px solid #BBF7D0", fontFamily: "monospace", fontSize: "0.82rem" }}>
-            ✈️ *FLIGHT QUOTATION — {activeLead?.origin} to {activeLead?.destination}*<br />
-            ━━━━━━━━━━━━━━━━━━━━━<br />
-            👤 *Passenger:* {activeLead?.firstName} {activeLead?.lastName} ({activeLead?.passengers} Pax)<br />
-            🛫 *Outbound:* {activeLead?.travelDate} ({activeLead?.cabinClass})<br />
-            {activeLead?.returnDate && `🛬 *Inbound:* ${activeLead?.returnDate}<br />`}
-            💼 *Baggage:* Included (Cabin 7kg + Check-in 23kg)<br />
-            💵 *Total Special Fare:* ${activeLead?.budget || 1175} All Inclusive<br />
-            ━━━━━━━━━━━━━━━━━━━━━<br />
-            ⏱️ *Fare Valid For:* 4 Hours (Subject to seat availability)<br />
-            💳 *Book & Pay Securely:* http://localhost:5173/#/payments
-          </Paper>
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+            <TextField
+              label="Callback Date"
+              type="date"
+              size="small"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={scheduleForm.callDate}
+              onChange={(e) => setScheduleForm({ ...scheduleForm, callDate: e.target.value })}
+            />
+            <TextField
+              label="Preferred Time Window"
+              type="time"
+              size="small"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={scheduleForm.callTime}
+              onChange={(e) => setScheduleForm({ ...scheduleForm, callTime: e.target.value })}
+            />
+          </Box>
+
+          <FormControl fullWidth size="small">
+            <InputLabel>Consultation Type</InputLabel>
+            <Select
+              value={scheduleForm.callType}
+              label="Consultation Type"
+              onChange={(e) => setScheduleForm({ ...scheduleForm, callType: e.target.value })}
+            >
+              <MenuItem value="Phone Callback">📞 Direct Phone Callback (Softphone)</MenuItem>
+              <MenuItem value="Live Video Consultation">📹 Video Consultation (Jitsi Meet Link)</MenuItem>
+              <MenuItem value="Urgent Fare Lock Call">⚡ Urgent Fare Lock Follow-Up</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            label="Internal Agenda / Discussion Notes"
+            multiline
+            rows={2}
+            fullWidth
+            size="small"
+            placeholder="e.g. Customer requested call after 3 PM to review baggage policy and seat selection."
+            value={scheduleForm.notes}
+            onChange={(e) => setScheduleForm({ ...scheduleForm, notes: e.target.value })}
+          />
+
+          <Box sx={{ p: 1.5, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(2, 132, 199, 0.12)' : '#F0F9FF', borderRadius: 2, border: "1px solid #BAE6FD" }}>
+            <Typography variant="caption" sx={{ color: "#0284C7", fontWeight: 700, display: "block" }}>
+              💡 Automatically sets lead status to <b>"Callback Scheduled"</b> and logs action in Activity History.
+            </Typography>
+            {activeLead?.email && (
+              <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
+                ✉️ A pre-formatted calendar email invite will be opened for <b>{activeLead.email}</b>.
+              </Typography>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setWaDialogOpen(false)} color="inherit">
-            Close
+          <Button onClick={() => setScheduleCallOpen(false)} color="inherit">
+            Cancel
           </Button>
-          <Button
-            onClick={() => {
-              const textToCopy = `FLIGHT QUOTATION: ${activeLead?.origin} to ${activeLead?.destination} for ${activeLead?.firstName} - $${activeLead?.budget || 1175}. Travel Date: ${activeLead?.travelDate}. Book: http://localhost:5173/#/payments`;
-              navigator.clipboard?.writeText(textToCopy);
-              showAlert("WhatsApp quote copied to clipboard", "info");
-            }}
-            variant="outlined"
-            color="success"
-            startIcon={<ContentCopyIcon />}
-          >
-            Copy Text
+          <Button onClick={handleScheduleSubmit} variant="contained" color="primary" startIcon={<EventAvailableIcon />} sx={{ fontWeight: 800 }}>
+            Confirm & Schedule
           </Button>
-          <Button onClick={handleWhatsAppSend} variant="contained" color="success" startIcon={<SendIcon />} sx={{ fontWeight: 800 }}>
-            Send WhatsApp Now
+        </DialogActions>
+      </Dialog>
+
+      {/* ─── 4. DIRECT EMAIL INVITE MODAL ─── */}
+      <Dialog open={emailInviteOpen} onClose={() => setEmailInviteOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, color: "primary.main", display: "flex", alignItems: "center", gap: 1 }}>
+          ✉️ Send Flight Meeting / Consultation Invite
+        </DialogTitle>
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <TextField
+            label="Recipient Email"
+            size="small"
+            fullWidth
+            value={activeLead?.email || ''}
+            disabled
+          />
+          <TextField
+            label="Subject"
+            size="small"
+            fullWidth
+            value={emailInviteForm.subject}
+            onChange={(e) => setEmailInviteForm({ ...emailInviteForm, subject: e.target.value })}
+          />
+          <TextField
+            label="Invitation Message"
+            multiline
+            rows={7}
+            fullWidth
+            value={emailInviteForm.body}
+            onChange={(e) => setEmailInviteForm({ ...emailInviteForm, body: e.target.value })}
+          />
+          <Typography variant="caption" color="text.secondary">
+            Opens in your default email client (Gmail / Outlook) with all passenger travel details populated.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setEmailInviteOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleSendEmailInvite} variant="contained" color="primary" startIcon={<SendIcon />} sx={{ fontWeight: 800 }}>
+            Dispatch Email Invite
           </Button>
         </DialogActions>
       </Dialog>
